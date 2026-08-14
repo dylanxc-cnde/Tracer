@@ -1,0 +1,15 @@
+.local/
+.env
+.env.*
+!.env.example
+
+node_modules/
+.next/
+
+__pycache__/
+.pytest_cache/
+.venv/
+
+build/
+dist/
+*.egg-info/
