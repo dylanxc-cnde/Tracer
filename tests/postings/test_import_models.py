@@ -74,13 +74,32 @@ def test_text_import_preserves_original_text_and_optional_source_url():
 
 
 def test_text_import_rejects_blank_text():
-    with pytest.raises(ValidationError, match="non-whitespace"):
+    with pytest.raises(ValidationError) as exception_info:
         make_request(source={"kind": "text", "text": "  \n  "})
+
+    error_details = exception_info.value.errors()[0]
+    assert error_details["type"] == "value_error"
+    assert error_details["loc"] == ("source", "text", "text")
+    assert "non-whitespace" in error_details["msg"]
 
 
 def test_import_request_rejects_naive_submission_time():
-    with pytest.raises(ValidationError, match="timezone is required"):
+    with pytest.raises(ValidationError) as exception_info:
         make_request(submitted_at=datetime(2026, 8, 14, 18, 30))
+
+    error_details = exception_info.value.errors()[0]
+    assert error_details["type"] == "value_error"
+    assert error_details["loc"] == ("submitted_at",)
+    assert "timezone is required" in error_details["msg"]
+
+
+def test_url_import_rejects_invalid_url_with_validation_error():
+    with pytest.raises(ValidationError) as exception_info:
+        make_request(source={"kind": "url", "url": "not-a-url"})
+
+    error_details = exception_info.value.errors()[0]
+    assert error_details["type"] == "url_parsing"
+    assert error_details["loc"] == ("source", "url", "url")
 
 
 def test_import_source_rejects_unknown_kind():

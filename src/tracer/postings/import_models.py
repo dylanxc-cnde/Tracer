@@ -33,7 +33,7 @@ class TextImport(_PostingImportModel):
     """Job-posting text pasted by the user."""
 
     kind: Literal["text"] = "text"
-    text: str = Field(min_length=1)
+    text: str
     source_url: AnyHttpUrl | None = None
 
     @field_validator("text", mode="after")
