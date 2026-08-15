@@ -1,0 +1,168 @@
+SYNTHETIC EXAMPLE
+All companies, people, job IDs and figures in this file are fictional.
+
+SKIP TO MAIN CONTENT
+Velora Grid Systems logo
+
+Locations
+Students
+Application guide
+Benefits
+About us
+
+CAREERS AT VELORA GRID SYSTEMS
+Build practical energy systems for tomorrow's cities.
+
+Velora Grid Systems SE develops modular charging infrastructure, energy
+storage controllers and planning software for public transport operators and
+commercial vehicle fleets. Our teams combine hardware development, software
+engineering, operations and data analysis.
+
+JOB SEARCH
+We found 126 current vacancies.
+
+Praktikum Lieferkettenanalyse und Beschaffung (all genders)
+Published: 16.08.2026
+Supply Chain
+Leipzig
+
+Werkstudent:in Embedded Software Test (all genders)
+Published: 16.08.2026
+Software Engineering
+Dresden
+
+Abschlussarbeit Thermisches Management von Batteriesystemen (all genders)
+Published: 15.08.2026
+Energy Storage
+Kassel
+
+Werkstudent:in Corporate Communications (all genders)
+Published: 15.08.2026
+Communications
+Berlin
+
+Werkstudent:in Portfolioanalyse und Business Intelligence (all genders)
+Published: 15.08.2026
+Portfolio Planning
+Hannover
+
+SHOW MORE JOBS
+
+VELORA IN NUMBERS
+Around 4,800 colleagues
+12 development and service locations
+Employees from more than 45 countries
+About 90 apprentices and dual-study students
+
+MEET OUR TEAMS
+
+"During my internship I was able to own a small analysis project and discuss
+the results directly with colleagues from production and software."
+MARA
+Intern, Operations Analytics
+
+"Our work connects electronics, cloud services and real infrastructure. That
+makes every project different."
+JONAS
+Systems Engineer
+
+Legal notice
+Privacy
+Contact
+Accessibility
+
+
+Portfolio Planning
+Hannover
+15.08.2026
+
+Werkstudent:in Portfolioanalyse und Business Intelligence (all genders)
+
+DATEN VERSTEHEN. ENTSCHEIDUNGEN BESSER MACHEN.
+
+Unser Portfolio-Team plant die Weiterentwicklung unserer Lade- und
+Energiespeicherlösungen. Dafür verbinden wir Marktinformationen,
+Produktkennzahlen und Rückmeldungen aus Kundenprojekten. Als Werkstudent:in
+unterstützt du uns dabei, diese Informationen verständlich aufzubereiten und
+in die nächste Portfolioplanung einfließen zu lassen.
+
+Deine Aufgaben
+
+Du unterstützt das Team bei Analysen zur zukünftigen Ausrichtung unseres
+Produktportfolios für Ladeinfrastruktur und Energiemanagement.
+
+Du wirkst bei der Digitalisierung wiederkehrender Planungsprozesse mit und
+hilfst dabei, vorhandene Tabellen und Datenquellen besser zu strukturieren.
+
+Gemeinsam mit den Fachbereichen entwickelst du Anwendungsfälle und
+Anforderungen für Business-Intelligence- und Data-Analytics-Werkzeuge.
+
+Du bereitest Daten auf, prüfst ihre Plausibilität und leitest daraus mögliche
+Handlungsempfehlungen für das Portfolio-Team ab.
+
+Außerdem unterstützt du bei Präsentationen und Entscheidungsvorlagen für
+interne Abstimmungen. Dabei visualisierst du quantitative Ergebnisse so, dass
+auch Kolleg:innen außerhalb des Datenteams sie nachvollziehen können.
+
+Das bringst du mit
+
+Du studierst Wirtschaftswissenschaften, Wirtschaftsinformatik,
+Wirtschaftsingenieurwesen oder einen vergleichbaren Studiengang.
+
+Du verfügst über sehr gute Kenntnisse in Microsoft Office, insbesondere in
+Excel. Kenntnisse in Power Query, Power Pivot und VBA sind wünschenswert.
+
+Erfahrung mit Werkzeugen zur Datenvisualisierung, zum Beispiel Qlik Sense,
+Microsoft Power BI oder Tableau, ist von Vorteil.
+
+Praktische Kenntnisse in Data Analytics mit R, Python oder KNIME sind von
+Vorteil.
+
+Du arbeitest analytisch, strukturiert und eigenständig und kannst komplexe
+Informationen verständlich erklären.
+
+Für die Zusammenarbeit im Team bringst du gute Kommunikationsfähigkeit in
+deutscher und englischer Sprache mit.
+
+Das bieten wir dir
+
+Eine feste Ansprechperson und ein strukturiertes Onboarding.
+
+Flexible Arbeitszeiten, die sich mit deinem Studium vereinbaren lassen.
+
+Mobiles Arbeiten nach Absprache.
+
+Zugang zu internen Weiterbildungen in Datenanalyse und Produktmanagement.
+
+Bezuschusstes Mittagessen und ein Deutschlandticket-Zuschuss.
+
+Startdatum: frühestens 01.10.2026
+Dauer: 12 Monate
+Arbeitszeit: Teilzeit, 16 bis 20 Stunden pro Woche
+
+Bitte bewirb dich über unser Karriereportal und lade deinen Lebenslauf sowie
+eine aktuelle Immatrikulationsbescheinigung hoch.
+
+Velora Grid Systems begrüßt Bewerbungen unabhängig von Geschlecht, Herkunft,
+Religion, Behinderung, Alter oder sexueller Identität. Für uns zählen deine
+Erfahrungen, deine Motivation und deine Bereitschaft, Neues zu lernen.
+
+Legal Entity:
+Velora Grid Systems SE
+
+Location:
+Hannover
+
+Job Field:
+Portfolio Planning
+
+Job ID:
+VGS-WS-4821
+
+Publication Date:
+15.08.2026
+
+Source URL:
+https://careers.velora-grid.example/jobs/VGS-WS-4821
+
+APPLY NOW
