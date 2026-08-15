@@ -2,53 +2,67 @@
 
 [![CI](https://github.com/dylanxc-cnde/Tracer/actions/workflows/ci.yml/badge.svg)](https://github.com/dylanxc-cnde/Tracer/actions/workflows/ci.yml)
 
-**Turn messy job links and notes into cards you can actually review.**
+**Turn messy job pages into structured records you can actually review.**
 
-Tracer is a small side project for sorting out internships, working-student roles, HiWi jobs, and thesis openings in Germany. I am also using it to learn more about Python, data modeling, and desktop app development.
-
-Job pages and old application notes can be long and messy. Tracer lets you paste a public job URL or the text you already have, then uses a model to pull out useful details such as the company, role, location, requirements, deadline, and contact information.
+Tracer is a small side project for internships, working-student roles, HiWi
+jobs, and thesis openings in Germany. I am building it while learning more
+about Python, LLM APIs, data modeling, and desktop apps.
 
 ```text
 job URL or pasted text
--> AI retrieval and extraction
--> Evidence Card draft
--> validation and user review
--> user decides whether to apply
+-> AI retrieval and structured extraction
+-> evidence, unknowns, and ambiguities
+-> user review
+-> confirmed Posting Card
 ```
 
-## A few rules
+## What works now
 
-- Important values should include the supporting text or source URL.
-- If the posting does not say something clearly, it stays `unknown`.
-- Model output is a draft until the code validates it and the user reviews it.
-- The system may find and prepare job cards, but only the user can create an application record.
-- Tracer may help organize application materials, but it will not fill in or submit applications.
+- Pydantic models for imports, parsed posting details, and confirmed cards;
+- local SQLite storage for posting imports;
+- strict structured output through the OpenAI Responses API;
+- source excerpts for extracted facts;
+- multiple posting candidates without mixing in recommended jobs;
+- grouped requirements such as `all_of`, `any_of`, and named examples;
+- explicit ambiguities when a value cannot be classified safely.
 
-## What I am building first
+Model output is always a proposal. Missing information stays unknown, and the
+user reviews the result before it becomes a confirmed card.
 
-The first version is one small Python flow:
+## Run the tests
 
-```text
-one public job URL or pasted description
--> create a Posting Import Request
--> call a model API with web search when needed
--> create and validate an Evidence Card draft
--> output JSON
+Tracer uses Python 3.12 and [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync
+uv run pytest
 ```
 
-Python and Pydantic own the data contracts and validation. A small TypeScript desktop interface can come later.
+## Try the parser
 
-## Maybe later
+The public example uses a fictional job posting from
+`examples/sample_posting.txt`.
 
+Set `OPENAI_API_KEY` in your shell or in an ignored `.env.local` file, then
+run:
+
+```bash
+uv run --env-file .env.local python examples/try_posting_parse.py
+```
+
+The example currently uses `gpt-5.6-luna` and requires at least one web search.
+It sends the sample text to the OpenAI API and uses paid API credits.
+
+Real job pages, API outputs, application records, and keys are not included in
+the repository.
+
+## Later
+
+- a small TypeScript desktop interface for reviewing and editing cards;
 - application status, emails, interviews, and next steps;
-- CV, cover-letter, and portfolio versions;
-- user skills, goals, and preferences;
-- skill matching and application reviews;
-- automatic job discovery.
+- candidate skills, managed skill tags, and explainable matching;
+- CV and cover-letter versions;
+- job discovery and application retrospectives.
 
-None of that needs to be built all at once.
-
-## Status
-
-Very early. The repository currently contains the basic Python package structure, not a usable app.
-# Tracer
+Tracer will help organize and review applications, but it will not submit them
+for the user.
