@@ -2,6 +2,8 @@ import pytest
 from pydantic import ValidationError
 
 from tracer.postings.parse_models import (
+    ParsedPosting,
+    PostingParseAmbiguity,
     PostingParseResult,
     PostingParseStatus,
     PostingRefinementReason,
@@ -16,15 +18,36 @@ def make_posting_details() -> PostingDetails:
         classification={},
         work_conditions={},
         role_content={},
-        requirements={},
+        requirements=[],
         compensation={},
         application_instructions={},
-        contact={},
+        contact=None,
     )
 
 
+def make_parsed_posting() -> ParsedPosting:
+    return ParsedPosting(
+        details=make_posting_details(),
+        parse_ambiguities=[
+            PostingParseAmbiguity(
+                field_path="compensation.entries",
+                description="The page states two monthly maxima.",
+                alternatives=["6000 EUR/month", "5000 EUR/month plus bonus"],
+            )
+        ],
+    )
+
+
+def test_parsed_posting_keeps_ambiguities_outside_details():
+    posting = make_parsed_posting()
+
+    assert len(posting.parse_ambiguities) == 1
+    assert posting.parse_ambiguities[0].field_path == "compensation.entries"
+    assert "parse_ambiguities" not in PostingDetails.model_fields
+
+
 def test_posting_parse_result_keeps_over_limit_result_structured():
-    posting = make_posting_details()
+    posting = make_parsed_posting()
     result = PostingParseResult(
         status="refinement_required",
         postings=[posting] * 6,

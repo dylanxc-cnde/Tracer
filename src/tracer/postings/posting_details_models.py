@@ -69,13 +69,6 @@ class InternshipRequirement(StrEnum):
     NOT_APPLICABLE = "not_applicable"
 
 
-class DegreeLevel(StrEnum):
-    BACHELOR = "bachelor"
-    MASTER = "master"
-    DOCTORATE = "doctorate"
-    OTHER = "other"
-
-
 class WorkMode(StrEnum):
     ONSITE = "onsite"
     HYBRID = "hybrid"
@@ -141,7 +134,7 @@ class PostingIdentity(_PostingDetailsModel):
     posting_language: ParsedValue[str] | None = None
 
 
-class CompanyDetails(_PostingDetailsModel):
+class CompanyInfo(_PostingDetailsModel):
     """Company information stated by the posting source."""
 
     industry_tags: tuple[ParsedValue[str], ...] = ()
@@ -157,7 +150,7 @@ class PostingClassification(_PostingDetailsModel):
     contract_type: ParsedValue[ContractType] | None = None
     seniority: ParsedValue[Seniority] | None = None
     internship_requirement: ParsedValue[InternshipRequirement] | None = None
-    eligible_degrees: ParsedValue[tuple[str, ...]] | None = None
+    eligible_groups: ParsedValue[tuple[str, ...]] | None = None
     study_fields: ParsedValue[tuple[str, ...]] | None = None
     student_status_required: ParsedValue[bool] | None = None
     target_semester: ParsedValue[str] | None = None
@@ -210,12 +203,6 @@ class Requirement(_PostingDetailsModel):
     sources: tuple[SourceExcerpt, ...] = ()
 
 
-class PostingRequirements(_PostingDetailsModel):
-    """Requirements used later for profile and skill matching."""
-
-    items: tuple[Requirement, ...] = ()
-
-
 class CompensationEntry(_PostingDetailsModel):
     """One salary, bonus or allowance statement."""
 
@@ -225,15 +212,15 @@ class CompensationEntry(_PostingDetailsModel):
     currency: str | None = None
     period: CompensationPeriod | None = None
     pay_basis: PayBasis = PayBasis.UNKNOWN
-    applicable_degree_levels: tuple[DegreeLevel, ...] = ()
+    applicable_groups: tuple[str, ...] = ()
     payment_conditions: str | None = None
     sources: tuple[SourceExcerpt, ...] = ()
 
 
-class CompensationDetails(_PostingDetailsModel):
+class Compensation(_PostingDetailsModel):
     """Compensation statements and benefits from the posting."""
 
-    items: tuple[CompensationEntry, ...] = ()
+    entries: tuple[CompensationEntry, ...] = ()
     benefits: tuple[ParsedValue[str], ...] = ()
     vacation_days: ParsedValue[int] | None = None
 
@@ -259,25 +246,15 @@ class PostingContact(_PostingDetailsModel):
     sources: tuple[SourceExcerpt, ...] = ()
 
 
-class ParsingIssue(_PostingDetailsModel):
-    """One unresolved conflict or interpretation risk."""
-
-    field_path: str
-    description: str
-    alternatives: tuple[str, ...] = ()
-    sources: tuple[SourceExcerpt, ...] = ()
-
-
 class PostingDetails(_PostingDetailsModel):
     """Complete details for one job posting."""
 
     identity: PostingIdentity
-    company: CompanyDetails
+    company: CompanyInfo
     classification: PostingClassification
     work_conditions: WorkConditions
     role_content: RoleDescription
-    requirements: PostingRequirements
-    compensation: CompensationDetails
+    requirements: tuple[Requirement, ...] = ()
+    compensation: Compensation
     application_instructions: ApplicationInstructions
-    contact: PostingContact
-    ambiguities: tuple[ParsingIssue, ...] = ()
+    contact: PostingContact | None = None

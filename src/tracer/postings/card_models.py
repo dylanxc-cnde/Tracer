@@ -24,7 +24,7 @@ class PostingCard(_PostingCardModel):
     import_key: UUID
     schema_version: int = Field(default=1, ge=1)
     created_at: datetime = Field(default_factory=_utc_now)
-    posting_details: PostingDetails
+    posting: PostingDetails
     posting_alias: str | None = None
     user_notes: str | None = None
     tags: tuple[str, ...] = ()

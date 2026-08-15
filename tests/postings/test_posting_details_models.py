@@ -6,7 +6,6 @@ from pydantic import ValidationError
 from tracer.postings.posting_details_models import (
     ApplicationChannel,
     ContractType,
-    DegreeLevel,
     ParsedValue,
     PostingDetails,
     RequirementCategory,
@@ -65,7 +64,7 @@ def make_posting_details() -> PostingDetails:
             "contract_type": value("permanent"),
             "seniority": value("experienced"),
             "internship_requirement": value("not_applicable"),
-            "eligible_degrees": None,
+            "eligible_groups": None,
             "study_fields": None,
             "student_status_required": value(False),
             "target_semester": None,
@@ -114,21 +113,19 @@ def make_posting_details() -> PostingDetails:
                 {"value": "Heat-pump technology"},
             ],
         },
-        requirements={
-            "items": [
-                {
-                    "text": "Führerschein Klasse B",
-                    "importance": "required",
-                    "category": "license",
-                    "normalized_name": "Driving licence class B",
-                    "sources": [
-                        {"text": "Du besitzt einen Führerschein Klasse B"}
-                    ],
-                }
-            ]
-        },
+        requirements=[
+            {
+                "text": "Führerschein Klasse B",
+                "importance": "required",
+                "category": "license",
+                "normalized_name": "Driving licence class B",
+                "sources": [
+                    {"text": "Du besitzt einen Führerschein Klasse B"}
+                ],
+            }
+        ],
         compensation={
-            "items": [
+            "entries": [
                 {
                     "compensation_type": "base_salary",
                     "maximum_amount": 6000,
@@ -184,14 +181,7 @@ def make_posting_details() -> PostingDetails:
             "special_instructions": [],
             "application_deadline": None,
         },
-        contact={},
-        ambiguities=[
-            {
-                "field_path": "compensation.items",
-                "description": "The page states two different monthly maxima.",
-                "alternatives": ["6000 EUR/month", "5000 EUR/month plus bonus"],
-            },
-        ],
+        contact=None,
     )
 
 
@@ -232,10 +222,10 @@ def test_posting_details_accept_detailed_job_data():
     assert posting.work_conditions.work_modes.value == (
         WorkMode.FIELD_BASED,
     )
-    assert posting.requirements.items[0].importance is (
+    assert posting.requirements[0].importance is (
         RequirementImportance.REQUIRED
     )
-    assert posting.requirements.items[0].category is (
+    assert posting.requirements[0].category is (
         RequirementCategory.LICENSE
     )
     assert posting.work_conditions.travel_requirement.value == (
@@ -246,8 +236,8 @@ def test_posting_details_accept_detailed_job_data():
     }
     assert "mobility" not in requirement_categories
     assert "availability" not in requirement_categories
-    assert len(posting.compensation.items) == 3
-    assert len(posting.ambiguities) == 1
+    assert len(posting.compensation.entries) == 3
+    assert posting.contact is None
     assert tuple(
         domain.value for domain in posting.role_content.domains
     ) == (
@@ -256,9 +246,9 @@ def test_posting_details_accept_detailed_job_data():
     )
 
 
-def test_compensation_entries_keep_degree_specific_pay_structured():
+def test_compensation_entries_keep_applicable_groups_structured():
     payload = make_posting_details().model_dump(mode="json")
-    payload["compensation"]["items"] = [
+    payload["compensation"]["entries"] = [
         {
             "compensation_type": "base_salary",
             "minimum_amount": 16,
@@ -266,7 +256,7 @@ def test_compensation_entries_keep_degree_specific_pay_structured():
             "currency": "EUR",
             "period": "hour",
             "pay_basis": "gross",
-            "applicable_degree_levels": ["bachelor"],
+            "applicable_groups": ["Bachelor students"],
             "payment_conditions": "Depending on study progress.",
             "sources": [
                 {
@@ -284,12 +274,11 @@ def test_compensation_entries_keep_degree_specific_pay_structured():
             "currency": "EUR",
             "period": "hour",
             "pay_basis": "gross",
-            "applicable_degree_levels": ["master"],
+            "applicable_groups": ["Apprentices"],
             "sources": [
                 {
                     "text": (
-                        "Masterstudierende erhalten 18 bis 20 EUR "
-                        "pro Stunde."
+                        "Auszubildende erhalten 18 bis 20 EUR pro Stunde."
                     )
                 }
             ],
@@ -298,22 +287,28 @@ def test_compensation_entries_keep_degree_specific_pay_structured():
 
     posting = PostingDetails.model_validate(payload)
 
-    bachelor_pay, master_pay = posting.compensation.items
-    assert bachelor_pay.applicable_degree_levels == (
-        DegreeLevel.BACHELOR,
-    )
+    bachelor_pay, apprentice_pay = posting.compensation.entries
+    assert bachelor_pay.applicable_groups == ("Bachelor students",)
     assert bachelor_pay.minimum_amount == 16
     assert bachelor_pay.maximum_amount == 18
     assert bachelor_pay.payment_conditions == "Depending on study progress."
-    assert master_pay.applicable_degree_levels == (DegreeLevel.MASTER,)
+    assert apprentice_pay.applicable_groups == ("Apprentices",)
 
-    payload["compensation"]["items"][0]["conditions"] = "Bachelor only"
+    payload["compensation"]["entries"][0]["conditions"] = "Bachelor only"
     with pytest.raises(ValidationError, match="conditions"):
+        PostingDetails.model_validate(payload)
+
+    payload = make_posting_details().model_dump(mode="json")
+    payload["compensation"]["entries"][0][
+        "applicable_degree_levels"
+    ] = ["bachelor"]
+    with pytest.raises(ValidationError, match="applicable_degree_levels"):
         PostingDetails.model_validate(payload)
 
 
 def test_posting_details_keep_one_selected_contact():
     payload = make_posting_details().model_dump(mode="json")
+    assert payload["contact"] is None
     payload["application_instructions"]["channels"] = value(
         ["email"],
         source_text="Bewerbungen bitte per E-Mail senden.",

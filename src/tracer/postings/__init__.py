@@ -7,12 +7,13 @@ from .import_models import (
     TextImport,
     UrlImport,
 )
-from .parse_models import PostingParseResult
+from .parse_models import ParsedPosting, PostingParseResult
 from .posting_details_models import PostingDetails
 
 __all__ = [
     "PostingCard",
     "PostingDetails",
+    "ParsedPosting",
     "PostingParseResult",
     "PostingImportRequest",
     "PostingImportSource",

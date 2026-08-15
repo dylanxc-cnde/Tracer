@@ -18,10 +18,10 @@ def make_posting_details() -> PostingDetails:
         classification={},
         work_conditions={},
         role_content={},
-        requirements={},
+        requirements=[],
         compensation={},
         application_instructions={},
-        contact={},
+        contact=None,
     )
 
 
@@ -38,7 +38,7 @@ def test_posting_card_adds_system_and_user_fields():
     card = PostingCard(
         import_key=IMPORT_KEY,
         created_at=created_at,
-        posting_details=make_posting_details(),
+        posting=make_posting_details(),
         posting_alias="Thermondo München",
         user_notes="Check travel area.",
         tags=["priority"],
@@ -52,10 +52,10 @@ def test_posting_card_adds_system_and_user_fields():
     assert card.tags == ("priority",)
 
 
-def test_posting_card_json_round_trip_preserves_posting_details():
+def test_posting_card_json_round_trip_preserves_posting():
     card = PostingCard(
         import_key=IMPORT_KEY,
-        posting_details=make_posting_details(),
+        posting=make_posting_details(),
     )
 
     restored = PostingCard.model_validate_json(card.model_dump_json())
@@ -68,5 +68,5 @@ def test_posting_card_rejects_naive_created_time():
         PostingCard(
             import_key=IMPORT_KEY,
             created_at=datetime(2026, 8, 15, 18, 30),
-            posting_details=make_posting_details(),
+            posting=make_posting_details(),
         )

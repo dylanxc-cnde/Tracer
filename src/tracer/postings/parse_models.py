@@ -2,7 +2,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
-from .posting_details_models import PostingDetails
+from .posting_details_models import PostingDetails, SourceExcerpt
 
 
 class _PostingParseModel(BaseModel):
@@ -24,10 +24,26 @@ class PostingRefinementReason(StrEnum):
     INSUFFICIENT_DETAIL = "insufficient_detail"
 
 
+class PostingParseAmbiguity(_PostingParseModel):
+    """One unresolved conflict in a parsed posting."""
+
+    field_path: str
+    description: str
+    alternatives: tuple[str, ...] = ()
+    sources: tuple[SourceExcerpt, ...] = ()
+
+
+class ParsedPosting(_PostingParseModel):
+    """One parsed posting and its unresolved ambiguities."""
+
+    details: PostingDetails
+    parse_ambiguities: tuple[PostingParseAmbiguity, ...] = ()
+
+
 class PostingParseResult(_PostingParseModel):
     """Result of one model parsing call."""
 
     status: PostingParseStatus
-    postings: tuple[PostingDetails, ...] = ()
+    postings: tuple[ParsedPosting, ...] = ()
     refinement_reason: PostingRefinementReason | None = None
     refinement_suggestions: tuple[str, ...] = ()
