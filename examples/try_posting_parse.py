@@ -97,6 +97,8 @@ the exact source page URL; never invent a URL from a similar search result.
 
 Create a parse ambiguity only when sources conflict or when a source statement
 directly supports two or more plausible interpretations of the same field.
+Every PostingParseAmbiguity.field_path is relative to the PostingDetails root
+inside ParsedPosting.details. Never prefix it with "details.". 
 Do not create an ambiguity merely because a field is absent, because another
 field only suggests a possible value, or because the employer did not state
 the value. Leave an unstated field unknown without an ambiguity.
