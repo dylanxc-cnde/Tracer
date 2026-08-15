@@ -29,21 +29,21 @@ class PostingParseAmbiguity(_PostingParseModel):
 
     field_path: str
     description: str
-    alternatives: tuple[str, ...] = ()
-    sources: tuple[SourceExcerpt, ...] = ()
+    alternatives: tuple[str, ...]
+    sources: tuple[SourceExcerpt, ...]
 
 
 class ParsedPosting(_PostingParseModel):
     """One parsed posting and its unresolved ambiguities."""
 
     details: PostingDetails
-    parse_ambiguities: tuple[PostingParseAmbiguity, ...] = ()
+    parse_ambiguities: tuple[PostingParseAmbiguity, ...]
 
 
 class PostingParseResult(_PostingParseModel):
     """Result of one model parsing call."""
 
     status: PostingParseStatus
-    postings: tuple[ParsedPosting, ...] = ()
-    refinement_reason: PostingRefinementReason | None = None
-    refinement_suggestions: tuple[str, ...] = ()
+    postings: tuple[ParsedPosting, ...]
+    refinement_reason: PostingRefinementReason | None
+    refinement_suggestions: tuple[str, ...]

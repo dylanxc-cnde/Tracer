@@ -16,10 +16,17 @@ from tracer.postings.posting_details_models import (
 )
 
 
+def source(text):
+    return {
+        "text": text,
+        "source_url": None,
+    }
+
+
 def value(parsed_value, *, source_text=None):
     sources = []
     if source_text is not None:
-        sources.append({"text": source_text})
+        sources.append(source(source_text))
     return {
         "value": parsed_value,
         "sources": sources,
@@ -50,8 +57,8 @@ def make_posting_details() -> PostingDetails:
         },
         company={
             "industry_tags": [
-                {"value": "Handwerk"},
-                {"value": "Baugewerbe"},
+                value("Handwerk"),
+                value("Baugewerbe"),
             ],
             "employee_range": value("251-1000"),
             "company_summary": value(
@@ -75,7 +82,7 @@ def make_posting_details() -> PostingDetails:
                     "city": "München",
                     "region": "Bayern",
                     "country": "Germany",
-                    "sources": [{"text": "München"}],
+                    "sources": [source("München")],
                 }
             ],
             "work_modes": value(
@@ -99,18 +106,16 @@ def make_posting_details() -> PostingDetails:
                 {
                     "value": "Install and commission heat pumps.",
                     "sources": [
-                        {
-                            "text": (
-                                "Installation und Inbetriebnahme "
-                                "der Wärmepumpen"
-                            )
-                        }
+                        source(
+                            "Installation und Inbetriebnahme "
+                            "der Wärmepumpen"
+                        )
                     ],
                 }
             ],
             "domains": [
-                {"value": "Climate-neutral housing"},
-                {"value": "Heat-pump technology"},
+                value("Climate-neutral housing"),
+                value("Heat-pump technology"),
             ],
         },
         requirements=[
@@ -120,7 +125,7 @@ def make_posting_details() -> PostingDetails:
                 "category": "license",
                 "normalized_name": "Driving licence class B",
                 "sources": [
-                    {"text": "Du besitzt einen Führerschein Klasse B"}
+                    source("Du besitzt einen Führerschein Klasse B")
                 ],
             }
         ],
@@ -128,45 +133,48 @@ def make_posting_details() -> PostingDetails:
             "entries": [
                 {
                     "compensation_type": "base_salary",
+                    "minimum_amount": None,
                     "maximum_amount": 6000,
                     "currency": "EUR",
                     "period": "month",
                     "pay_basis": "gross",
+                    "applicable_groups": [],
+                    "payment_conditions": None,
                     "sources": [
-                        {"text": "bis zu 6.000 € brutto pro Monat"}
+                        source("bis zu 6.000 € brutto pro Monat")
                     ],
                 },
                 {
                     "compensation_type": "base_salary",
+                    "minimum_amount": None,
                     "maximum_amount": 5000,
                     "currency": "EUR",
                     "period": "month",
                     "pay_basis": "gross",
+                    "applicable_groups": [],
+                    "payment_conditions": None,
                     "sources": [
-                        {"text": "bis zu 5.000 EUR brutto pro Monat"}
+                        source("bis zu 5.000 EUR brutto pro Monat")
                     ],
                 },
                 {
                     "compensation_type": "bonus",
+                    "minimum_amount": None,
                     "maximum_amount": 350,
                     "currency": "EUR",
                     "period": "week",
                     "pay_basis": "gross",
+                    "applicable_groups": [],
+                    "payment_conditions": None,
                     "sources": [
-                        {
-                            "text": (
-                                "Bonus von bis zu 350,00 EUR pro Woche"
-                            )
-                        }
+                        source(
+                            "Bonus von bis zu 350,00 EUR pro Woche"
+                        )
                     ],
                 },
             ],
             "benefits": [
-                {
-                    "value": (
-                        "Structured training and professional education"
-                    )
-                }
+                value("Structured training and professional education")
             ],
             "vacation_days": value(
                 30,
@@ -188,7 +196,7 @@ def make_posting_details() -> PostingDetails:
 def test_source_excerpt_is_the_only_owner_of_source_text():
     parsed_value = ParsedValue[str](
         value="Thermondo GmbH",
-        sources=[{"text": "Thermondo GmbH"}],
+        sources=[source("Thermondo GmbH")],
     )
 
     assert parsed_value.sources[0].text == "Thermondo GmbH"
@@ -199,12 +207,14 @@ def test_source_excerpt_is_the_only_owner_of_source_text():
     with pytest.raises(ValidationError, match="original_text"):
         ParsedValue[str](
             value="Thermondo GmbH",
+            sources=[],
             original_text="Thermondo GmbH",
         )
 
     with pytest.raises(ValidationError, match="source_locator"):
         SourceExcerpt(
             text="Thermondo GmbH",
+            source_url=None,
             source_locator="section.company",
         )
 
@@ -259,12 +269,10 @@ def test_compensation_entries_keep_applicable_groups_structured():
             "applicable_groups": ["Bachelor students"],
             "payment_conditions": "Depending on study progress.",
             "sources": [
-                {
-                    "text": (
-                        "Bachelorstudierende erhalten je nach "
-                        "Studienfortschritt 16 bis 18 EUR pro Stunde."
-                    )
-                }
+                source(
+                    "Bachelorstudierende erhalten je nach "
+                    "Studienfortschritt 16 bis 18 EUR pro Stunde."
+                )
             ],
         },
         {
@@ -275,12 +283,9 @@ def test_compensation_entries_keep_applicable_groups_structured():
             "period": "hour",
             "pay_basis": "gross",
             "applicable_groups": ["Apprentices"],
+            "payment_conditions": None,
             "sources": [
-                {
-                    "text": (
-                        "Auszubildende erhalten 18 bis 20 EUR pro Stunde."
-                    )
-                }
+                source("Auszubildende erhalten 18 bis 20 EUR pro Stunde.")
             ],
         },
     ]
@@ -317,13 +322,12 @@ def test_posting_details_keep_one_selected_contact():
         "name": "Anna Beispiel",
         "role": "Recruiter",
         "email": "anna@example.com",
+        "phone": None,
         "sources": [
-            {
-                "text": (
-                    "Bewerbungen bitte per E-Mail an "
-                    "anna@example.com senden."
-                )
-            }
+            source(
+                "Bewerbungen bitte per E-Mail an "
+                "anna@example.com senden."
+            )
         ],
     }
 
@@ -343,13 +347,10 @@ def test_posting_details_keep_one_selected_contact():
     payload_without_email["contact"] = {
         "name": "Max Beispiel",
         "role": "Scientific supervisor",
+        "email": None,
         "phone": "+49 241 123456",
         "sources": [
-            {
-                "text": (
-                    "Kontakt: Max Beispiel, Telefon +49 241 123456"
-                )
-            }
+            source("Kontakt: Max Beispiel, Telefon +49 241 123456")
         ],
     }
 

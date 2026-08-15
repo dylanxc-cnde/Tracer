@@ -13,14 +13,60 @@ IMPORT_KEY = UUID("c0caad62-902e-4fe0-bc44-82b7d40ac838")
 
 def make_posting_details() -> PostingDetails:
     return PostingDetails(
-        identity={},
-        company={},
-        classification={},
-        work_conditions={},
-        role_content={},
+        identity={
+            "company_name": None,
+            "department_name": None,
+            "position_title": None,
+            "external_job_id": None,
+            "canonical_posting_url": None,
+            "source_platform": None,
+            "published_on": None,
+            "posting_language": None,
+        },
+        company={
+            "industry_tags": [],
+            "employee_range": None,
+            "company_summary": None,
+        },
+        classification={
+            "role_families": None,
+            "original_employment_type": None,
+            "contract_type": None,
+            "seniority": None,
+            "internship_requirement": None,
+            "eligible_groups": None,
+            "study_fields": None,
+            "student_status_required": None,
+            "target_semester": None,
+        },
+        work_conditions={
+            "locations": [],
+            "work_modes": None,
+            "weekly_hours": None,
+            "schedule": None,
+            "travel_requirement": None,
+            "start_on": None,
+            "duration": None,
+        },
+        role_content={
+            "role_summary": None,
+            "responsibilities": [],
+            "domains": [],
+        },
         requirements=[],
-        compensation={},
-        application_instructions={},
+        compensation={
+            "entries": [],
+            "benefits": [],
+            "vacation_days": None,
+        },
+        application_instructions={
+            "channels": None,
+            "application_url": None,
+            "required_email_subject": None,
+            "required_documents": [],
+            "special_instructions": [],
+            "application_deadline": None,
+        },
         contact=None,
     )
 
