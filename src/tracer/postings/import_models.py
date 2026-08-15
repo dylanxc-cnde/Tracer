@@ -51,7 +51,7 @@ PostingImportSource = Annotated[
 
 
 class PostingImportRequest(_PostingImportModel):
-    """One user request to turn a URL or pasted text into a posting draft."""
+    """One request to parse posting details from a URL or pasted text."""
 
     import_key: UUID
     schema_version: int = Field(default=1, ge=1)
