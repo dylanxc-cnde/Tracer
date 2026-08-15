@@ -100,6 +100,15 @@ class RequirementCategory(StrEnum):
     OTHER = "other"
 
 
+class RequirementItemRule(StrEnum):
+    """How the core items combine within one requirement."""
+
+    SINGLE = "single"
+    ALL_OF = "all_of"
+    ANY_OF = "any_of"
+    UNKNOWN = "unknown"
+
+
 class CompensationType(StrEnum):
     BASE_SALARY = "base_salary"
     BONUS = "bonus"
@@ -200,13 +209,22 @@ class RoleDescription(_PostingDetailsModel):
     domains: tuple[ParsedValue[str], ...]
 
 
+class RequirementItem(_PostingDetailsModel):
+    """One independently matchable item in a job requirement."""
+
+    name: str
+    category: RequirementCategory
+    normalized_name: str | None
+    is_example: bool
+
+
 class Requirement(_PostingDetailsModel):
-    """One required, preferred or unclear job requirement."""
+    """One source-level requirement and its matchable items."""
 
     text: str
     importance: RequirementImportance
-    category: RequirementCategory
-    normalized_name: str | None
+    item_rule: RequirementItemRule
+    items: tuple[RequirementItem, ...]
     sources: tuple[SourceExcerpt, ...]
 
 

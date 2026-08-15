@@ -10,6 +10,7 @@ from tracer.postings.posting_details_models import (
     PostingDetails,
     RequirementCategory,
     RequirementImportance,
+    RequirementItemRule,
     RoleFamily,
     SourceExcerpt,
     WorkMode,
@@ -122,8 +123,15 @@ def make_posting_details() -> PostingDetails:
             {
                 "text": "Führerschein Klasse B",
                 "importance": "required",
-                "category": "license",
-                "normalized_name": "Driving licence class B",
+                "item_rule": "single",
+                "items": [
+                    {
+                        "name": "Führerschein Klasse B",
+                        "category": "license",
+                        "normalized_name": "Driving licence class B",
+                        "is_example": False,
+                    }
+                ],
                 "sources": [
                     source("Du besitzt einen Führerschein Klasse B")
                 ],
@@ -250,7 +258,8 @@ def test_posting_details_accept_detailed_job_data():
     assert posting.requirements[0].importance is (
         RequirementImportance.REQUIRED
     )
-    assert posting.requirements[0].category is (
+    assert posting.requirements[0].item_rule is RequirementItemRule.SINGLE
+    assert posting.requirements[0].items[0].category is (
         RequirementCategory.LICENSE
     )
     assert posting.work_conditions.travel_requirement.value == (
@@ -269,6 +278,98 @@ def test_posting_details_accept_detailed_job_data():
         "Climate-neutral housing",
         "Heat-pump technology",
     )
+
+
+def test_requirement_items_keep_rules_and_examples():
+    payload = make_posting_details().model_dump(mode="json")
+    payload["requirements"] = [
+        {
+            "text": "Power Query, Power Pivot und VBA sind wünschenswert.",
+            "importance": "preferred",
+            "item_rule": "all_of",
+            "items": [
+                {
+                    "name": name,
+                    "category": "skill",
+                    "normalized_name": name,
+                    "is_example": False,
+                }
+                for name in ("Power Query", "Power Pivot", "VBA")
+            ],
+            "sources": [
+                source(
+                    "Power Query, Power Pivot und VBA sind wünschenswert."
+                )
+            ],
+        },
+        {
+            "text": "Kenntnisse in R, Python oder KNIME sind von Vorteil.",
+            "importance": "preferred",
+            "item_rule": "any_of",
+            "items": [
+                {
+                    "name": name,
+                    "category": "skill",
+                    "normalized_name": name,
+                    "is_example": False,
+                }
+                for name in ("R", "Python", "KNIME")
+            ],
+            "sources": [
+                source(
+                    "Kenntnisse in R, Python oder KNIME sind von Vorteil."
+                )
+            ],
+        },
+        {
+            "text": (
+                "Erfahrung mit Datenvisualisierung, zum Beispiel Power BI "
+                "oder Tableau, ist von Vorteil."
+            ),
+            "importance": "preferred",
+            "item_rule": "single",
+            "items": [
+                {
+                    "name": "Datenvisualisierung",
+                    "category": "skill",
+                    "normalized_name": "Data visualization",
+                    "is_example": False,
+                },
+                {
+                    "name": "Power BI",
+                    "category": "skill",
+                    "normalized_name": "Microsoft Power BI",
+                    "is_example": True,
+                },
+                {
+                    "name": "Tableau",
+                    "category": "skill",
+                    "normalized_name": "Tableau",
+                    "is_example": True,
+                },
+            ],
+            "sources": [
+                source(
+                    "Erfahrung mit Datenvisualisierung, zum Beispiel "
+                    "Power BI oder Tableau, ist von Vorteil."
+                )
+            ],
+        },
+    ]
+
+    posting = PostingDetails.model_validate(payload)
+    all_of, any_of, example = posting.requirements
+
+    assert all_of.item_rule is RequirementItemRule.ALL_OF
+    assert any_of.item_rule is RequirementItemRule.ANY_OF
+    assert tuple(item.name for item in any_of.items) == (
+        "R",
+        "Python",
+        "KNIME",
+    )
+    assert example.item_rule is RequirementItemRule.SINGLE
+    assert example.items[0].is_example is False
+    assert all(item.is_example for item in example.items[1:])
 
 
 def test_compensation_entries_keep_applicable_groups_structured():

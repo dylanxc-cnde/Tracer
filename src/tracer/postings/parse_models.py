@@ -25,7 +25,7 @@ class PostingRefinementReason(StrEnum):
 
 
 class PostingParseAmbiguity(_PostingParseModel):
-    """One unresolved conflict in a parsed posting."""
+    """One unresolved conflict or uncertain interpretation."""
 
     field_path: str
     description: str

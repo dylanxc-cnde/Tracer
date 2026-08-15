@@ -93,6 +93,25 @@ def test_parsed_posting_keeps_ambiguities_outside_details():
     assert "parse_ambiguities" not in PostingDetails.model_fields
 
 
+def test_parse_ambiguity_supports_uncertain_enum_mapping():
+    ambiguity = PostingParseAmbiguity(
+        field_path="work_conditions.work_modes",
+        description=(
+            "Mobiles Arbeiten is stated, but the exact arrangement is unclear."
+        ),
+        alternatives=["hybrid", "remote", "other"],
+        sources=[
+            {
+                "text": "Mobiles Arbeiten nach Absprache.",
+                "source_url": None,
+            }
+        ],
+    )
+
+    assert ambiguity.field_path == "work_conditions.work_modes"
+    assert ambiguity.alternatives == ("hybrid", "remote", "other")
+
+
 def test_posting_parse_result_keeps_over_limit_result_structured():
     posting = make_parsed_posting()
     result = PostingParseResult(
