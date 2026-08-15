@@ -1,13 +1,20 @@
 from datetime import date
 from enum import StrEnum
-from typing import Generic, TypeVar
+from typing import Annotated, Generic, TypeVar
 
 from pydantic import (
     AnyHttpUrl,
     BaseModel,
     ConfigDict,
     Field,
+    WithJsonSchema,
 )
+
+
+OutputHttpUrl = Annotated[
+    AnyHttpUrl,
+    WithJsonSchema({"type": "string"}),
+]
 
 
 class _PostingDetailsModel(BaseModel):
@@ -21,7 +28,7 @@ class SourceExcerpt(_PostingDetailsModel):
     """One passage copied from the source content."""
 
     text: str
-    source_url: AnyHttpUrl | None
+    source_url: OutputHttpUrl | None
 
 
 ValueType = TypeVar("ValueType")
@@ -128,7 +135,7 @@ class PostingIdentity(_PostingDetailsModel):
     department_name: ParsedValue[str] | None
     position_title: ParsedValue[str] | None
     external_job_id: ParsedValue[str] | None
-    canonical_posting_url: ParsedValue[AnyHttpUrl] | None
+    canonical_posting_url: ParsedValue[OutputHttpUrl] | None
     source_platform: ParsedValue[str] | None
     published_on: ParsedValue[date] | None
     posting_language: ParsedValue[str] | None
@@ -229,7 +236,7 @@ class ApplicationInstructions(_PostingDetailsModel):
     """Instructions stated by the employer for applying."""
 
     channels: ParsedValue[tuple[ApplicationChannel, ...]] | None
-    application_url: ParsedValue[AnyHttpUrl] | None
+    application_url: ParsedValue[OutputHttpUrl] | None
     required_email_subject: ParsedValue[str] | None
     required_documents: tuple[ParsedValue[str], ...]
     special_instructions: tuple[ParsedValue[str], ...]

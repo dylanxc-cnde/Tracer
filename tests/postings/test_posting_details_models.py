@@ -219,6 +219,21 @@ def test_source_excerpt_is_the_only_owner_of_source_text():
         )
 
 
+def test_source_excerpt_keeps_http_url_validation():
+    excerpt = SourceExcerpt(
+        text="Apply online",
+        source_url="https://example.com/jobs/123",
+    )
+
+    assert str(excerpt.source_url) == "https://example.com/jobs/123"
+
+    with pytest.raises(ValidationError, match="URL"):
+        SourceExcerpt(
+            text="Apply online",
+            source_url="not a url",
+        )
+
+
 def test_posting_details_accept_detailed_job_data():
     posting = make_posting_details()
 

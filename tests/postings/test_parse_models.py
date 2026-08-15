@@ -141,3 +141,18 @@ def test_posting_parse_schema_requires_every_defined_field():
                 check(child)
 
     check(schema)
+
+
+def test_posting_parse_schema_does_not_use_uri_format():
+    schema = PostingParseResult.model_json_schema()
+
+    def check(value):
+        if isinstance(value, dict):
+            assert value.get("format") != "uri"
+            for child in value.values():
+                check(child)
+        elif isinstance(value, list):
+            for child in value:
+                check(child)
+
+    check(schema)
