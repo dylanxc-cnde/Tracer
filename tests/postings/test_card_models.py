@@ -91,7 +91,7 @@ def test_posting_card_adds_system_and_user_fields():
     )
 
     assert card.import_key == IMPORT_KEY
-    assert isinstance(card.posting_key, UUID)
+    assert isinstance(card.card_key, UUID)
     assert card.created_at == datetime(2026, 8, 15, 16, 30, tzinfo=UTC)
     assert card.posting_alias == "Thermondo München"
     assert card.user_notes == "Check travel area."

@@ -19,7 +19,7 @@ job URL or pasted text
 ## What works now
 
 - Pydantic models for imports, parsed posting details, and confirmed cards;
-- local SQLite storage for posting imports;
+- local SQLite storage for posting imports and confirmed cards;
 - strict structured output through the OpenAI Responses API;
 - source excerpts for extracted facts;
 - multiple posting candidates without mixing in recommended jobs;

@@ -20,7 +20,7 @@ def _utc_now() -> datetime:
 class PostingCard(_PostingCardModel):
     """One user-confirmed posting stored by Tracer."""
 
-    posting_key: UUID = Field(default_factory=uuid4)
+    card_key: UUID = Field(default_factory=uuid4)
     import_key: UUID
     schema_version: int = Field(default=1, ge=1)
     created_at: datetime = Field(default_factory=_utc_now)
