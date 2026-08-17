@@ -1,14 +1,14 @@
 import pytest
 from pydantic import ValidationError
 
-from tracer.postings.parse_models import (
+from tracer.postings.models.posting_parse import (
     ParsedPosting,
     PostingParseAmbiguity,
     PostingParseResult,
     PostingParseStatus,
     PostingRefinementReason,
 )
-from tracer.postings.posting_details_models import PostingDetails
+from tracer.postings.models.posting_details import PostingDetails
 
 
 def make_posting_details() -> PostingDetails:

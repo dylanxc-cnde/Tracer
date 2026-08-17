@@ -2,7 +2,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
-from .posting_details_models import PostingDetails, SourceExcerpt
+from .posting_details import PostingDetails, SourceExcerpt
 
 
 class _PostingParseModel(BaseModel):

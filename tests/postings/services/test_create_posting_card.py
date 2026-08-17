@@ -1,11 +1,10 @@
-from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID
 
-import pytest
-from pydantic import ValidationError
-
-from tracer.postings.card_models import PostingCard
-from tracer.postings.posting_details_models import PostingDetails
+from tracer.postings.models.posting_details import PostingDetails
+from tracer.postings.services.create_posting_card import (
+    CreatePostingCardService,
+)
+from tracer.postings.stores.posting_card_store import PostingCardStore
 
 
 IMPORT_KEY = UUID("c0caad62-902e-4fe0-bc44-82b7d40ac838")
@@ -14,9 +13,15 @@ IMPORT_KEY = UUID("c0caad62-902e-4fe0-bc44-82b7d40ac838")
 def make_posting_details() -> PostingDetails:
     return PostingDetails(
         identity={
-            "company_name": None,
+            "company_name": {
+                "value": "Velora Grid Systems SE",
+                "sources": [],
+            },
             "department_name": None,
-            "position_title": None,
+            "position_title": {
+                "value": "Working Student Data Analytics",
+                "sources": [],
+            },
             "external_job_id": None,
             "canonical_posting_url": None,
             "source_platform": None,
@@ -71,48 +76,22 @@ def make_posting_details() -> PostingDetails:
     )
 
 
-def test_posting_card_adds_system_and_user_fields():
-    created_at = datetime(
-        2026,
-        8,
-        15,
-        18,
-        30,
-        tzinfo=timezone(timedelta(hours=2)),
-    )
+def test_service_creates_and_stores_confirmed_card(tmp_path):
+    store = PostingCardStore(tmp_path / "tracer.db")
+    service = CreatePostingCardService(store)
+    posting = make_posting_details()
 
-    card = PostingCard(
+    card = service.create(
         import_key=IMPORT_KEY,
-        created_at=created_at,
-        posting=make_posting_details(),
-        posting_alias="Thermondo München",
-        user_notes="Check travel area.",
-        tags=["priority"],
+        posting=posting,
+        posting_alias="Velora Data",
+        user_notes="Review the working hours.",
+        tags=("priority", "analytics"),
     )
 
     assert card.import_key == IMPORT_KEY
-    assert isinstance(card.card_key, UUID)
-    assert card.created_at == datetime(2026, 8, 15, 16, 30, tzinfo=UTC)
-    assert card.posting_alias == "Thermondo München"
-    assert card.user_notes == "Check travel area."
-    assert card.tags == ("priority",)
-
-
-def test_posting_card_json_round_trip_preserves_posting():
-    card = PostingCard(
-        import_key=IMPORT_KEY,
-        posting=make_posting_details(),
-    )
-
-    restored = PostingCard.model_validate_json(card.model_dump_json())
-
-    assert restored == card
-
-
-def test_posting_card_rejects_naive_created_time():
-    with pytest.raises(ValidationError, match="timezone is required"):
-        PostingCard(
-            import_key=IMPORT_KEY,
-            created_at=datetime(2026, 8, 15, 18, 30),
-            posting=make_posting_details(),
-        )
+    assert card.posting == posting
+    assert card.posting_alias == "Velora Data"
+    assert card.user_notes == "Review the working hours."
+    assert card.tags == ("priority", "analytics")
+    assert store.get_by_card_key(card.card_key) == card

@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from .card_models import PostingCard
-from .card_store import PostingCardStore
-from .posting_details_models import PostingDetails
+from ..models.posting_card import PostingCard
+from ..models.posting_details import PostingDetails
+from ..stores.posting_card_store import PostingCardStore
 
 
 class CreatePostingCardService:

@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 from uuid import UUID
 
-from .import_models import PostingImportRequest
+from ..models.posting_import import PostingImportRequest
 
 
 _CREATE_POSTING_IMPORT_TABLE = """

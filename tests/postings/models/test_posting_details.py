@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 from pydantic import ValidationError
 
-from tracer.postings.posting_details_models import (
+from tracer.postings.models.posting_details import (
     ApplicationChannel,
     ContractType,
     ParsedValue,

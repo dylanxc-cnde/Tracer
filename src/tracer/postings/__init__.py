@@ -1,14 +1,14 @@
 """Job-posting domain."""
 
-from .card_models import PostingCard
-from .import_models import (
+from .models.posting_card import PostingCard
+from .models.posting_details import PostingDetails
+from .models.posting_import import (
     PostingImportRequest,
     PostingImportSource,
     TextImport,
     UrlImport,
 )
-from .parse_models import ParsedPosting, PostingParseResult
-from .posting_details_models import PostingDetails
+from .models.posting_parse import ParsedPosting, PostingParseResult
 
 __all__ = [
     "PostingCard",

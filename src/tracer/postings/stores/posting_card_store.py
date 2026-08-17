@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 from uuid import UUID
 
-from .card_models import PostingCard
+from ..models.posting_card import PostingCard
 
 
 _CREATE_POSTING_CARD_TABLE = """

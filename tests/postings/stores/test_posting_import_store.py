@@ -3,7 +3,9 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from tracer.postings import PostingImportRequest
-from tracer.postings.import_store import PostingImportRequestStore
+from tracer.postings.stores.posting_import_store import (
+    PostingImportRequestStore,
+)
 
 
 IMPORT_KEY = UUID("c0caad62-902e-4fe0-bc44-82b7d40ac838")

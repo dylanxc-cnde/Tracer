@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .posting_details_models import PostingDetails
+from .posting_details import PostingDetails
 
 
 class _PostingCardModel(BaseModel):

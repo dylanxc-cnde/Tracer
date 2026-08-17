@@ -2,9 +2,9 @@ import sqlite3
 from datetime import UTC, datetime
 from uuid import UUID
 
-from tracer.postings.card_models import PostingCard
-from tracer.postings.card_store import PostingCardStore
-from tracer.postings.posting_details_models import PostingDetails
+from tracer.postings.models.posting_card import PostingCard
+from tracer.postings.models.posting_details import PostingDetails
+from tracer.postings.stores.posting_card_store import PostingCardStore
 
 
 IMPORT_KEY = UUID("c0caad62-902e-4fe0-bc44-82b7d40ac838")
