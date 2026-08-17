@@ -3,8 +3,10 @@ name = "tracer"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi[standard]>=0.141.1",
     "openai>=3.1.0",
     "pydantic>=2,<3",
+    "uvicorn>=0.52.3",
 ]
 
 [dependency-groups]
