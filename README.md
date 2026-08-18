@@ -21,6 +21,7 @@ job URL or pasted text
 - Pydantic models for imports, parsed posting details, and confirmed cards;
 - local SQLite storage for posting imports and confirmed cards;
 - an OpenAI Responses API parser with a shared prompt and strict structured output;
+- a small FastAPI HTTP API for imports, parse results, and confirmed cards;
 - source excerpts for extracted facts;
 - multiple posting candidates without mixing in recommended jobs;
 - grouped requirements such as `all_of`, `any_of`, and named examples;
@@ -37,6 +38,26 @@ Tracer uses Python 3.12 and [uv](https://docs.astral.sh/uv/).
 uv sync
 uv run pytest
 ```
+
+## Run the local API
+
+```bash
+uv run fastapi dev src/tracer/api/app.py
+```
+
+Open `http://127.0.0.1:8000/docs` to try the API in Swagger. The current
+flow is:
+
+```text
+POST /posting-imports
+GET  /posting-imports/{import_key}
+POST /posting-imports/{import_key}/parse-results
+POST /posting-cards
+GET  /posting-cards/{card_key}
+```
+
+The local database is created at `.local/tracer.sqlite3`. Calling the parse
+results endpoint requires an OpenAI API key and uses paid API credits.
 
 ## Try the parser
 
@@ -58,7 +79,8 @@ the repository.
 
 ## Later
 
-- a small TypeScript desktop interface for reviewing and editing cards;
+- a small TypeScript interface for reviewing and editing cards;
+- desktop packaging after the local web flow works;
 - application status, emails, interviews, and next steps;
 - candidate skills, managed skill tags, and explainable matching;
 - CV and cover-letter versions;

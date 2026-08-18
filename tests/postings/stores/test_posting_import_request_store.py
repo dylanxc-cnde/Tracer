@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from tracer.postings import PostingImportRequest
-from tracer.postings.stores.posting_import_store import (
+from tracer.postings.stores.posting_import_request_store import (
     PostingImportRequestStore,
 )
 

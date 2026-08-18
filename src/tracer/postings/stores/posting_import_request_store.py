@@ -1,3 +1,5 @@
+"""SQLite persistence for posting import requests."""
+
 import sqlite3
 from pathlib import Path
 from uuid import UUID
