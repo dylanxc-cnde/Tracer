@@ -22,6 +22,7 @@ job URL or pasted text
 - local SQLite storage for posting imports and confirmed cards;
 - an OpenAI Responses API parser with a shared prompt and strict structured output;
 - a small FastAPI HTTP API for imports, parse results, and confirmed cards;
+- a React and TypeScript frontend foundation with matching API contracts;
 - source excerpts for extracted facts;
 - multiple posting candidates without mixing in recommended jobs;
 - grouped requirements such as `all_of`, `any_of`, and named examples;
@@ -79,7 +80,7 @@ the repository.
 
 ## Later
 
-- a small TypeScript interface for reviewing and editing cards;
+- connect the TypeScript review interface to FastAPI;
 - desktop packaging after the local web flow works;
 - application status, emails, interviews, and next steps;
 - candidate skills, managed skill tags, and explainable matching;
