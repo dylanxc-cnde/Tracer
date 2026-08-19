@@ -17,4 +17,3 @@ export type PostingImportRequest = {
     submitted_at: string
     source: PostingImportSource
 }
-

@@ -10,9 +10,20 @@ Python still handles AI calls, validation, SQLite, and card creation.
 
 - React, TypeScript, Vite, and Oxlint are set up;
 - job posting text can be entered;
-- the current character count updates while typing.
+- the current character count updates while typing;
+- TypeScript contracts cover posting imports, parsed results, and cards;
+- the first frontend API function implements the create-posting-import request.
 
-The Analyze button does not call FastAPI yet.
+The API function is not connected to the Analyze button yet.
+
+## Source layout
+
+```text
+src/postings/types/  JSON contracts shared with the Python API
+src/postings/api/    HTTP functions for posting routes
+```
+
+React components use these functions instead of writing HTTP requests directly.
 
 ## Run it
 
@@ -44,14 +55,15 @@ terminal:
 uv run fastapi dev src/tracer/api/app.py
 ```
 
-Open `http://127.0.0.1:8000/docs` to try the API. The frontend will connect to
-it through HTTP and JSON once the first review screen is ready.
+Open `http://127.0.0.1:8000/docs` to try the API. The first frontend client
+function is ready, but it has not been connected to the page yet.
 
 ## Next steps
 
 - show sample parse results as selectable job cards;
 - add posting details and source review;
-- connect Analyze and Confirm to FastAPI;
+- connect Analyze to the posting-import API;
+- connect parsing and confirmation after the first request works;
 - handle loading, missing information, and errors;
 - add desktop packaging after the local browser flow works.
 
