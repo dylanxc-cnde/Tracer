@@ -1,32 +1,59 @@
-# React + TypeScript + Vite
+# Tracer frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This is the small React interface for Tracer. I am building it in the browser
+first, then reusing the same UI when the project gets a desktop wrapper.
 
-Currently, two official plugins are available:
+The frontend handles input, loading states, review, editing, and confirmation.
+Python still handles AI calls, validation, SQLite, and card creation.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## What works now
 
-## React Compiler
+- React, TypeScript, Vite, and Oxlint are set up;
+- job posting text can be entered;
+- the current character count updates while typing.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The Analyze button does not call FastAPI yet.
 
-## Expanding the Oxlint configuration
+## Run it
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+Use Node.js 24 or another version supported by Vite.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Open `http://localhost:5173`. Vite updates the page when the source changes.
+
+## Useful commands
+
+```bash
+npm run dev      # start the Vite development server
+npm run build    # type-check and create a production build
+npm run lint     # check the source with Oxlint
+npm run preview  # preview the production build locally
+```
+
+## Backend
+
+FastAPI runs separately. From the repository root, start it in another
+terminal:
+
+```bash
+uv run fastapi dev src/tracer/api/app.py
+```
+
+Open `http://127.0.0.1:8000/docs` to try the API. The frontend will connect to
+it through HTTP and JSON once the first review screen is ready.
+
+## Next steps
+
+- show sample parse results as selectable job cards;
+- add posting details and source review;
+- connect Analyze and Confirm to FastAPI;
+- handle loading, missing information, and errors;
+- add desktop packaging after the local browser flow works.
+
+OpenAI keys and real application data stay in Python and never go into frontend
+source code or `VITE_` environment variables.
