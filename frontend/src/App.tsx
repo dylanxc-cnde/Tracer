@@ -1,8 +1,20 @@
 import { useState } from 'react'
 import './App.css'
+import { createPostingImport } from './postings/api/postings'
+
 
 function App() {
   const [postingText, setPostingText] = useState('')
+
+  async function handleAnalyze() {
+  const postingImport = await createPostingImport({
+    kind: 'text',
+    text: postingText,
+    source_url: null,
+  })
+
+  console.log(postingImport)
+}
 
   return (
     <main>
@@ -17,7 +29,7 @@ function App() {
 
       <p>{postingText.length} characters</p>
 
-      <button type="button">Analyze</button>
+      <button type="button" onClick={handleAnalyze}>Analyze</button>
     </main>
   )
 }

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from tracer.postings.parsers.openai_posting_parser import (
     OpenAIPostingParser,
@@ -29,6 +30,16 @@ def create_app(
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
     app = FastAPI()
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.get("/health")
     def get_health() -> dict[str, str]:
