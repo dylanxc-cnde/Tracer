@@ -100,16 +100,23 @@ It sends the sample text to the OpenAI API and uses paid API credits.
 Real job pages, API outputs, application records, and keys are not included in
 the repository.
 
-## Later
+## Next
 
-- review and edit the full posting details before confirmation;
-- browse and reopen saved cards;
-- improve the interface and add frontend tests;
-- desktop packaging after the browser workflow is ready;
-- application status, emails, interviews, and next steps;
-- candidate skills, managed skill tags, and explainable matching;
-- CV and cover-letter versions;
-- job discovery and application retrospectives.
+- build a Card library for browsing and reopening saved postings;
+- review and edit saved Card details, evidence, aliases, notes, and tags;
+- add Import History so users can see what they imported and which Cards came
+  from it;
+- give the Card and Import pages a simple, usable layout.
+
+After that, the next product layer is a small Candidate Profile, job-search
+goals, and explainable requirement matching. Tracer should ask for extra
+preferences only when a feature needs them—for example, Anschreiben tone when
+the user first creates an Anschreiben—not through one large setup form.
+
+Longer-term experiments include a budget-aware daily job brief, application
+planning around a desired start date, materials and application timelines, and
+a single-OS desktop alpha. Search and personal evaluation will stay separate so
+that old companies and keywords do not quietly narrow every new search.
 
 Tracer will help organize and review applications, but it will not submit them
 for the user.

@@ -78,13 +78,15 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
 
 ## Next steps
 
-- review and edit the full posting details and source excerpts;
-- add alias, notes, and tags before confirmation;
-- show clearer messages for refinement and not-found results;
-- browse and reopen saved cards;
-- improve the layout and visual states;
+- browse and reopen saved cards in a Card library;
+- open a saved Card, review its full details and source excerpts, then save
+  user edits;
+- manage aliases, notes, and tags on saved Cards;
+- show Import History and connect each Import to the Cards created from it;
+- improve the Card and Import layout, forms, and visual states;
 - add frontend component and API tests;
-- add desktop packaging after the local browser flow works.
+- add the first Profile and matching screens after the Card workspace works;
+- try desktop packaging after the browser workflow is useful on its own.
 
 OpenAI keys and real application data stay in Python and never go into frontend
 source code or `VITE_` environment variables.
