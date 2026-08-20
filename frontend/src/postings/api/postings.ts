@@ -35,7 +35,7 @@ export async function parsePostingImport(
 ): Promise<PostingParseResult> {
     const response = await fetch(`${API_BASE_URL}/posting-imports/${importKey}/parse-results`,
         {
-            method: `POST`,
+            method: 'POST',
         }
     )
 
@@ -43,7 +43,7 @@ export async function parsePostingImport(
         const errorBody = await response.text()
 
         throw new Error(
-            `Failed to parse posting import (${response.status}): (${errorBody})`,
+            `Failed to parse posting import (${response.status}): ${errorBody}`,
         )
     }
 
@@ -55,7 +55,7 @@ export async function createPostingCard(
 ): Promise<PostingCard> {
     const response = await fetch(`${API_BASE_URL}/posting-cards`,
         {
-            method: `POST`,
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -67,7 +67,7 @@ export async function createPostingCard(
         const errorBody = await response.text()
 
         throw new Error(
-            `Failed to create posting card (${response.status}): (${errorBody})`,
+            `Failed to create posting card (${response.status}): ${errorBody}`,
         )
     }
     return (await response.json()) as PostingCard
