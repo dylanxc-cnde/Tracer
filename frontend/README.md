@@ -3,7 +3,8 @@
 This is the small React interface for Tracer. I am building it in the browser
 first, then reusing the same UI when the project gets a desktop wrapper.
 
-The frontend handles input, loading states, review, editing, and confirmation.
+The frontend handles input, loading states, candidate review, selection, and
+confirmation.
 Python still handles AI calls, validation, SQLite, and card creation.
 
 ## What works now
@@ -12,15 +13,23 @@ Python still handles AI calls, validation, SQLite, and card creation.
 - job posting text can be entered;
 - the current character count updates while typing;
 - TypeScript contracts cover posting imports, parsed results, and cards;
-- the first frontend API function implements the create-posting-import request.
+- Analyze creates an import and asks FastAPI to parse it;
+- parsed candidates are shown as selectable cards;
+- every candidate needs an explicit user selection, even when there is only one;
+- Confirm sends the selected posting back to FastAPI and saves a Posting Card;
+- loading, API errors, parse status, candidate count, and the saved `card_key`
+  are shown in the page.
 
-The API function is not connected to the Analyze button yet.
+The current interface is intentionally small. Full detail editing and a saved
+card browser are not built yet.
 
 ## Source layout
 
 ```text
-src/postings/types/  JSON contracts shared with the Python API
-src/postings/api/    HTTP functions for posting routes
+src/App.tsx                     current import, parse, select, and save flow
+src/components/                 reusable React UI components
+src/postings/types/             TypeScript versions of the API JSON contracts
+src/postings/api/postings.ts    HTTP functions for posting routes
 ```
 
 React components use these functions instead of writing HTTP requests directly.
@@ -48,23 +57,33 @@ npm run preview  # preview the production build locally
 
 ## Backend
 
-FastAPI runs separately. From the repository root, start it in another
-terminal:
+FastAPI runs separately. From the repository root, start it in another terminal:
 
 ```bash
-uv run fastapi dev src/tracer/api/app.py
+uv run --env-file .env.local fastapi dev src/tracer/api/app.py
 ```
 
-Open `http://127.0.0.1:8000/docs` to try the API. The first frontend client
-function is ready, but it has not been connected to the page yet.
+Open `http://127.0.0.1:8000/docs` to try the API directly. The browser uses this
+sequence:
+
+```text
+POST /posting-imports
+-> POST /posting-imports/{import_key}/parse-results
+-> user selects one candidate
+-> POST /posting-cards
+```
+
+FastAPI currently allows the local Vite origins `http://localhost:5173` and
+`http://127.0.0.1:5173` through CORS.
 
 ## Next steps
 
-- show sample parse results as selectable job cards;
-- add posting details and source review;
-- connect Analyze to the posting-import API;
-- connect parsing and confirmation after the first request works;
-- handle loading, missing information, and errors;
+- review and edit the full posting details and source excerpts;
+- add alias, notes, and tags before confirmation;
+- show clearer messages for refinement and not-found results;
+- browse and reopen saved cards;
+- improve the layout and visual states;
+- add frontend component and API tests;
 - add desktop packaging after the local browser flow works.
 
 OpenAI keys and real application data stay in Python and never go into frontend

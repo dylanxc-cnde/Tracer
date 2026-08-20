@@ -12,8 +12,8 @@ about Python, LLM APIs, data modeling, and desktop apps.
 job URL or pasted text
 -> AI retrieval and structured extraction
 -> evidence, unknowns, and ambiguities
--> user review
--> confirmed Posting Card
+-> user selects a posting
+-> confirmed Posting Card in SQLite
 ```
 
 ## What works now
@@ -22,7 +22,8 @@ job URL or pasted text
 - local SQLite storage for posting imports and confirmed cards;
 - an OpenAI Responses API parser with a shared prompt and strict structured output;
 - a small FastAPI HTTP API for imports, parse results, and confirmed cards;
-- a React and TypeScript frontend foundation with matching API contracts;
+- a working React and TypeScript browser flow from pasted text to a saved card;
+- selectable posting candidates with loading, error, and confirmation states;
 - source excerpts for extracted facts;
 - multiple posting candidates without mixing in recommended jobs;
 - grouped requirements such as `all_of`, `any_of`, and named examples;
@@ -31,7 +32,7 @@ job URL or pasted text
 Model output is always a proposal. Missing information stays unknown, and the
 user reviews the result before it becomes a confirmed card.
 
-## Run the tests
+## Run the checks
 
 Tracer uses Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
@@ -40,14 +41,34 @@ uv sync
 uv run pytest
 ```
 
-## Run the local API
-
 ```bash
-uv run fastapi dev src/tracer/api/app.py
+cd frontend
+npm ci
+npm run lint
+npm run build
 ```
 
-Open `http://127.0.0.1:8000/docs` to try the API in Swagger. The current
-flow is:
+## Run the local app
+
+Start FastAPI from the repository root:
+
+```bash
+uv run --env-file .env.local fastapi dev src/tracer/api/app.py
+```
+
+Then start the frontend in another terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. Paste a posting, analyze it, select one candidate,
+and confirm it to create a saved Posting Card. Open
+`http://127.0.0.1:8000/docs` to inspect the API directly.
+
+The current HTTP flow is:
 
 ```text
 POST /posting-imports
@@ -57,8 +78,9 @@ POST /posting-cards
 GET  /posting-cards/{card_key}
 ```
 
-The local database is created at `.local/tracer.sqlite3`. Calling the parse
-results endpoint requires an OpenAI API key and uses paid API credits.
+The local database is created at `.local/tracer.sqlite3`. Calling Analyze
+requires an OpenAI API key and uses paid API credits. If the key is already
+exported in the shell, the `--env-file .env.local` option is not needed.
 
 ## Try the parser
 
@@ -80,8 +102,10 @@ the repository.
 
 ## Later
 
-- connect the TypeScript review interface to FastAPI;
-- desktop packaging after the local web flow works;
+- review and edit the full posting details before confirmation;
+- browse and reopen saved cards;
+- improve the interface and add frontend tests;
+- desktop packaging after the browser workflow is ready;
 - application status, emails, interviews, and next steps;
 - candidate skills, managed skill tags, and explainable matching;
 - CV and cover-letter versions;
