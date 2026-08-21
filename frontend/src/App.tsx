@@ -4,6 +4,7 @@ import { createPostingImport, parsePostingImport, createPostingCard } from './po
 import type { PostingParseResult } from './postings/types/postingParse'
 import { PostingCandidateCard } from './components/PostingCandidateCard'
 import type { PostingCard } from './postings/types/postingCard'
+import { PostingCardSummary } from './components/PostingCardSummary'
 
 
 function App() {
@@ -141,9 +142,7 @@ function App() {
       )}
 
       {createdCard && (
-        <p>
-          Card saved: {createdCard.card_key}
-        </p>
+        <PostingCardSummary card={createdCard} />
       )}
 
 
