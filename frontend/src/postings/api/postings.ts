@@ -74,5 +74,17 @@ export async function createPostingCard(
 }
 
 export async function getPostingCards(): Promise<PostingCard[]> {
-    
+    const response = await fetch(`${API_BASE_URL}/posting-cards`,
+        {
+            method: 'GET',
+        }
+    )
+    if (!response.ok) {
+        const errorBody = await response.text()
+
+        throw new Error(
+            `Failed to get posting cards from library (${response.status}): ${errorBody}`
+        )
+    }
+    return (await response.json()) as PostingCard[]
 }

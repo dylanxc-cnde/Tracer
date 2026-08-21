@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import './App.css'
-import { createPostingImport, parsePostingImport, createPostingCard } from './postings/api/postings'
+import { createPostingImport, parsePostingImport, createPostingCard, getPostingCards } from './postings/api/postings'
 import type { PostingParseResult } from './postings/types/postingParse'
 import { PostingCandidateCard } from './components/PostingCandidateCard'
 import type { PostingCard } from './postings/types/postingCard'
 import { PostingCardSummary } from './components/PostingCardSummary'
+import { CardLibrary } from './components/CardLibrary'
 
 
 function App() {
@@ -16,6 +17,8 @@ function App() {
   const [importKey, setImportKey] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [createdCard, setCreatedCard] = useState<PostingCard | null>(null)
+  const [cards, setCards] = useState<PostingCard[]>([])
+  const [isCardsLoading, setIsCardsLoading] = useState(false)
 
   async function handleAnalyze() {
     setIsLoading(true)
@@ -86,6 +89,25 @@ function App() {
     return 'Confirm and save'
   }
 
+  async function handleLoadCards() {
+    setIsCardsLoading(true)
+    setError(null)
+
+    try {
+      const storedCards = await getPostingCards()
+      setCards(storedCards)
+    } catch (caughtError: unknown) {
+      if (caughtError instanceof Error) {
+        setError(caughtError.message)
+      } else {
+        setError('Something went wrong while loading cards.')
+      }
+    } finally {
+      setIsCardsLoading(false)
+    }
+
+  }
+
   return (
     <main>
       <h1>Tracer</h1>
@@ -145,6 +167,15 @@ function App() {
         <PostingCardSummary card={createdCard} />
       )}
 
+      <button
+        type='button'
+        onClick={handleLoadCards}
+        disabled={isCardsLoading}
+      >
+        {isCardsLoading? 'Loading...' : 'Load card library'}
+      </button>
+
+      <CardLibrary cards={cards} />
 
     </main>
   )
