@@ -13,7 +13,7 @@ export function PostingCardSummary(
     const title = card.posting_alias ??
         posting.identity.position_title?.value ??
         'Unknown position'
-    
+
     const company = posting.identity.company_name?.value ??
         'Unknown company'
 
