@@ -78,11 +78,26 @@ def create_postings_router(
 
         return request
 
+    @router.get("/posting-imports")
+    def read_posting_imports() -> tuple[PostingImportRequest, ...]:
+        return posting_import_request_store.get_all()
+
     @router.get("/posting-imports/{import_key}")
     def read_posting_import(
         import_key: UUID,
     ) -> PostingImportRequest:
         return get_posting_import(import_key)
+
+    @router.delete(
+        "/posting-imports/{import_key}",
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
+    def delete_posting_import(import_key: UUID) -> None:
+        if not posting_import_request_store.delete(import_key):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Posting import not found",
+            )
 
     @router.post("/posting-imports/{import_key}/parse-results")
     def create_posting_parse_result(
@@ -119,5 +134,20 @@ def create_postings_router(
             )
 
         return card
+
+    @router.get("/posting-cards")
+    def read_posting_cards() -> tuple[PostingCard, ...]:
+        return posting_card_store.get_all()
+
+    @router.delete(
+        "/posting-cards/{card_key}",
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
+    def delete_posting_card(card_key: UUID) -> None:
+        if not posting_card_store.delete(card_key):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Posting card not found",
+            )
 
     return router

@@ -23,6 +23,8 @@ job URL or pasted text
 - an OpenAI Responses API parser with a shared prompt and strict structured output;
 - a small FastAPI HTTP API for imports, parse results, and confirmed cards;
 - a working React and TypeScript browser flow from pasted text to a saved card;
+- local Card and Import libraries that reload records from SQLite;
+- explicit, confirmed deletion for saved Cards and Import history;
 - selectable posting candidates with loading, error, and confirmation states;
 - source excerpts for extracted facts;
 - multiple posting candidates without mixing in recommended jobs;
@@ -72,10 +74,14 @@ The current HTTP flow is:
 
 ```text
 POST /posting-imports
+GET  /posting-imports
 GET  /posting-imports/{import_key}
+DELETE /posting-imports/{import_key}
 POST /posting-imports/{import_key}/parse-results
 POST /posting-cards
+GET  /posting-cards
 GET  /posting-cards/{card_key}
+DELETE /posting-cards/{card_key}
 ```
 
 The local database is created at `.local/tracer.sqlite3`. Calling Analyze
@@ -102,11 +108,15 @@ the repository.
 
 ## Next
 
-- build a Card library for browsing and reopening saved postings;
-- review and edit saved Card details, evidence, aliases, notes, and tags;
-- add Import History so users can see what they imported and which Cards came
-  from it;
+- reopen one saved Card and inspect its full details and evidence;
+- add Card editing later, once the user-owned and evidence-backed fields have
+  clear update rules;
+- show the relationship between an Import and the Cards created from it;
 - give the Card and Import pages a simple, usable layout.
+
+Deleting a Card does not delete its original Import. Deleting an Import does
+not delete saved Cards either: a Card keeps its `import_key` as historical
+context, and code that follows the reference must handle a missing Import.
 
 After that, the next product layer is a small Candidate Profile, job-search
 goals, and explainable requirement matching. Tracer should ask for extra

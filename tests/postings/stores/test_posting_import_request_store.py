@@ -9,13 +9,20 @@ from tracer.postings.stores.posting_import_request_store import (
 
 
 IMPORT_KEY = UUID("c0caad62-902e-4fe0-bc44-82b7d40ac838")
+OTHER_IMPORT_KEY = UUID("d48ff8ea-026a-41fc-a20f-2e6e40ac671b")
 MISSING_IMPORT_KEY = UUID("84c02ce6-a6e7-45cc-a8b7-c44166d2db26")
 
 
-def make_request() -> PostingImportRequest:
+def make_request(
+    import_key: UUID = IMPORT_KEY,
+    submitted_at: datetime | None = None,
+) -> PostingImportRequest:
     return PostingImportRequest(
-        import_key=IMPORT_KEY,
-        submitted_at=datetime(2026, 8, 15, 10, 30, tzinfo=UTC),
+        import_key=import_key,
+        submitted_at=(
+            submitted_at
+            or datetime(2026, 8, 15, 10, 30, tzinfo=UTC)
+        ),
         source={
             "kind": "url",
             "url": "https://example.com/jobs/robotics",
@@ -115,3 +122,42 @@ def test_store_checks_whether_import_request_exists(tmp_path):
     store.add(request)
 
     assert store.exists(request.import_key)
+
+
+def test_store_gets_all_import_requests_newest_first(tmp_path):
+    store = PostingImportRequestStore(tmp_path / "tracer.db")
+    older_request = make_request()
+    newer_request = make_request(
+        import_key=OTHER_IMPORT_KEY,
+        submitted_at=datetime(2026, 8, 15, 11, 30, tzinfo=UTC),
+    )
+    store.add(older_request)
+    store.add(newer_request)
+
+    assert store.get_all() == (newer_request, older_request)
+
+
+def test_store_returns_empty_tuple_when_no_import_requests_exist(tmp_path):
+    store = PostingImportRequestStore(tmp_path / "tracer.db")
+
+    assert store.get_all() == ()
+
+
+def test_store_deletes_import_request_by_import_key(tmp_path):
+    store = PostingImportRequestStore(tmp_path / "tracer.db")
+    request = make_request()
+    other_request = make_request(import_key=OTHER_IMPORT_KEY)
+    store.add(request)
+    store.add(other_request)
+
+    deleted = store.delete(request.import_key)
+
+    assert deleted
+    assert store.get(request.import_key) is None
+    assert store.get(other_request.import_key) == other_request
+
+
+def test_store_returns_false_when_deleting_missing_import_request(tmp_path):
+    store = PostingImportRequestStore(tmp_path / "tracer.db")
+
+    assert not store.delete(MISSING_IMPORT_KEY)

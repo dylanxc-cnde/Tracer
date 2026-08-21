@@ -41,6 +41,17 @@ _CHECK_POSTING_IMPORT_EXISTS = """
     LIMIT 1
 """
 
+_SELECT_ALL_POSTING_IMPORTS = """
+    SELECT payload_json
+    FROM posting_imports
+    ORDER BY submitted_at DESC, import_key
+"""
+
+_DELETE_POSTING_IMPORT = """
+    DELETE FROM posting_imports
+    WHERE import_key = ?
+"""
+
 
 class PostingImportRequestStore:
     """SQLite store for posting import requests.
@@ -128,3 +139,46 @@ class PostingImportRequestStore:
             connection.close()
 
         return row is not None
+
+    def get_all(self) -> tuple[PostingImportRequest, ...]:
+        """Get all stored posting import requests.
+
+        Returns:
+            Stored requests ordered from newest to oldest.
+        """
+        connection = sqlite3.connect(self._database_path)
+
+        try:
+            rows = connection.execute(
+                _SELECT_ALL_POSTING_IMPORTS
+            ).fetchall()
+        finally:
+            connection.close()
+
+        return tuple(
+            PostingImportRequest.model_validate_json(row[0])
+            for row in rows
+        )
+
+    def delete(self, import_key: UUID) -> bool:
+        """Delete one stored posting import request.
+
+        Args:
+            import_key: The posting import request to delete.
+
+        Returns:
+            True if the request was deleted, otherwise False.
+        """
+        connection = sqlite3.connect(self._database_path)
+
+        try:
+            cursor = connection.execute(
+                _DELETE_POSTING_IMPORT,
+                (str(import_key),),
+            )
+            connection.commit()
+            deleted = cursor.rowcount > 0
+        finally:
+            connection.close()
+
+        return deleted

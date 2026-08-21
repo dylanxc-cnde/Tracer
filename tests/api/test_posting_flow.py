@@ -11,6 +11,7 @@ from tracer.postings import (
     PostingParseResult,
 )
 from tracer.postings.models.posting_parse import PostingParseStatus
+from tracer.postings.stores.posting_card_store import PostingCardStore
 from tracer.postings.stores.posting_import_request_store import (
     PostingImportRequestStore,
 )
@@ -143,6 +144,14 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
             read_import_response.json()
         ) == import_request
 
+        imports_response = client.get("/posting-imports")
+
+        assert imports_response.status_code == 200
+        assert tuple(
+            PostingImportRequest.model_validate(item)
+            for item in imports_response.json()
+        ) == (import_request,)
+
         parse_response = client.post(
             f"/posting-imports/{import_request.import_key}/parse-results"
         )
@@ -179,6 +188,14 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
             read_card_response.json()
         ) == card
 
+        cards_response = client.get("/posting-cards")
+
+        assert cards_response.status_code == 200
+        assert tuple(
+            PostingCard.model_validate(item)
+            for item in cards_response.json()
+        ) == (card,)
+
     stored_import = PostingImportRequestStore(database_path).get(
         import_request.import_key
     )
@@ -197,10 +214,88 @@ def test_missing_import_and_card_return_not_found(tmp_path):
         parse_response = client.post(
             f"/posting-imports/{missing_key}/parse-results"
         )
+        delete_import_response = client.delete(
+            f"/posting-imports/{missing_key}"
+        )
         card_response = client.get(f"/posting-cards/{missing_key}")
 
     assert import_response.status_code == 404
     assert import_response.json() == {"detail": "Posting import not found"}
     assert parse_response.status_code == 404
+    assert delete_import_response.status_code == 404
+    assert delete_import_response.json() == {
+        "detail": "Posting import not found"
+    }
     assert card_response.status_code == 404
     assert card_response.json() == {"detail": "Posting card not found"}
+
+
+def test_http_deletes_posting_card(tmp_path):
+    database_path = tmp_path / "tracer.db"
+    card = PostingCard(
+        import_key=uuid4(),
+        posting=make_posting_details(),
+    )
+    store = PostingCardStore(database_path)
+    store.add(card)
+    app = create_app(database_path=database_path)
+
+    with TestClient(app) as client:
+        delete_response = client.delete(
+            f"/posting-cards/{card.card_key}"
+        )
+        read_response = client.get(
+            f"/posting-cards/{card.card_key}"
+        )
+
+    assert delete_response.status_code == 204
+    assert delete_response.content == b""
+    assert read_response.status_code == 404
+    assert store.get_by_card_key(card.card_key) is None
+
+
+def test_http_returns_not_found_when_deleting_missing_card(tmp_path):
+    missing_key = uuid4()
+    app = create_app(database_path=tmp_path / "tracer.db")
+
+    with TestClient(app) as client:
+        response = client.delete(f"/posting-cards/{missing_key}")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Posting card not found"}
+
+
+def test_http_deletes_import_without_deleting_posting_card(tmp_path):
+    database_path = tmp_path / "tracer.db"
+    import_request = PostingImportRequest(
+        import_key=uuid4(),
+        source={
+            "kind": "text",
+            "text": "Working student posting text.",
+            "source_url": None,
+        },
+    )
+    card = PostingCard(
+        import_key=import_request.import_key,
+        posting=make_posting_details(),
+    )
+    PostingImportRequestStore(database_path).add(import_request)
+    PostingCardStore(database_path).add(card)
+    app = create_app(database_path=database_path)
+
+    with TestClient(app) as client:
+        delete_response = client.delete(
+            f"/posting-imports/{import_request.import_key}"
+        )
+        read_import_response = client.get(
+            f"/posting-imports/{import_request.import_key}"
+        )
+        read_card_response = client.get(
+            f"/posting-cards/{card.card_key}"
+        )
+
+    assert delete_response.status_code == 204
+    assert delete_response.content == b""
+    assert read_import_response.status_code == 404
+    assert read_card_response.status_code == 200
+    assert PostingCard.model_validate(read_card_response.json()) == card
