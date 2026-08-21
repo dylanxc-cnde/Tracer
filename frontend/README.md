@@ -19,11 +19,14 @@ Python still handles AI calls, validation, SQLite, and card creation.
 - Confirm sends the selected posting back to FastAPI and saves a Posting Card;
 - a Load button retrieves saved Cards and renders them through `CardLibrary`
   and `PostingCardSummary`;
+- saved Cards can be permanently deleted after confirmation;
+- Import History loads saved import requests and supports the same explicit
+  deletion flow;
 - loading, API errors, parse status, candidate count, and the saved `card_key`
   are shown in the page.
 
-The current interface is intentionally small. Saved Card summaries can be
-loaded, but deletion, full detail reopening, and editing are not built yet.
+The current interface is intentionally small. Card and Import summaries can be
+loaded and deleted, but full detail reopening and editing are not built yet.
 
 ## Source layout
 
@@ -74,6 +77,10 @@ POST /posting-imports
 -> user selects one candidate
 -> POST /posting-cards
 -> GET /posting-cards
+-> DELETE /posting-cards/{card_key}
+
+GET /posting-imports
+-> DELETE /posting-imports/{import_key}
 ```
 
 FastAPI currently allows the local Vite origins `http://localhost:5173` and
@@ -81,14 +88,9 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
 
 ## Next steps
 
-- add a Delete button to each saved Card summary and pass the selected
-  `card_key` through a callback;
-- call `DELETE /posting-cards/{card_key}` and remove the Card from React state
-  only after the backend confirms success;
-- ask for confirmation before permanent deletion;
 - reopen a saved Card and review its full details and source excerpts;
 - add editing, aliases, notes, and tags after the update rules are settled;
-- show Import History and connect each Import to the Cards created from it;
+- show which saved Cards came from each Import;
 - improve the Card and Import layout, forms, and visual states;
 - add frontend component and API tests;
 - add the first Profile and matching screens after the Card workspace works;
@@ -96,3 +98,6 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
 
 OpenAI keys and real application data stay in Python and never go into frontend
 source code or `VITE_` environment variables.
+
+Deleting an Import does not delete a saved Card. The Card keeps the old
+`import_key`, so frontend code must treat the related Import as optional.
