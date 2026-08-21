@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import './App.css'
-import { createPostingImport, parsePostingImport, createPostingCard, getPostingCards } from './postings/api/postings'
+import { createPostingImport, parsePostingImport, createPostingCard, getPostingCards, deletePostingCard } from './postings/api/postings'
 import type { PostingParseResult } from './postings/types/postingParse'
 import { PostingCandidateCard } from './components/PostingCandidateCard'
 import type { PostingCard } from './postings/types/postingCard'
@@ -19,6 +19,7 @@ function App() {
   const [createdCard, setCreatedCard] = useState<PostingCard | null>(null)
   const [cards, setCards] = useState<PostingCard[]>([])
   const [isCardsLoading, setIsCardsLoading] = useState(false)
+  const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
 
   async function handleAnalyze() {
     setIsLoading(true)
@@ -108,6 +109,37 @@ function App() {
 
   }
 
+  async function handleDeleteCard(cardKey: string) {
+    const confirmed = window.confirm(
+      'Delete this posting card? This cannot be undone.',
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setDeletingCardKey(cardKey)
+    setError(null)
+
+    try {
+      await deletePostingCard(cardKey)
+      setCards((currentCards) =>
+        currentCards.filter((card) => card.card_key !== cardKey)
+      )
+      setCreatedCard((currentCard) =>
+        currentCard?.card_key === cardKey ? null : currentCard
+      )
+    } catch (caughtError: unknown) {
+      if (caughtError instanceof Error) {
+        setError(caughtError.message)
+      } else {
+        setError('Something went wrong while deleting the card.')
+      }
+    } finally {
+      setDeletingCardKey(null)
+    }
+  }
+
   return (
     <main>
       <h1>Tracer</h1>
@@ -164,7 +196,11 @@ function App() {
       )}
 
       {createdCard && (
-        <PostingCardSummary card={createdCard} />
+        <PostingCardSummary
+          card={createdCard}
+          isDeleting={deletingCardKey === createdCard.card_key}
+          onDelete={handleDeleteCard}
+        />
       )}
 
       <button
@@ -175,7 +211,11 @@ function App() {
         {isCardsLoading? 'Loading...' : 'Load card library'}
       </button>
 
-      <CardLibrary cards={cards} />
+      <CardLibrary
+        cards={cards}
+        deletingCardKey={deletingCardKey}
+        onDelete={handleDeleteCard}
+      />
 
     </main>
   )

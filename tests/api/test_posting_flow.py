@@ -11,6 +11,7 @@ from tracer.postings import (
     PostingParseResult,
 )
 from tracer.postings.models.posting_parse import PostingParseStatus
+from tracer.postings.stores.posting_card_store import PostingCardStore
 from tracer.postings.stores.posting_import_request_store import (
     PostingImportRequestStore,
 )
@@ -212,3 +213,38 @@ def test_missing_import_and_card_return_not_found(tmp_path):
     assert parse_response.status_code == 404
     assert card_response.status_code == 404
     assert card_response.json() == {"detail": "Posting card not found"}
+
+
+def test_http_deletes_posting_card(tmp_path):
+    database_path = tmp_path / "tracer.db"
+    card = PostingCard(
+        import_key=uuid4(),
+        posting=make_posting_details(),
+    )
+    store = PostingCardStore(database_path)
+    store.add(card)
+    app = create_app(database_path=database_path)
+
+    with TestClient(app) as client:
+        delete_response = client.delete(
+            f"/posting-cards/{card.card_key}"
+        )
+        read_response = client.get(
+            f"/posting-cards/{card.card_key}"
+        )
+
+    assert delete_response.status_code == 204
+    assert delete_response.content == b""
+    assert read_response.status_code == 404
+    assert store.get_by_card_key(card.card_key) is None
+
+
+def test_http_returns_not_found_when_deleting_missing_card(tmp_path):
+    missing_key = uuid4()
+    app = create_app(database_path=tmp_path / "tracer.db")
+
+    with TestClient(app) as client:
+        response = client.delete(f"/posting-cards/{missing_key}")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Posting card not found"}

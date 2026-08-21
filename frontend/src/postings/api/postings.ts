@@ -88,3 +88,21 @@ export async function getPostingCards(): Promise<PostingCard[]> {
     }
     return (await response.json()) as PostingCard[]
 }
+
+export async function deletePostingCard(
+    cardKey: string,
+): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/posting-cards/${cardKey}`,
+        {
+            method: 'DELETE',
+        }
+    )
+
+    if (!response.ok) {
+        const errorBody = await response.text()
+
+        throw new Error(
+            `Failed to delete posting card (${response.status}): ${errorBody}`,
+        )
+    }
+}

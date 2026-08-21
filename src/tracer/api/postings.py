@@ -124,4 +124,15 @@ def create_postings_router(
     def read_posting_cards() -> tuple[PostingCard, ...]:
         return posting_card_store.get_all()
 
+    @router.delete(
+        "/posting-cards/{card_key}",
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
+    def delete_posting_card(card_key: UUID) -> None:
+        if not posting_card_store.delete(card_key):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Posting card not found",
+            )
+
     return router

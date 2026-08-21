@@ -270,3 +270,23 @@ def test_store_checks_whether_posting_card_exists(tmp_path):
     store.add(card)
 
     assert store.exists(card.card_key)
+
+
+def test_store_deletes_posting_card_by_card_key(tmp_path):
+    store = PostingCardStore(tmp_path / "tracer.db")
+    card = make_card()
+    other_card = make_card(card_key=OTHER_CARD_KEY)
+    store.add(card)
+    store.add(other_card)
+
+    deleted = store.delete(card.card_key)
+
+    assert deleted
+    assert store.get_by_card_key(card.card_key) is None
+    assert store.get_by_card_key(other_card.card_key) == other_card
+
+
+def test_store_returns_false_when_deleting_missing_card(tmp_path):
+    store = PostingCardStore(tmp_path / "tracer.db")
+
+    assert not store.delete(MISSING_CARD_KEY)

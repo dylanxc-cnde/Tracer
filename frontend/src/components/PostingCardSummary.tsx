@@ -2,10 +2,12 @@ import type { PostingCard } from "../postings/types/postingCard"
 
 type PostingCardSummaryProps = {
     card: PostingCard
+    isDeleting: boolean
+    onDelete: (cardKey: string) => void
 }
 
 export function PostingCardSummary(
-    {card,} : PostingCardSummaryProps
+    {card, isDeleting, onDelete,} : PostingCardSummaryProps
 ) {
     const posting = card.posting
     const title = card.posting_alias ??
@@ -32,6 +34,13 @@ export function PostingCardSummary(
             <p>{location}</p>
             <p>{workMode}</p>
             <p>Saved at: {card.created_at}</p>
+            <button
+                type="button"
+                onClick={() => onDelete(card.card_key)}
+                disabled={isDeleting}
+            >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
         </article>
     )
 }
