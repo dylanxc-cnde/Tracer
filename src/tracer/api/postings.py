@@ -120,4 +120,8 @@ def create_postings_router(
 
         return card
 
+    @router.get("/posting-cards")
+    def read_posting_cards() -> tuple[PostingCard, ...]:
+        return posting_card_store.get_all()
+
     return router

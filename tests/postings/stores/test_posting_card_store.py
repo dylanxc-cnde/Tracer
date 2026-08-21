@@ -242,6 +242,25 @@ def test_store_returns_empty_tuple_for_missing_import_key(tmp_path):
     assert store.get_by_import_key(OTHER_IMPORT_KEY) == ()
 
 
+def test_store_gets_all_cards_newest_first(tmp_path):
+    store = PostingCardStore(tmp_path / "tracer.db")
+    older_card = make_card()
+    newer_card = make_card(
+        card_key=SECOND_CARD_KEY,
+        created_at=datetime(2026, 8, 17, 11, 30, tzinfo=UTC),
+    )
+    store.add(older_card)
+    store.add(newer_card)
+
+    assert store.get_all() == (newer_card, older_card)
+
+
+def test_store_returns_empty_tuple_when_no_cards_exist(tmp_path):
+    store = PostingCardStore(tmp_path / "tracer.db")
+
+    assert store.get_all() == ()
+
+
 def test_store_checks_whether_posting_card_exists(tmp_path):
     store = PostingCardStore(tmp_path / "tracer.db")
     card = make_card()

@@ -179,6 +179,14 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
             read_card_response.json()
         ) == card
 
+        cards_response = client.get("/posting-cards")
+
+        assert cards_response.status_code == 200
+        assert tuple(
+            PostingCard.model_validate(item)
+            for item in cards_response.json()
+        ) == (card,)
+
     stored_import = PostingImportRequestStore(database_path).get(
         import_request.import_key
     )

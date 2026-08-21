@@ -1,11 +1,11 @@
 import type { PostingCard } from "../postings/types/postingCard"
 
-type PostingCardSummaryProp = {
+type PostingCardSummaryProps = {
     card: PostingCard
 }
 
 export function PostingCardSummary(
-    {card,} : PostingCardSummaryProp
+    {card,} : PostingCardSummaryProps
 ) {
     const posting = card.posting
     const title = card.posting_alias ??

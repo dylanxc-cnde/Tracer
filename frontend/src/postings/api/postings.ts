@@ -72,3 +72,7 @@ export async function createPostingCard(
     }
     return (await response.json()) as PostingCard
 }
+
+export async function getPostingCards(): Promise<PostingCard[]> {
+    
+}

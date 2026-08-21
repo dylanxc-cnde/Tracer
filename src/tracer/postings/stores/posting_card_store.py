@@ -55,6 +55,12 @@ _CHECK_POSTING_CARD_EXISTS = """
     LIMIT 1
 """
 
+_SELECT_ALL_POSTING_CARDS = """
+    SELECT payload_json
+    FROM posting_cards
+    ORDER BY created_at DESC, card_key
+"""
+
 
 class PostingCardStore:
     """SQLite store for confirmed posting cards.
@@ -179,3 +185,23 @@ class PostingCardStore:
             connection.close()
 
         return row is not None
+
+    def get_all(self) -> tuple[PostingCard, ...]:
+        """Get all stored posting cards.
+
+        Returns:
+            Stored cards ordered from newest to oldest.
+        """
+        connection = sqlite3.connect(self._database_path)
+
+        try:
+            rows = connection.execute(
+                _SELECT_ALL_POSTING_CARDS
+            ).fetchall()
+        finally:
+            connection.close()
+
+        return tuple(
+            PostingCard.model_validate_json(row[0])
+            for row in rows
+        )
