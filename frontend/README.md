@@ -17,11 +17,13 @@ Python still handles AI calls, validation, SQLite, and card creation.
 - parsed candidates are shown as selectable cards;
 - every candidate needs an explicit user selection, even when there is only one;
 - Confirm sends the selected posting back to FastAPI and saves a Posting Card;
+- a Load button retrieves saved Cards and renders them through `CardLibrary`
+  and `PostingCardSummary`;
 - loading, API errors, parse status, candidate count, and the saved `card_key`
   are shown in the page.
 
-The current interface is intentionally small. Full detail editing and a saved
-card browser are not built yet.
+The current interface is intentionally small. Saved Card summaries can be
+loaded, but deletion, full detail reopening, and editing are not built yet.
 
 ## Source layout
 
@@ -71,6 +73,7 @@ POST /posting-imports
 -> POST /posting-imports/{import_key}/parse-results
 -> user selects one candidate
 -> POST /posting-cards
+-> GET /posting-cards
 ```
 
 FastAPI currently allows the local Vite origins `http://localhost:5173` and
@@ -78,10 +81,13 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
 
 ## Next steps
 
-- browse and reopen saved cards in a Card library;
-- open a saved Card, review its full details and source excerpts, then save
-  user edits;
-- manage aliases, notes, and tags on saved Cards;
+- add a Delete button to each saved Card summary and pass the selected
+  `card_key` through a callback;
+- call `DELETE /posting-cards/{card_key}` and remove the Card from React state
+  only after the backend confirms success;
+- ask for confirmation before permanent deletion;
+- reopen a saved Card and review its full details and source excerpts;
+- add editing, aliases, notes, and tags after the update rules are settled;
 - show Import History and connect each Import to the Cards created from it;
 - improve the Card and Import layout, forms, and visual states;
 - add frontend component and API tests;
