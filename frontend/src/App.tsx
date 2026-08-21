@@ -248,97 +248,105 @@ function App() {
 
       <p>Current page: {currentPage}</p>
 
-
-
-
-      <textarea
-        placeholder="Paste a job posting here"
-        value={postingText}
-        onChange={(event) => setPostingText(event.target.value)}
-      />
-
-      <p>{postingText.length} characters</p>
-
-      <button
-        type="button"
-        onClick={handleAnalyze}
-        disabled={isLoading || postingText.trim().length === 0}
-      >
-        {isLoading ? 'Analyzing...' : 'Analyze'}
-      </button>
-
       {error && <p role="alert">{error}</p>}
 
-      <p>
-        Parse status: {parseResult?.status ?? 'none'} · Candidates:{' '}
-        {parseResult?.postings.length ?? 0}
-      </p>
+      {currentPage === 'posting-import' && (
+        <>
+          <textarea
+            placeholder="Paste a job posting here"
+            value={postingText}
+            onChange={(event) => setPostingText(event.target.value)}
+          />
 
-      {parseResult && parseResult.postings.length > 0 && (
-        <section>
-          <h2>Choose a posting</h2>
-
-          {parseResult.postings.map((posting, index) => (
-            <PostingCandidateCard
-              key={index}
-              posting={posting}
-              isSelected={selectedPostingIndex === index}
-              onSelect={() => setSelectedPostingIndex(index)}
-            />
-          ))}
+          <p>{postingText.length} characters</p>
 
           <button
             type="button"
-            onClick={handleConfirm}
-            disabled={
-              selectedPosting === null ||
-              isSaving ||
-              createdCard !== null
-            }
+            onClick={handleAnalyze}
+            disabled={isLoading || postingText.trim().length === 0}
           >
-            {saveButtonLabel()}
+            {isLoading ? 'Analyzing...' : 'Analyze'}
           </button>
-        </section>
+
+          <p>
+            Parse status: {parseResult?.status ?? 'none'} · Candidates:{' '}
+            {parseResult?.postings.length ?? 0}
+          </p>
+
+          {parseResult && parseResult.postings.length > 0 && (
+            <section>
+              <h2>Choose a posting</h2>
+
+              {parseResult.postings.map((posting, index) => (
+                <PostingCandidateCard
+                  key={index}
+                  posting={posting}
+                  isSelected={selectedPostingIndex === index}
+                  onSelect={() => setSelectedPostingIndex(index)}
+                />
+              ))}
+
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={
+                  selectedPosting === null ||
+                  isSaving ||
+                  createdCard !== null
+                }
+              >
+                {saveButtonLabel()}
+              </button>
+            </section>
+          )}
+
+          {createdCard && (
+            <PostingCardSummary
+              card={createdCard}
+              isDeleting={deletingCardKey === createdCard.card_key}
+              onDelete={handleDeleteCard}
+            />
+          )}
+        </>
       )}
 
-      {createdCard && (
-        <PostingCardSummary
-          card={createdCard}
-          isDeleting={deletingCardKey === createdCard.card_key}
-          onDelete={handleDeleteCard}
-        />
+      {currentPage === 'card-library' && (
+        <>
+          <button
+            type="button"
+            onClick={handleLoadCards}
+            disabled={isCardsLoading}
+          >
+            {isCardsLoading ? 'Loading...' : 'Load card library'}
+          </button>
+
+          <CardLibrary
+            cards={cards}
+            deletingCardKey={deletingCardKey}
+            onDelete={handleDeleteCard}
+          />
+        </>
       )}
 
-      <button
-        type='button'
-        onClick={handleLoadCards}
-        disabled={isCardsLoading}
-      >
-        {isCardsLoading? 'Loading...' : 'Load card library'}
-      </button>
+      {currentPage === 'import-history' && (
+        <>
+          <button
+            type="button"
+            onClick={handleLoadImports}
+            disabled={isImportsLoading}
+          >
+            {isImportsLoading ? 'Loading...' : 'Load import history'}
+          </button>
 
-      <CardLibrary
-        cards={cards}
-        deletingCardKey={deletingCardKey}
-        onDelete={handleDeleteCard}
-      />
-
-      <button
-        type="button"
-        onClick={handleLoadImports}
-        disabled={isImportsLoading}
-      >
-        {isImportsLoading ? 'Loading...' : 'Load import history'}
-      </button>
-
-      {hasLoadedImports && (
-        <ImportHistory
-          postingImports={postingImports}
-          deletingImportKey={deletingImportKey}
-          onDelete={handleDeleteImport}
-        />
+          {hasLoadedImports && (
+            <ImportHistory
+              postingImports={postingImports}
+              deletingImportKey={deletingImportKey}
+              onDelete={handleDeleteImport}
+            />
+          )}
+        </>
       )}
-
     </main>
   )
 }
