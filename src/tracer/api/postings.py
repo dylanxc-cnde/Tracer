@@ -78,11 +78,26 @@ def create_postings_router(
 
         return request
 
+    @router.get("/posting-imports")
+    def read_posting_imports() -> tuple[PostingImportRequest, ...]:
+        return posting_import_request_store.get_all()
+
     @router.get("/posting-imports/{import_key}")
     def read_posting_import(
         import_key: UUID,
     ) -> PostingImportRequest:
         return get_posting_import(import_key)
+
+    @router.delete(
+        "/posting-imports/{import_key}",
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
+    def delete_posting_import(import_key: UUID) -> None:
+        if not posting_import_request_store.delete(import_key):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Posting import not found",
+            )
 
     @router.post("/posting-imports/{import_key}/parse-results")
     def create_posting_parse_result(

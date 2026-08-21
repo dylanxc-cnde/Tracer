@@ -30,6 +30,43 @@ export async function createPostingImport(
     return (await response.json()) as PostingImportRequest
 }
 
+export async function getPostingImports(): Promise<PostingImportRequest[]> {
+    const response = await fetch(`${API_BASE_URL}/posting-imports`,
+        {
+            method: 'GET',
+        }
+    )
+
+    if (!response.ok) {
+        const errorBody = await response.text()
+
+        throw new Error(
+            `Failed to get posting imports (${response.status}): ${errorBody}`,
+        )
+    }
+
+    return (await response.json()) as PostingImportRequest[]
+}
+
+export async function deletePostingImport(
+    importKey: string,
+): Promise<void> {
+    const response = await fetch(
+        `${API_BASE_URL}/posting-imports/${importKey}`,
+        {
+            method: 'DELETE',
+        }
+    )
+
+    if (!response.ok) {
+        const errorBody = await response.text()
+
+        throw new Error(
+            `Failed to delete posting import (${response.status}): ${errorBody}`,
+        )
+    }
+}
+
 export async function parsePostingImport(
     importKey: string,
 ): Promise<PostingParseResult> {
