@@ -17,8 +17,13 @@ import { PostingCardSummary } from './components/PostingCardSummary'
 import { CardLibrary } from './components/CardLibrary'
 import { ImportHistory } from './components/ImportHistory'
 
+type AppPage =
+  | 'posting-import'
+  | 'card-library'
+  | 'import-history'
 
 function App() {
+  const [currentPage, setCurrentPage] = useState<AppPage>('posting-import')
   const [postingText, setPostingText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [parseResult, setParseResult] = useState<PostingParseResult | null>(null)
@@ -214,6 +219,37 @@ function App() {
     <main>
       <h1>Tracer</h1>
       <p>Review job postings before saving them.</p>
+
+      <nav aria-label="Main navigation">
+        <button
+          type="button"
+          onClick={() => setCurrentPage('posting-import')}
+          disabled={currentPage === 'posting-import'}
+        >
+          Import posting
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCurrentPage('card-library')}
+          disabled={currentPage === 'card-library'}
+        >
+          Card library
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCurrentPage('import-history')}
+          disabled={currentPage === 'import-history'}
+        >
+          Import history
+        </button>
+      </nav>
+
+      <p>Current page: {currentPage}</p>
+
+
+
 
       <textarea
         placeholder="Paste a job posting here"
