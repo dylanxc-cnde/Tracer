@@ -4,23 +4,19 @@ import {
   deletePostingImport,
   getPostingImports,
 } from '../postings/api/postings'
+import { usePostingImportSession } from '../postings/context/usePostingImportSession'
 import type { PostingImportRequest } from '../postings/types/postingImport'
 
-type ImportHistoryPageProps = {
-  onImportDeleted: (importKey: string) => void
-}
-
-export function ImportHistoryPage({
-  onImportDeleted,
-}: ImportHistoryPageProps) {
+export function ImportHistoryPage() {
+  const { handleImportDeleted } = usePostingImportSession()
   const [postingImports, setPostingImports] = useState<PostingImportRequest[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingImports, setIsLoadingImports] = useState(false)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [deletingImportKey, setDeletingImportKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function handleLoadImports() {
-    setIsLoading(true)
+    setIsLoadingImports(true)
     setError(null)
 
     try {
@@ -34,7 +30,7 @@ export function ImportHistoryPage({
         setError('Something went wrong while loading imports.')
       }
     } finally {
-      setIsLoading(false)
+      setIsLoadingImports(false)
     }
   }
 
@@ -57,7 +53,7 @@ export function ImportHistoryPage({
           (postingImport) => postingImport.import_key !== importKey,
         ),
       )
-      onImportDeleted(importKey)
+      handleImportDeleted(importKey)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
         setError(caughtError.message)
@@ -76,9 +72,9 @@ export function ImportHistoryPage({
       <button
         type="button"
         onClick={handleLoadImports}
-        disabled={isLoading}
+        disabled={isLoadingImports}
       >
-        {isLoading ? 'Loading...' : 'Load import history'}
+        {isLoadingImports ? 'Loading...' : 'Load import history'}
       </button>
 
       {hasLoaded && (

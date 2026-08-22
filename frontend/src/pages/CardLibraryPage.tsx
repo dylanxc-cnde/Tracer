@@ -4,22 +4,18 @@ import {
   deletePostingCard,
   getPostingCards,
 } from '../postings/api/postings'
+import { usePostingImportSession } from '../postings/context/usePostingImportSession'
 import type { PostingCard } from '../postings/types/postingCard'
 
-type CardLibraryPageProps = {
-  onCardDeleted: (cardKey: string) => void
-}
-
-export function CardLibraryPage({
-  onCardDeleted,
-}: CardLibraryPageProps) {
+export function CardLibraryPage() {
+  const { handleCardDeleted } = usePostingImportSession()
   const [cards, setCards] = useState<PostingCard[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingCards, setIsLoadingCards] = useState(false)
   const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function handleLoadCards() {
-    setIsLoading(true)
+    setIsLoadingCards(true)
     setError(null)
 
     try {
@@ -32,7 +28,7 @@ export function CardLibraryPage({
         setError('Something went wrong while loading cards.')
       }
     } finally {
-      setIsLoading(false)
+      setIsLoadingCards(false)
     }
   }
 
@@ -53,7 +49,7 @@ export function CardLibraryPage({
       setCards((currentCards) =>
         currentCards.filter((card) => card.card_key !== cardKey),
       )
-      onCardDeleted(cardKey)
+      handleCardDeleted(cardKey)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
         setError(caughtError.message)
@@ -72,9 +68,9 @@ export function CardLibraryPage({
       <button
         type="button"
         onClick={handleLoadCards}
-        disabled={isLoading}
+        disabled={isLoadingCards}
       >
-        {isLoading ? 'Loading...' : 'Load card library'}
+        {isLoadingCards ? 'Loading...' : 'Load card library'}
       </button>
 
       <CardLibrary
