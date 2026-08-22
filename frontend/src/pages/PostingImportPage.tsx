@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { PostingCandidateCard } from '../components/PostingCandidateCard'
+import { PostingCardDetails } from '../components/PostingCardDetails'
 import { PostingCardSummary } from '../components/PostingCardSummary'
 import { usePostingImportSession } from '../postings/context/usePostingImportSession'
+import type { PostingCard } from '../postings/types/postingCard'
 
 export function PostingImportPage() {
+  const [selectedCard, setSelectedCard] = useState<PostingCard | null>(null)
   const {
     postingText,
     isAnalyzing,
@@ -24,6 +28,14 @@ export function PostingImportPage() {
     if (createdCard) return 'Saved'
     if (isSaving) return 'Saving…'
     return 'Confirm and save'
+  }
+
+  function handleOpenCard(card: PostingCard) {
+    setSelectedCard(card)
+  }
+
+  function handleCloseCard() {
+    setSelectedCard(null)
   }
 
   return (
@@ -82,7 +94,15 @@ export function PostingImportPage() {
         <PostingCardSummary
           card={createdCard}
           isDeleting={isDeletingCreatedCard}
+          onOpen={handleOpenCard}
           onDelete={deleteCreatedCard}
+        />
+      )}
+
+      {selectedCard && (
+        <PostingCardDetails
+          card={selectedCard}
+          onClose={handleCloseCard}
         />
       )}
     </>
