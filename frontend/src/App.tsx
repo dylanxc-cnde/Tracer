@@ -5,16 +5,13 @@ import {
   parsePostingImport,
   createPostingCard,
   deletePostingCard,
-  getPostingImports,
-  deletePostingImport,
 } from './postings/api/postings'
 import type { PostingParseResult } from './postings/types/postingParse'
 import { PostingCandidateCard } from './components/PostingCandidateCard'
 import type { PostingCard } from './postings/types/postingCard'
-import type { PostingImportRequest } from './postings/types/postingImport'
 import { PostingCardSummary } from './components/PostingCardSummary'
-import { ImportHistory } from './components/ImportHistory'
 import { CardLibraryPage } from './pages/CardLibraryPage'
+import { ImportHistoryPage } from './pages/ImportHistoryPage'
 
 type AppPage =
   | 'posting-import'
@@ -32,10 +29,6 @@ function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [createdCard, setCreatedCard] = useState<PostingCard | null>(null)
   const [isDeletingCreatedCard, setIsDeletingCreatedCard] = useState(false)
-  const [postingImports, setPostingImports] = useState<PostingImportRequest[]>([])
-  const [isImportsLoading, setIsImportsLoading] = useState(false)
-  const [hasLoadedImports, setHasLoadedImports] = useState(false)
-  const [deletingImportKey, setDeletingImportKey] = useState<string | null>(null)
 
   async function handleAnalyze() {
     setIsLoading(true)
@@ -138,59 +131,11 @@ function App() {
     )
   }
 
-  async function handleLoadImports() {
-    setIsImportsLoading(true)
-    setError(null)
-
-    try {
-      const storedImports = await getPostingImports()
-      setPostingImports(storedImports)
-      setHasLoadedImports(true)
-    } catch (caughtError: unknown) {
-      if (caughtError instanceof Error) {
-        setError(caughtError.message)
-      } else {
-        setError('Something went wrong while loading imports.')
-      }
-    } finally {
-      setIsImportsLoading(false)
-    }
-  }
-
-  async function handleDeleteImport(importKeyToDelete: string) {
-    const confirmed = window.confirm(
-      'Delete this import history? Saved posting cards will not be deleted.',
-    )
-
-    if (!confirmed) {
-      return
-    }
-
-    setDeletingImportKey(importKeyToDelete)
-    setError(null)
-
-    try {
-      await deletePostingImport(importKeyToDelete)
-      setPostingImports((currentImports) =>
-        currentImports.filter(
-          (postingImport) =>
-            postingImport.import_key !== importKeyToDelete
-        )
-      )
-
-      if (importKey === importKeyToDelete) {
-        setImportKey(null)
-        setParseResult(null)
-        setSelectedPostingIndex(null)
-      }
-    } catch (caughtError: unknown) {
-      if (caughtError instanceof Error) {
-        setError(caughtError.message)
-      } else {
-        setError('Something went wrong while deleting the import.')
-      }
-    } finally {
-      setDeletingImportKey(null)
+  function handleHistoryImportDeleted(deletedImportKey: string) {
+    if (importKey === deletedImportKey) {
+      setImportKey(null)
+      setParseResult(null)
+      setSelectedPostingIndex(null)
     }
   }
 
@@ -294,23 +239,7 @@ function App() {
       )}
 
       {currentPage === 'import-history' && (
-        <>
-          <button
-            type="button"
-            onClick={handleLoadImports}
-            disabled={isImportsLoading}
-          >
-            {isImportsLoading ? 'Loading...' : 'Load import history'}
-          </button>
-
-          {hasLoadedImports && (
-            <ImportHistory
-              postingImports={postingImports}
-              deletingImportKey={deletingImportKey}
-              onDelete={handleDeleteImport}
-            />
-          )}
-        </>
+        <ImportHistoryPage onImportDeleted={handleHistoryImportDeleted} />
       )}
     </main>
   )
