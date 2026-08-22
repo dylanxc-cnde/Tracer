@@ -1,15 +1,32 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  --color-canvas: #f3f1ec;
+  --color-surface: #fcfbf8;
+  --color-surface-muted: #e9e6e0;
+  --color-text-primary: #343535;
+  --color-text-secondary: #565a57;
+  --color-border-subtle: #d3cec5;
+  --color-border-strong: #a09990;
+  --color-action-primary: #31463e;
+  --color-action-pressed: #22342e;
+  --color-information: #b9cfd5;
+  --color-accent-warm: #b76e3c;
+  --color-attention: #8a4944;
+  --color-danger: #c44747;
+  --color-danger-pressed: #9e3333;
+  --color-danger-soft: #f6e1df;
+
+  --text: var(--color-text-secondary);
+  --text-h: var(--color-text-primary);
+  --bg: var(--color-canvas);
+  --border: var(--color-border-subtle);
+  --code-bg: var(--color-surface-muted);
+  --accent: var(--color-action-primary);
+  --accent-bg: rgba(49, 70, 62, 0.1);
+  --accent-border: rgba(49, 70, 62, 0.5);
+  --social-bg: rgba(233, 230, 224, 0.65);
   --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+    rgba(52, 53, 53, 0.1) 0 10px 24px -8px,
+    rgba(52, 53, 53, 0.06) 0 4px 10px -4px;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -17,7 +34,7 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -27,26 +44,6 @@
 
   @media (max-width: 1024px) {
     font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
   }
 }
 

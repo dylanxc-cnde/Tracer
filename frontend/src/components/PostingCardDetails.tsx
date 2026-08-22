@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-
+import './PostingCardDetails.css'
 import type { PostingCard } from '../postings/types/postingCard';
 
 type PostingCardDetailsProps = {
@@ -31,7 +31,7 @@ export function PostingCardDetails(
           'Unknown Position'}
       </h2>
 
-      <p>
+      <p className="posting-card-details__company">
         {card.posting.identity.company_name?.value ??
           'Unknown Company'}
       </p>
