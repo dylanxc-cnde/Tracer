@@ -4,7 +4,6 @@ import {
   createPostingImport,
   parsePostingImport,
   createPostingCard,
-  getPostingCards,
   deletePostingCard,
   getPostingImports,
   deletePostingImport,
@@ -14,8 +13,8 @@ import { PostingCandidateCard } from './components/PostingCandidateCard'
 import type { PostingCard } from './postings/types/postingCard'
 import type { PostingImportRequest } from './postings/types/postingImport'
 import { PostingCardSummary } from './components/PostingCardSummary'
-import { CardLibrary } from './components/CardLibrary'
 import { ImportHistory } from './components/ImportHistory'
+import { CardLibraryPage } from './pages/CardLibraryPage'
 
 type AppPage =
   | 'posting-import'
@@ -32,9 +31,7 @@ function App() {
   const [importKey, setImportKey] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [createdCard, setCreatedCard] = useState<PostingCard | null>(null)
-  const [cards, setCards] = useState<PostingCard[]>([])
-  const [isCardsLoading, setIsCardsLoading] = useState(false)
-  const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
+  const [isDeletingCreatedCard, setIsDeletingCreatedCard] = useState(false)
   const [postingImports, setPostingImports] = useState<PostingImportRequest[]>([])
   const [isImportsLoading, setIsImportsLoading] = useState(false)
   const [hasLoadedImports, setHasLoadedImports] = useState(false)
@@ -109,26 +106,7 @@ function App() {
     return 'Confirm and save'
   }
 
-  async function handleLoadCards() {
-    setIsCardsLoading(true)
-    setError(null)
-
-    try {
-      const storedCards = await getPostingCards()
-      setCards(storedCards)
-    } catch (caughtError: unknown) {
-      if (caughtError instanceof Error) {
-        setError(caughtError.message)
-      } else {
-        setError('Something went wrong while loading cards.')
-      }
-    } finally {
-      setIsCardsLoading(false)
-    }
-
-  }
-
-  async function handleDeleteCard(cardKey: string) {
+  async function handleDeleteCreatedCard(cardKey: string) {
     const confirmed = window.confirm(
       'Delete this posting card? This cannot be undone.',
     )
@@ -137,17 +115,12 @@ function App() {
       return
     }
 
-    setDeletingCardKey(cardKey)
+    setIsDeletingCreatedCard(true)
     setError(null)
 
     try {
       await deletePostingCard(cardKey)
-      setCards((currentCards) =>
-        currentCards.filter((card) => card.card_key !== cardKey)
-      )
-      setCreatedCard((currentCard) =>
-        currentCard?.card_key === cardKey ? null : currentCard
-      )
+      setCreatedCard(null)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
         setError(caughtError.message)
@@ -155,8 +128,14 @@ function App() {
         setError('Something went wrong while deleting the card.')
       }
     } finally {
-      setDeletingCardKey(null)
+      setIsDeletingCreatedCard(false)
     }
+  }
+
+  function handleLibraryCardDeleted(cardKey: string) {
+    setCreatedCard((currentCard) =>
+      currentCard?.card_key === cardKey ? null : currentCard,
+    )
   }
 
   async function handleLoadImports() {
@@ -303,29 +282,15 @@ function App() {
           {createdCard && (
             <PostingCardSummary
               card={createdCard}
-              isDeleting={deletingCardKey === createdCard.card_key}
-              onDelete={handleDeleteCard}
+              isDeleting={isDeletingCreatedCard}
+              onDelete={handleDeleteCreatedCard}
             />
           )}
         </>
       )}
 
       {currentPage === 'card-library' && (
-        <>
-          <button
-            type="button"
-            onClick={handleLoadCards}
-            disabled={isCardsLoading}
-          >
-            {isCardsLoading ? 'Loading...' : 'Load card library'}
-          </button>
-
-          <CardLibrary
-            cards={cards}
-            deletingCardKey={deletingCardKey}
-            onDelete={handleDeleteCard}
-          />
-        </>
+        <CardLibraryPage onCardDeleted={handleLibraryCardDeleted} />
       )}
 
       {currentPage === 'import-history' && (
