@@ -4,10 +4,11 @@ type PostingCardSummaryProps = {
     card: PostingCard
     isDeleting: boolean
     onDelete: (cardKey: string) => void
+    onOpen: (card: PostingCard) => void
 }
 
 export function PostingCardSummary(
-    {card, isDeleting, onDelete,} : PostingCardSummaryProps
+    {card, isDeleting, onDelete, onOpen,} : PostingCardSummaryProps
 ) {
     const posting = card.posting
     const title = card.posting_alias ??
@@ -40,6 +41,12 @@ export function PostingCardSummary(
                 disabled={isDeleting}
             >
                 {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+            <button
+                type="button"
+                onClick={() => onOpen(card)}
+            >
+                View details
             </button>
         </article>
     )

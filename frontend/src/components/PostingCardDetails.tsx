@@ -1,4 +1,4 @@
-import type { PostingCard } from "../postings/types/postingCard";
+import type { PostingCard } from '../postings/types/postingCard';
 
 type PostingCardDetailsProps = {
     card: PostingCard
@@ -9,8 +9,8 @@ export function PostingCardDetails(
     {card, onClose,} : PostingCardDetailsProps
 ) {
     return (
-        <article>
-            <h2>
+        <article className="posting-card-details">
+            <h2 className="posting-card-details__header">
                 {card.posting_alias ??
                     card.posting.identity.position_title?.value ??
                     'Unknown Position'}
@@ -21,7 +21,11 @@ export function PostingCardDetails(
                     'Unknown Company'}
             </p>
 
-            <button type="button" onClick={onClose}>
+            <button
+             className="posting-card-details__close"
+             type="button"
+             onClick={onClose}
+            >
                 Close
             </button>
         </article>

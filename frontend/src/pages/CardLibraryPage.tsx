@@ -6,6 +6,7 @@ import {
 } from '../postings/api/postings'
 import { usePostingImportSession } from '../postings/context/usePostingImportSession'
 import type { PostingCard } from '../postings/types/postingCard'
+import { PostingCardDetails } from '../components/PostingCardDetails'
 
 export function CardLibraryPage() {
   const { handleCardDeleted } = usePostingImportSession()
@@ -13,6 +14,7 @@ export function CardLibraryPage() {
   const [isLoadingCards, setIsLoadingCards] = useState(false)
   const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [selectedCard, setSelectedCard] = useState<PostingCard | null>(null)
 
   async function handleLoadCards() {
     setIsLoadingCards(true)
@@ -61,6 +63,14 @@ export function CardLibraryPage() {
     }
   }
 
+  function handleOpenCard(card: PostingCard) {
+    setSelectedCard(card)
+  }
+
+  function handleCloseCard() {
+    setSelectedCard(null)
+  }
+
   return (
     <>
       {error && <p role="alert">{error}</p>}
@@ -77,7 +87,15 @@ export function CardLibraryPage() {
         cards={cards}
         deletingCardKey={deletingCardKey}
         onDelete={handleDeleteCard}
+        onOpen={handleOpenCard}
       />
+
+      {selectedCard !== null && (
+        <PostingCardDetails
+          card={selectedCard}
+          onClose={handleCloseCard}
+        />
+      )}
     </>
   )
 }
