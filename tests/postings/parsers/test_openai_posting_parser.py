@@ -55,6 +55,22 @@ def test_shared_prompt_defines_every_parse_status_and_refinement_reason():
     assert "Never set origin to user_defined" in POSTING_PARSE_PROMPT
 
 
+def test_shared_prompt_uses_requirement_strategy_without_scenarios():
+    prompt = " ".join(POSTING_PARSE_PROMPT.split())
+
+    assert "Parse each source requirement in this order" in prompt
+    assert "Segment the source statement" in prompt
+    assert "applies only to the capability or clause that it modifies" in prompt
+    assert "Do not downgrade an unqualified broader requirement" in prompt
+    assert "assign each its own importance" in prompt
+    assert "Lists and conjunctions do not prove any_of by themselves" in prompt
+    assert "Illustration items do not determine item_rule" in prompt
+    assert "Run a consistency check" in prompt
+    assert 'Example: "' not in POSTING_PARSE_PROMPT
+    assert "By contrast," not in POSTING_PARSE_PROMPT
+    assert "For example," not in POSTING_PARSE_PROMPT
+
+
 def test_parser_sends_text_import_with_shared_prompt():
     expected_result = make_result()
     client = FakeOpenAI(expected_result)

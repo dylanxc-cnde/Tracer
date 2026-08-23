@@ -97,40 +97,65 @@ company-wide fact. Do not turn responsibilities, requirements, the role's
 technical domain or a recruiting slogan into the company summary. Cite the
 exact supporting company passage and its page URL in the summary's sources.
 
-Each Requirement must contain items that share one importance and one logical
-relationship. If one sentence or bullet contains clauses with different
-importance levels or different logical relationships, split it into multiple
-Requirement objects. Preserve the exact relevant clause in each
-Requirement.text. Split requirements may cite the same full source passage.
-Do not use unknown or a parse ambiguity merely because the source needs to be
-split.
+Parse each source requirement in this order:
 
-Classify each Requirement as required, preferred or unknown. Put every
-independently matchable concept in Requirement.items. Use single for one core
-item, all_of when all core items are requested, and any_of when the source
-explicitly offers alternatives. Use unknown only when the importance or the
-relationship remains genuinely unclear after splitting.
-
-Example: "Excellent Excel skills; Power Query and VBA are desirable" becomes
-one required Requirement for Excel and one preferred Requirement for Power
-Query and VBA. "SQL and either Python or R" becomes one Requirement for SQL
-and another any_of Requirement for Python and R.
-
-When wording such as "for example", "such as", "zum Beispiel", "z. B." or
-"wie" introduces examples, keep the broader capability as a core item with
-is_example=false and add the named examples with is_example=true. Example
-items illustrate the core capability and do not become separate employer
-requirements. Requirement.item_rule applies only to core items.
-
-Example: "data visualization tools such as Qlik Sense, Power BI or Tableau"
-has the single core item "data visualization tools" plus three example items.
-By contrast, "R, Python or KNIME" has three core items with any_of.
+1. Segment the source statement into independently meaningful clauses. Keep a
+   clause together only when its concepts share the same importance and the
+   same logical relationship. Split clauses when a modifier, conjunction,
+   punctuation boundary or change of meaning gives only part of the statement
+   a different importance or relationship. Do not split compound names or
+   phrases that represent one matchable concept.
+2. Resolve modifier scope before assigning importance. Wording such as
+   "ideally", "preferably", "desirable", "idealerweise" or "vorzugsweise"
+   applies only to the capability or clause that it modifies. Do not downgrade
+   an unqualified broader requirement or a separate sibling clause merely
+   because a preferred qualifier appears elsewhere in the same sentence or
+   bullet. Mandatory wording must likewise not upgrade clauses outside its
+   scope.
+3. Assign importance separately after segmentation. Use required for an
+   unqualified candidate qualification presented as an expected capability and
+   for a clause explicitly stated as mandatory. Use preferred only when
+   optional, advantage or preference wording applies to that clause. Use
+   unknown only when the importance remains genuinely unclear after resolving
+   the structure and modifier scope. Do not treat missing modal words alone as
+   evidence that a qualification is preferred.
+4. Build Requirement objects so every object has exactly one importance and
+   one logical relationship. When a required core capability and a preferred
+   specialization share one source statement, place them in separate objects
+   and assign each its own importance. Preserve the exact relevant clause in
+   Requirement.text. Split objects may cite the same full source passage. Do
+   not create a parse ambiguity merely because splitting is required.
+5. Build matchable items from the concepts explicitly supported by that
+   Requirement.text. Each core item must represent one capability, credential,
+   experience, language, license or other condition that can be matched
+   independently. Do not merge distinct concepts into one item and do not
+   invent a broader category that the source does not support.
+6. Set item_rule from the relationship among non-example core items. Use
+   single only when there is exactly one core item. Use all_of only when the
+   source requires every core item together. Use any_of only when the source
+   clearly allows one or another core item to satisfy the same requirement.
+   Lists and conjunctions do not prove any_of by themselves. all_of and any_of
+   require at least two core items. Use unknown only when the relationship
+   remains genuinely unclear after segmentation.
+7. Classify illustration items separately from alternatives. Explicit
+   illustration markers, including "for example", "such as", "zum Beispiel",
+   "z. B." and an illustrative use of "wie", introduce non-exhaustive examples
+   rather than choices that independently satisfy the requirement. Keep an
+   explicitly stated broader capability as a core item with is_example=false
+   and mark the illustrated named items with is_example=true. Illustration
+   items do not determine item_rule, and an "or" inside an illustrative list
+   does not turn that list into any_of. Preference wording controls importance;
+   it does not by itself mark an item as an example.
+8. Run a consistency check before returning the Requirement. Its importance
+   must apply to the full Requirement.text, its item_rule must describe only
+   its core items, and every item must be supported by the same clause. Split
+   the object again whenever one of these conditions is not met.
 
 Use WorkMode.other only when the source clearly describes a work arrangement
 outside the available enum values. Never use other as a fallback for
-uncertainty. If wording such as "Mobiles Arbeiten" does not establish whether
-the job is hybrid, remote or something else, leave work_modes null and add a
-parse ambiguity for work_conditions.work_modes.
+uncertainty. A broad flexibility or mobility label that does not establish a
+specific available work mode must leave work_modes null and create a parse
+ambiguity for work_conditions.work_modes.
 
 Copy a short, exact, contiguous supporting passage into SourceExcerpt.text.
 The excerpt itself must appear verbatim in the source. Never translate,
@@ -139,7 +164,7 @@ an excerpt. A normalized parsed value may differ from its excerpt, but the
 excerpt must remain unchanged. If no exact supporting passage exists, leave
 the field unknown or empty instead of inventing evidence.
 For posting_language, cite a short passage written in that language; never
-invent an explanatory excerpt such as "The posting is written in German."
+invent an explanatory sentence that merely names the inferred language.
 For passages obtained from a web page, include that page in
 SourceExcerpt.source_url.
 For passages obtained only from the pasted text, use null as source_url.
@@ -156,8 +181,7 @@ Every PostingParseAmbiguity.field_path is relative to the PostingDetails root
 inside ParsedPosting.details. Never prefix it with "details.".
 Do not create an ambiguity merely because a field is absent, because another
 field only suggests a possible value, or because the employer did not state
-the value. Leave an unstated field unknown without an ambiguity.
-For example, a stated duration does not make an unstated contract type
-ambiguous.
+the value. Leave an unstated field unknown without an ambiguity. Evidence for
+one field does not make a separate, unstated field ambiguous.
 Ignore recommended or similar jobs that only appear as short suggestions.
 """.strip()
