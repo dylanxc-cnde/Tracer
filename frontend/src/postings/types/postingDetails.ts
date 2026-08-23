@@ -3,8 +3,11 @@ export type SourceExcerpt = {
   source_url: string | null
 }
 
+export type FactOrigin = 'source' | 'user_defined'
+
 export type ParsedValue<ValueType> = {
   value: ValueType
+  origin: FactOrigin
   sources: SourceExcerpt[]
 }
 
@@ -123,12 +126,14 @@ export type PostingLocation = {
   city: string | null
   region: string | null
   country: string | null
+  origin: FactOrigin
   sources: SourceExcerpt[]
 }
 
 export type WeeklyHours = {
   minimum: number | null
   maximum: number | null
+  origin: FactOrigin
   sources: SourceExcerpt[]
 }
 
@@ -160,6 +165,7 @@ export type Requirement = {
   importance: RequirementImportance
   item_rule: RequirementItemRule
   items: RequirementItem[]
+  origin: FactOrigin
   sources: SourceExcerpt[]
 }
 
@@ -172,6 +178,7 @@ export type CompensationEntry = {
   pay_basis: PayBasis
   applicable_groups: string[]
   payment_conditions: string | null
+  origin: FactOrigin
   sources: SourceExcerpt[]
 }
 
@@ -195,6 +202,7 @@ export type PostingContact = {
   role: string | null
   email: string | null
   phone: string | null
+  origin: FactOrigin
   sources: SourceExcerpt[]
 }
 

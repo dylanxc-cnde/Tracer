@@ -51,6 +51,9 @@ def test_shared_prompt_defines_every_parse_status_and_refinement_reason():
     for reason in PostingRefinementReason:
         assert reason.value in POSTING_PARSE_PROMPT
 
+    assert "Set origin to source" in POSTING_PARSE_PROMPT
+    assert "Never set origin to user_defined" in POSTING_PARSE_PROMPT
+
 
 def test_parser_sends_text_import_with_shared_prompt():
     expected_result = make_result()

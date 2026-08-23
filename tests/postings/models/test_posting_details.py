@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from tracer.postings.models.posting_details import (
     ApplicationChannel,
     ContractType,
+    FactOrigin,
     ParsedValue,
     PostingDetails,
     RequirementCategory,
@@ -30,6 +31,7 @@ def value(parsed_value, *, source_text=None):
         sources.append(source(source_text))
     return {
         "value": parsed_value,
+        "origin": "source",
         "sources": sources,
     }
 
@@ -83,6 +85,7 @@ def make_posting_details() -> PostingDetails:
                     "city": "München",
                     "region": "Bayern",
                     "country": "Germany",
+                    "origin": "source",
                     "sources": [source("München")],
                 }
             ],
@@ -106,6 +109,7 @@ def make_posting_details() -> PostingDetails:
             "responsibilities": [
                 {
                     "value": "Install and commission heat pumps.",
+                    "origin": "source",
                     "sources": [
                         source(
                             "Installation und Inbetriebnahme "
@@ -132,6 +136,7 @@ def make_posting_details() -> PostingDetails:
                         "is_example": False,
                     }
                 ],
+                "origin": "source",
                 "sources": [
                     source("Du besitzt einen Führerschein Klasse B")
                 ],
@@ -148,6 +153,7 @@ def make_posting_details() -> PostingDetails:
                     "pay_basis": "gross",
                     "applicable_groups": [],
                     "payment_conditions": None,
+                    "origin": "source",
                     "sources": [
                         source("bis zu 6.000 € brutto pro Monat")
                     ],
@@ -161,6 +167,7 @@ def make_posting_details() -> PostingDetails:
                     "pay_basis": "gross",
                     "applicable_groups": [],
                     "payment_conditions": None,
+                    "origin": "source",
                     "sources": [
                         source("bis zu 5.000 EUR brutto pro Monat")
                     ],
@@ -174,6 +181,7 @@ def make_posting_details() -> PostingDetails:
                     "pay_basis": "gross",
                     "applicable_groups": [],
                     "payment_conditions": None,
+                    "origin": "source",
                     "sources": [
                         source(
                             "Bonus von bis zu 350,00 EUR pro Woche"
@@ -204,9 +212,11 @@ def make_posting_details() -> PostingDetails:
 def test_source_excerpt_is_the_only_owner_of_source_text():
     parsed_value = ParsedValue[str](
         value="Thermondo GmbH",
+        origin="source",
         sources=[source("Thermondo GmbH")],
     )
 
+    assert parsed_value.origin is FactOrigin.SOURCE
     assert parsed_value.sources[0].text == "Thermondo GmbH"
 
     with pytest.raises(ValidationError, match="Field required"):
@@ -215,6 +225,7 @@ def test_source_excerpt_is_the_only_owner_of_source_text():
     with pytest.raises(ValidationError, match="original_text"):
         ParsedValue[str](
             value="Thermondo GmbH",
+            origin="source",
             sources=[],
             original_text="Thermondo GmbH",
         )
@@ -224,6 +235,36 @@ def test_source_excerpt_is_the_only_owner_of_source_text():
             text="Thermondo GmbH",
             source_url=None,
             source_locator="section.company",
+        )
+
+
+def test_source_backed_values_track_user_defined_origin():
+    parsed_value = ParsedValue[str](
+        value="Edited company name",
+        origin="user_defined",
+        sources=[],
+    )
+
+    assert parsed_value.origin is FactOrigin.USER_DEFINED
+
+    with pytest.raises(
+        ValidationError,
+        match="user-defined values cannot keep source excerpts",
+    ):
+        ParsedValue[str](
+            value="Edited company name",
+            origin="user_defined",
+            sources=[source("Original company name")],
+        )
+
+
+def test_source_backed_values_require_origin():
+    with pytest.raises(ValidationError, match="origin"):
+        ParsedValue[str].model_validate(
+            {
+                "value": "Thermondo GmbH",
+                "sources": [source("Thermondo GmbH")],
+            }
         )
 
 
@@ -296,6 +337,7 @@ def test_requirement_items_keep_rules_and_examples():
                 }
                 for name in ("Power Query", "Power Pivot", "VBA")
             ],
+            "origin": "source",
             "sources": [
                 source(
                     "Power Query, Power Pivot und VBA sind wünschenswert."
@@ -315,6 +357,7 @@ def test_requirement_items_keep_rules_and_examples():
                 }
                 for name in ("R", "Python", "KNIME")
             ],
+            "origin": "source",
             "sources": [
                 source(
                     "Kenntnisse in R, Python oder KNIME sind von Vorteil."
@@ -348,6 +391,7 @@ def test_requirement_items_keep_rules_and_examples():
                     "is_example": True,
                 },
             ],
+            "origin": "source",
             "sources": [
                 source(
                     "Erfahrung mit Datenvisualisierung, zum Beispiel "
@@ -384,6 +428,7 @@ def test_compensation_entries_keep_applicable_groups_structured():
             "pay_basis": "gross",
             "applicable_groups": ["Bachelor students"],
             "payment_conditions": "Depending on study progress.",
+            "origin": "source",
             "sources": [
                 source(
                     "Bachelorstudierende erhalten je nach "
@@ -400,6 +445,7 @@ def test_compensation_entries_keep_applicable_groups_structured():
             "pay_basis": "gross",
             "applicable_groups": ["Apprentices"],
             "payment_conditions": None,
+            "origin": "source",
             "sources": [
                 source("Auszubildende erhalten 18 bis 20 EUR pro Stunde.")
             ],
@@ -439,6 +485,7 @@ def test_posting_details_keep_one_selected_contact():
         "role": "Recruiter",
         "email": "anna@example.com",
         "phone": None,
+        "origin": "source",
         "sources": [
             source(
                 "Bewerbungen bitte per E-Mail an "
@@ -465,6 +512,7 @@ def test_posting_details_keep_one_selected_contact():
         "role": "Scientific supervisor",
         "email": None,
         "phone": "+49 241 123456",
+        "origin": "source",
         "sources": [
             source("Kontakt: Max Beispiel, Telefon +49 241 123456")
         ],

@@ -8,6 +8,7 @@ from pydantic import (
     ConfigDict,
     Field,
     WithJsonSchema,
+    model_validator,
 )
 
 
@@ -31,14 +32,33 @@ class SourceExcerpt(_PostingDetailsModel):
     source_url: OutputHttpUrl | None
 
 
+class FactOrigin(StrEnum):
+    """Where the current fact value came from."""
+
+    SOURCE = "source"
+    USER_DEFINED = "user_defined"
+
+
+class _SourceBackedModel(_PostingDetailsModel):
+    """A current fact value with its origin and supporting sources."""
+
+    origin: FactOrigin
+    sources: tuple[SourceExcerpt, ...]
+
+    @model_validator(mode="after")
+    def keep_user_defined_values_source_free(self):
+        if self.origin is FactOrigin.USER_DEFINED and self.sources:
+            raise ValueError("user-defined values cannot keep source excerpts")
+        return self
+
+
 ValueType = TypeVar("ValueType")
 
 
-class ParsedValue(_PostingDetailsModel, Generic[ValueType]):
+class ParsedValue(_SourceBackedModel, Generic[ValueType]):
     """One parsed value with its original source."""
 
     value: ValueType
-    sources: tuple[SourceExcerpt, ...]
 
 
 class RoleFamily(StrEnum):
@@ -172,21 +192,19 @@ class PostingClassification(_PostingDetailsModel):
     target_semester: ParsedValue[str] | None
 
 
-class PostingLocation(_PostingDetailsModel):
+class PostingLocation(_SourceBackedModel):
     """One work location stated by the posting."""
 
     city: str | None
     region: str | None
     country: str | None
-    sources: tuple[SourceExcerpt, ...]
 
 
-class WeeklyHours(_PostingDetailsModel):
+class WeeklyHours(_SourceBackedModel):
     """A normalized weekly-hours range."""
 
     minimum: float | None = Field(..., ge=0)
     maximum: float | None = Field(..., ge=0)
-    sources: tuple[SourceExcerpt, ...]
 
 
 class WorkConditions(_PostingDetailsModel):
@@ -218,17 +236,16 @@ class RequirementItem(_PostingDetailsModel):
     is_example: bool
 
 
-class Requirement(_PostingDetailsModel):
+class Requirement(_SourceBackedModel):
     """One source-level requirement and its matchable items."""
 
     text: str
     importance: RequirementImportance
     item_rule: RequirementItemRule
     items: tuple[RequirementItem, ...]
-    sources: tuple[SourceExcerpt, ...]
 
 
-class CompensationEntry(_PostingDetailsModel):
+class CompensationEntry(_SourceBackedModel):
     """One salary, bonus or allowance statement."""
 
     compensation_type: CompensationType
@@ -239,7 +256,6 @@ class CompensationEntry(_PostingDetailsModel):
     pay_basis: PayBasis
     applicable_groups: tuple[str, ...]
     payment_conditions: str | None
-    sources: tuple[SourceExcerpt, ...]
 
 
 class Compensation(_PostingDetailsModel):
@@ -261,14 +277,13 @@ class ApplicationInstructions(_PostingDetailsModel):
     application_deadline: ParsedValue[date] | None
 
 
-class PostingContact(_PostingDetailsModel):
+class PostingContact(_SourceBackedModel):
     """The contact selected as most relevant to this posting."""
 
     name: str | None
     role: str | None
     email: str | None
     phone: str | None
-    sources: tuple[SourceExcerpt, ...]
 
 
 class PostingDetails(_PostingDetailsModel):

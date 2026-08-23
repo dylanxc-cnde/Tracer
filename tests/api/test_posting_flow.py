@@ -37,11 +37,13 @@ def make_posting_details() -> PostingDetails:
         identity={
             "company_name": {
                 "value": "Velora Grid Systems SE",
+                "origin": "source",
                 "sources": [],
             },
             "department_name": None,
             "position_title": {
                 "value": "Working Student Data Analytics",
+                "origin": "source",
                 "sources": [],
             },
             "external_job_id": None,

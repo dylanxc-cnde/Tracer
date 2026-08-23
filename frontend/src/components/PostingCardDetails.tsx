@@ -3,6 +3,7 @@ import './PostingCardDetails.css'
 import type { PostingCard } from '../postings/types/postingCard'
 import type {
   CompensationEntry,
+  FactOrigin,
   PostingLocation,
   Requirement,
   RequirementImportance,
@@ -27,6 +28,7 @@ type RequirementGroupProps = {
 }
 
 type SourceEvidenceProps = {
+  origin: FactOrigin
   sources: SourceExcerpt[]
   showSources: boolean
 }
@@ -94,9 +96,17 @@ function getSafeSourceUrl(sourceUrl: string | null) {
   return null
 }
 
-function SourceEvidence({ sources, showSources }: SourceEvidenceProps) {
+function SourceEvidence({ origin, sources, showSources }: SourceEvidenceProps) {
   if (!showSources) {
     return null
+  }
+
+  if (origin === 'user_defined') {
+    return (
+      <p className="posting-card-details__source-user-defined">
+        User-defined
+      </p>
+    )
   }
 
   if (sources.length === 0) {
@@ -238,6 +248,7 @@ function RequirementGroup({
               )}
 
               <SourceEvidence
+                origin={requirement.origin}
                 sources={requirement.sources}
                 showSources={showSources}
               />
@@ -398,6 +409,7 @@ export function PostingCardDetails({
               <div className="posting-card-details__lead">
                 <p>{posting.role_content.role_summary.value}</p>
                 <SourceEvidence
+                  origin={posting.role_content.role_summary.origin}
                   sources={posting.role_content.role_summary.sources}
                   showSources={showSources}
                 />
@@ -411,6 +423,7 @@ export function PostingCardDetails({
                     <li key={`${responsibility.value}-${index}`}>
                       <span>{responsibility.value}</span>
                       <SourceEvidence
+                        origin={responsibility.origin}
                         sources={responsibility.sources}
                         showSources={showSources}
                       />
@@ -467,6 +480,7 @@ export function PostingCardDetails({
                       )}
 
                       <SourceEvidence
+                        origin={entry.origin}
                         sources={entry.sources}
                         showSources={showSources}
                       />
@@ -485,6 +499,7 @@ export function PostingCardDetails({
                     <li key={`${benefit.value}-${index}`}>
                       <span>{benefit.value}</span>
                       <SourceEvidence
+                        origin={benefit.origin}
                         sources={benefit.sources}
                         showSources={showSources}
                       />
@@ -501,6 +516,7 @@ export function PostingCardDetails({
                   {posting.compensation.vacation_days.value} days per year
                 </span>
                 <SourceEvidence
+                  origin={posting.compensation.vacation_days.origin}
                   sources={posting.compensation.vacation_days.sources}
                   showSources={showSources}
                 />
@@ -518,6 +534,7 @@ export function PostingCardDetails({
                 <div>
                   <p>{posting.company.company_summary.value}</p>
                   <SourceEvidence
+                    origin={posting.company.company_summary.origin}
                     sources={posting.company.company_summary.sources}
                     showSources={showSources}
                   />

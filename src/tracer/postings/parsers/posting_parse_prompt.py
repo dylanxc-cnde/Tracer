@@ -30,6 +30,12 @@ web source. Do not guess missing information.
 Use null for unknown single values and empty arrays for repeated values
 with no results.
 
+Set origin to source for every source-backed fact produced during parsing.
+This applies to ParsedValue, PostingLocation, WeeklyHours, Requirement,
+CompensationEntry and PostingContact. Never set origin to user_defined while
+parsing; user_defined is reserved for values changed by the user after the
+posting has been parsed.
+
 Choose PostingParseResult.status according to this contract:
 
 - Use complete when the available evidence identifies exactly one target job

@@ -20,12 +20,12 @@ def make_posting_details(
     position_title: str | None = "Working Student Robotics",
 ) -> PostingDetails:
     parsed_company_name = (
-        {"value": company_name, "sources": []}
+        {"value": company_name, "origin": "source", "sources": []}
         if company_name is not None
         else None
     )
     parsed_position_title = (
-        {"value": position_title, "sources": []}
+        {"value": position_title, "origin": "source", "sources": []}
         if position_title is not None
         else None
     )
