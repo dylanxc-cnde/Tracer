@@ -12,8 +12,11 @@ from tracer.postings.models.posting_details import PostingDetails
 
 
 def make_posting_details() -> PostingDetails:
+    empty_source = {"excerpts": [], "source_urls": []}
+
     return PostingDetails(
         identity={
+            "source": empty_source,
             "company_name": None,
             "department_name": None,
             "position_title": None,
@@ -24,11 +27,13 @@ def make_posting_details() -> PostingDetails:
             "posting_language": None,
         },
         company={
+            "source": empty_source,
             "industry_tags": [],
             "employee_range": None,
             "company_summary": None,
         },
         classification={
+            "source": empty_source,
             "role_families": None,
             "original_employment_type": None,
             "contract_type": None,
@@ -40,6 +45,7 @@ def make_posting_details() -> PostingDetails:
             "target_semester": None,
         },
         work_conditions={
+            "source": empty_source,
             "locations": [],
             "work_modes": None,
             "weekly_hours": None,
@@ -49,17 +55,20 @@ def make_posting_details() -> PostingDetails:
             "duration": None,
         },
         role_content={
+            "source": empty_source,
             "role_summary": None,
             "responsibilities": [],
             "domains": [],
         },
-        requirements=[],
+        requirements={"source": empty_source, "groups": []},
         compensation={
+            "source": empty_source,
             "entries": [],
             "benefits": [],
             "vacation_days": None,
         },
         application_instructions={
+            "source": empty_source,
             "channels": None,
             "application_url": None,
             "required_email_subject": None,
@@ -79,7 +88,7 @@ def make_parsed_posting() -> ParsedPosting:
                 field_path="compensation.entries",
                 description="The page states two monthly maxima.",
                 alternatives=["6000 EUR/month", "5000 EUR/month plus bonus"],
-                sources=[],
+                source={"excerpts": [], "source_urls": []},
             )
         ],
     )
@@ -100,12 +109,10 @@ def test_parse_ambiguity_supports_uncertain_enum_mapping():
             "Mobiles Arbeiten is stated, but the exact arrangement is unclear."
         ),
         alternatives=["hybrid", "remote", "other"],
-        sources=[
-            {
-                "text": "Mobiles Arbeiten nach Absprache.",
-                "source_url": None,
-            }
-        ],
+        source={
+            "excerpts": ["Mobiles Arbeiten nach Absprache."],
+            "source_urls": [],
+        },
     )
 
     assert ambiguity.field_path == "work_conditions.work_modes"

@@ -33,18 +33,19 @@ class FakePostingParser:
 
 
 def make_posting_details() -> PostingDetails:
+    empty_source = {"excerpts": [], "source_urls": []}
+
     return PostingDetails(
         identity={
+            "source": empty_source,
             "company_name": {
                 "value": "Velora Grid Systems SE",
                 "origin": "source",
-                "sources": [],
             },
             "department_name": None,
             "position_title": {
                 "value": "Working Student Data Analytics",
                 "origin": "source",
-                "sources": [],
             },
             "external_job_id": None,
             "canonical_posting_url": None,
@@ -53,11 +54,13 @@ def make_posting_details() -> PostingDetails:
             "posting_language": None,
         },
         company={
+            "source": empty_source,
             "industry_tags": [],
             "employee_range": None,
             "company_summary": None,
         },
         classification={
+            "source": empty_source,
             "role_families": None,
             "original_employment_type": None,
             "contract_type": None,
@@ -69,6 +72,7 @@ def make_posting_details() -> PostingDetails:
             "target_semester": None,
         },
         work_conditions={
+            "source": empty_source,
             "locations": [],
             "work_modes": None,
             "weekly_hours": None,
@@ -78,17 +82,20 @@ def make_posting_details() -> PostingDetails:
             "duration": None,
         },
         role_content={
+            "source": empty_source,
             "role_summary": None,
             "responsibilities": [],
             "domains": [],
         },
-        requirements=[],
+        requirements={"source": empty_source, "groups": []},
         compensation={
+            "source": empty_source,
             "entries": [],
             "benefits": [],
             "vacation_days": None,
         },
         application_instructions={
+            "source": empty_source,
             "channels": None,
             "application_url": None,
             "required_email_subject": None,

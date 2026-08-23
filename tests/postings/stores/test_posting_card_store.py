@@ -19,19 +19,21 @@ def make_posting_details(
     company_name: str | None = "Thermondo GmbH",
     position_title: str | None = "Working Student Robotics",
 ) -> PostingDetails:
+    empty_source = {"excerpts": [], "source_urls": []}
     parsed_company_name = (
-        {"value": company_name, "origin": "source", "sources": []}
+        {"value": company_name, "origin": "source"}
         if company_name is not None
         else None
     )
     parsed_position_title = (
-        {"value": position_title, "origin": "source", "sources": []}
+        {"value": position_title, "origin": "source"}
         if position_title is not None
         else None
     )
 
     return PostingDetails(
         identity={
+            "source": empty_source,
             "company_name": parsed_company_name,
             "department_name": None,
             "position_title": parsed_position_title,
@@ -42,11 +44,13 @@ def make_posting_details(
             "posting_language": None,
         },
         company={
+            "source": empty_source,
             "industry_tags": [],
             "employee_range": None,
             "company_summary": None,
         },
         classification={
+            "source": empty_source,
             "role_families": None,
             "original_employment_type": None,
             "contract_type": None,
@@ -58,6 +62,7 @@ def make_posting_details(
             "target_semester": None,
         },
         work_conditions={
+            "source": empty_source,
             "locations": [],
             "work_modes": None,
             "weekly_hours": None,
@@ -67,17 +72,20 @@ def make_posting_details(
             "duration": None,
         },
         role_content={
+            "source": empty_source,
             "role_summary": None,
             "responsibilities": [],
             "domains": [],
         },
-        requirements=[],
+        requirements={"source": empty_source, "groups": []},
         compensation={
+            "source": empty_source,
             "entries": [],
             "benefits": [],
             "vacation_days": None,
         },
         application_instructions={
+            "source": empty_source,
             "channels": None,
             "application_url": None,
             "required_email_subject": None,
