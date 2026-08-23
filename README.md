@@ -25,8 +25,9 @@ job URL or pasted text
 - a working React and TypeScript browser flow from pasted text to a saved card;
 - local Card and Import libraries that reload records from SQLite;
 - explicit, confirmed deletion for saved Cards and Import history;
-- a read-only Card Details dialog with quick facts, responsibilities,
-  requirements, compensation, source excerpts, and company information;
+- a read-only Card Details dialog with quick facts, role content, requirements,
+  work conditions, compensation, application and contact details, company
+  information, source excerpts, and creation metadata;
 - a responsive three-page application shell with class-based component styles;
 - selectable posting candidates with loading, error, and confirmation states;
 - source excerpts for extracted facts;
@@ -111,12 +112,18 @@ the repository.
 
 ## Next
 
-- define the Card update contract for a complete editable payload while keeping
-  `card_key`, `import_key`, and `created_at` immutable;
+- finish the compact Card header and decide which displayed posting fields are
+  actually editable;
+- define how the editor adds values that are currently missing, including new
+  requirements, repeated items, and optional work-condition fields;
+- define the Card update contract while keeping `card_key`, `import_key`,
+  `created_at`, and source excerpts outside normal user editing;
 - add an edit-and-save flow that validates the complete update with Pydantic
   before replacing the Card JSON in SQLite;
 - make the requirement overview compact, with grouped pills first and original
   wording, relationships, and sources available on expansion;
+- show user notes near the bottom of Card Details, while leaving the larger tag
+  catalog and tag-selection UI until their data contract is clear;
 - show the relationship between an Import and the Cards created from it;
 - add Card update tests and clear validation/storage error states.
 
