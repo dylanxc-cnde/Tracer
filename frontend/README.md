@@ -19,19 +19,25 @@ Python still handles AI calls, validation, SQLite, and card creation.
 - Confirm sends the selected posting back to FastAPI and saves a Posting Card;
 - a Load button retrieves saved Cards and renders them through `CardLibrary`
   and `PostingCardSummary`;
+- saved Cards reopen in a read-only details dialog with a sticky title bar,
+  quick facts, requirements, compensation, source excerpts, and company details;
 - saved Cards can be permanently deleted after confirmation;
 - Import History loads saved import requests and supports the same explicit
   deletion flow;
+- the three main pages share a responsive sidebar, semantic colors, named
+  component classes, and primary/danger button states;
 - loading, API errors, parse status, candidate count, and the saved `card_key`
   are shown in the page.
 
-The current interface is intentionally small. Card and Import summaries can be
-loaded and deleted, but full detail reopening and editing are not built yet.
+The current interface is intentionally small. Card and Import records can be
+loaded and deleted, and saved Cards can be reviewed in detail. Editing and
+updating the SQLite record are not built yet.
 
 ## Source layout
 
 ```text
-src/App.tsx                     current import, parse, select, and save flow
+src/App.tsx                     application shell and page switching
+src/pages/                      page-level state and API actions
 src/components/                 reusable React UI components
 src/postings/types/             TypeScript versions of the API JSON contracts
 src/postings/api/postings.ts    HTTP functions for posting routes
@@ -88,10 +94,15 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
 
 ## Next steps
 
-- reopen a saved Card and review its full details and source excerpts;
-- add editing, aliases, notes, and tags after the update rules are settled;
+- define which Card fields are editable and submit the complete editable value
+  instead of sending one HTTP request per changed field;
+- distinguish user-defined values from original source excerpts without
+  rewriting the original evidence;
+- replace the expanded requirement wall with grouped pills and expandable
+  wording, relationships, and sources;
+- add editing, aliases, notes, and tags after those update rules are settled;
 - show which saved Cards came from each Import;
-- improve the Card and Import layout, forms, and visual states;
+- add validation and storage error states without losing the unsaved form;
 - add frontend component and API tests;
 - add the first Profile and matching screens after the Card workspace works;
 - try desktop packaging after the browser workflow is useful on its own.

@@ -6,7 +6,7 @@
 
 Tracer is a small side project for internships, working-student roles, HiWi
 jobs, and thesis openings in Germany. I am building it while learning more
-about Python, LLM APIs, data modeling, and desktop apps.
+about Python, LLM APIs, data modeling, React, TypeScript, and desktop apps.
 
 ```text
 job URL or pasted text
@@ -25,6 +25,9 @@ job URL or pasted text
 - a working React and TypeScript browser flow from pasted text to a saved card;
 - local Card and Import libraries that reload records from SQLite;
 - explicit, confirmed deletion for saved Cards and Import history;
+- a read-only Card Details dialog with quick facts, responsibilities,
+  requirements, compensation, source excerpts, and company information;
+- a responsive three-page application shell with class-based component styles;
 - selectable posting candidates with loading, error, and confirmation states;
 - source excerpts for extracted facts;
 - multiple posting candidates without mixing in recommended jobs;
@@ -108,11 +111,14 @@ the repository.
 
 ## Next
 
-- reopen one saved Card and inspect its full details and evidence;
-- add Card editing later, once the user-owned and evidence-backed fields have
-  clear update rules;
+- define the Card update contract for a complete editable payload while keeping
+  `card_key`, `import_key`, and `created_at` immutable;
+- add an edit-and-save flow that validates the complete update with Pydantic
+  before replacing the Card JSON in SQLite;
+- make the requirement overview compact, with grouped pills first and original
+  wording, relationships, and sources available on expansion;
 - show the relationship between an Import and the Cards created from it;
-- give the Card and Import pages a simple, usable layout.
+- add Card update tests and clear validation/storage error states.
 
 Deleting a Card does not delete its original Import. Deleting an Import does
 not delete saved Cards either: a Card keeps its `import_key` as historical
