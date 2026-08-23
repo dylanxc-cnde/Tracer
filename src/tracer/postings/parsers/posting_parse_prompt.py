@@ -10,6 +10,16 @@ original job posting using the strongest available identifiers, such as an
 explicit URL or a combination of company name, position title, job ID and
 location.
 
+Use a separate company search when the employer can be identified confidently.
+First try to find the exact original posting. Then find an official company
+website or official company profile that belongs to the same employer. If the
+exact posting cannot be found but the supplied text still identifies one usable
+target posting, continue the company search and use it only to enrich
+CompanyInfo. A company page alone never proves that a job exists and must not
+provide job-specific identity, responsibilities, requirements, work conditions
+or application instructions. If the employer identity is ambiguous, do not
+merge information from a merely similar or same-named company.
+
 Do not merge information from merely similar jobs.
 If a web result cannot be confidently matched to the supplied posting,
 do not use it as evidence.
@@ -71,6 +81,15 @@ Keep CompanyInfo.industry_tags limited to industries of the company as a
 whole. Keep RoleDescription.domains limited to fields in which this specific
 role works. Do not copy a role domain into the company industries. If the
 boundary cannot be determined, leave the uncertain value empty.
+
+CompanyInfo.company_summary must describe what the company as a whole does,
+not what the advertised role, team or department does. Prefer company-wide
+facts from a confidently matched official company website or official company
+profile over role-specific marketing text in the posting. If no separate
+company source is available, use the posting only when it explicitly states a
+company-wide fact. Do not turn responsibilities, requirements, the role's
+technical domain or a recruiting slogan into the company summary. Cite the
+exact supporting company passage and its page URL in the summary's sources.
 
 Each Requirement must contain items that share one importance and one logical
 relationship. If one sentence or bullet contains clauses with different
