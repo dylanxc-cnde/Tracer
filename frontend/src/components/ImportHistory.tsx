@@ -11,10 +11,12 @@ export function ImportHistory(
     {postingImports, deletingImportKey, onDelete,}: ImportHistoryProps
 ) {
     return (
-        <section>
-            <h2>Import history</h2>
+        <section className="import-history">
+            <h2 className="import-history__title">Import history</h2>
             {postingImports.length === 0 && (
-                <p>No posting imports found.</p>
+                <p className="import-history__empty">
+                    No posting imports found.
+                </p>
             )}
             {postingImports.map((postingImport) => (
                 <PostingImportSummary

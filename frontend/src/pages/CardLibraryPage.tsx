@@ -76,6 +76,7 @@ export function CardLibraryPage() {
       {error && <p role="alert">{error}</p>}
 
       <button
+        className="button--primary card-library-page__load-button"
         type="button"
         onClick={handleLoadCards}
         disabled={isLoadingCards}

@@ -43,14 +43,18 @@ export function PostingImportPage() {
       {error && <p role="alert">{error}</p>}
 
       <textarea
+        className="posting-import-page__input"
         placeholder="Paste a job posting here"
         value={postingText}
         onChange={(event) => setPostingText(event.target.value)}
       />
 
-      <p>{postingText.length} characters</p>
+      <p className="posting-import-page__character-count">
+        {postingText.length} characters
+      </p>
 
       <button
+        className="button--primary posting-import-page__analyze-button"
         type="button"
         onClick={analyze}
         disabled={isAnalyzing || postingText.trim().length === 0}
@@ -58,14 +62,16 @@ export function PostingImportPage() {
         {isAnalyzing ? 'Analyzing...' : 'Analyze'}
       </button>
 
-      <p>
+      <p className="posting-import-page__parse-status">
         Parse status: {parseResult?.status ?? 'none'} · Candidates:{' '}
         {parseResult?.postings.length ?? 0}
       </p>
 
       {parseResult && parseResult.postings.length > 0 && (
-        <section>
-          <h2>Choose a posting</h2>
+        <section className="posting-import-page__candidate-list">
+          <h2 className="posting-import-page__candidate-title">
+            Choose a posting
+          </h2>
 
           {parseResult.postings.map((posting, index) => (
             <PostingCandidateCard
@@ -77,6 +83,7 @@ export function PostingImportPage() {
           ))}
 
           <button
+            className="button--primary posting-import-page__save-button"
             type="button"
             onClick={confirmSelection}
             disabled={

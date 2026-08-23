@@ -1,4 +1,4 @@
-main {
+.app-shell {
   box-sizing: border-box;
   min-height: 100svh;
   padding: 32px 40px 64px 296px;
@@ -6,7 +6,7 @@ main {
   text-align: left;
 }
 
-main::before {
+.app-shell::before {
   content: '';
   position: fixed;
   inset: 16px auto 16px 16px;
@@ -18,7 +18,7 @@ main::before {
   box-shadow: var(--shadow);
 }
 
-main > h1 {
+.app-shell__brand {
   position: fixed;
   top: 38px;
   left: 40px;
@@ -31,7 +31,7 @@ main > h1 {
   letter-spacing: -0.8px;
 }
 
-main > h1 + p {
+.app-shell__tagline {
   position: fixed;
   top: 82px;
   left: 40px;
@@ -43,7 +43,7 @@ main > h1 + p {
   line-height: 1.45;
 }
 
-main > nav {
+.app-shell__navigation {
   position: fixed;
   top: 146px;
   left: 32px;
@@ -53,7 +53,7 @@ main > nav {
   gap: 8px;
 }
 
-main > nav button {
+.app-shell__navigation-button {
   width: 100%;
   padding: 12px 14px;
   border: 1px solid transparent;
@@ -64,13 +64,13 @@ main > nav button {
   text-align: left;
 }
 
-main > nav button:hover:not(:disabled) {
+.app-shell__navigation-button:hover:not(:disabled) {
   border-color: var(--color-border-subtle);
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
 }
 
-main > nav button:disabled {
+.app-shell__navigation-button:disabled {
   border-color: var(--color-action-primary);
   color: var(--color-surface);
   background-color: var(--color-action-primary);
@@ -79,7 +79,7 @@ main > nav button:disabled {
   cursor: default;
 }
 
-main > nav + p {
+.app-shell__current-page {
   display: inline-flex;
   margin: 0 0 24px;
   padding: 6px 10px;
@@ -130,10 +130,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-main > button,
-.posting-candidate > button,
-section > button,
-article > button:last-of-type:not(:first-of-type) {
+.button--primary {
   border-color: var(--color-action-pressed);
   color: var(--color-surface);
   background-color: var(--color-action-primary);
@@ -142,16 +139,13 @@ article > button:last-of-type:not(:first-of-type) {
     0 8px 14px rgba(34, 52, 46, 0.16);
 }
 
-main > button:active:not(:disabled),
-.posting-candidate > button:active:not(:disabled),
-section > button:active:not(:disabled),
-article > button:last-of-type:not(:first-of-type):active:not(:disabled) {
+.button--primary:active:not(:disabled) {
   box-shadow:
     0 2px 0 var(--color-action-pressed),
     0 4px 8px rgba(34, 52, 46, 0.14);
 }
 
-article > button:first-of-type {
+.button--danger {
   border-color: var(--color-danger-pressed);
   color: var(--color-danger);
   background-color: var(--color-danger-soft);
@@ -160,28 +154,13 @@ article > button:first-of-type {
     0 8px 14px rgba(158, 51, 51, 0.14);
 }
 
-article > button:first-of-type:active:not(:disabled) {
+.button--danger:active:not(:disabled) {
   box-shadow:
     0 2px 0 var(--color-danger-pressed),
     0 4px 8px rgba(158, 51, 51, 0.12);
 }
 
-.posting-candidate > button:first-of-type {
-  border-color: var(--color-action-pressed);
-  color: var(--color-surface);
-  background-color: var(--color-action-primary);
-  box-shadow:
-    0 4px 0 var(--color-action-pressed),
-    0 8px 14px rgba(34, 52, 46, 0.16);
-}
-
-.posting-candidate > button:first-of-type:active:not(:disabled) {
-  box-shadow:
-    0 2px 0 var(--color-action-pressed),
-    0 4px 8px rgba(34, 52, 46, 0.14);
-}
-
-textarea {
+.posting-import-page__input {
   display: block;
   box-sizing: border-box;
   width: min(100%, 980px);
@@ -198,41 +177,44 @@ textarea {
   line-height: 1.55;
 }
 
-textarea::placeholder {
+.posting-import-page__input::placeholder {
   color: var(--color-text-secondary);
 }
 
-textarea:focus {
+.posting-import-page__input:focus {
   border-color: var(--color-action-primary);
 }
 
-main > textarea + p {
+.posting-import-page__character-count {
   margin: 0 0 12px;
   color: var(--color-text-secondary);
   font-size: 13px;
 }
 
-main > button + p {
+.posting-import-page__parse-status {
   margin: 20px 0 0;
   color: var(--color-text-secondary);
   font-size: 14px;
 }
 
-main > section,
-main > article {
+.posting-import-page__candidate-list,
+.card-library,
+.import-history,
+.posting-card-summary {
   width: min(100%, 1040px);
   margin-top: 28px;
 }
 
-main > section > h2,
-main > article > h2 {
+.posting-import-page__candidate-title,
+.card-library__title,
+.import-history__title {
   margin-bottom: 16px;
   font-size: 24px;
 }
 
-main article > article,
-main section > article,
-main > article:not(:has(> article)) {
+.posting-card-summary,
+.posting-import-summary,
+.posting-candidate {
   margin-top: 12px;
   padding: 20px;
   border: 1px solid var(--color-border-subtle);
@@ -241,25 +223,25 @@ main > article:not(:has(> article)) {
   box-shadow: var(--shadow);
 }
 
-main article > article h3,
-main section > article h3,
-main > article:not(:has(> article)) h3 {
+.posting-card-summary__title,
+.posting-import-summary__title,
+.posting-candidate__title {
   margin: 0 0 10px;
   font-size: 18px;
   line-height: 1.3;
 }
 
-main article > article p,
-main section > article p,
-main > article:not(:has(> article)) p {
+.posting-card-summary__metadata,
+.posting-import-summary__metadata,
+.posting-candidate__metadata {
   margin: 6px 0;
   color: var(--color-text-secondary);
   font-size: 14px;
 }
 
-main article > article button,
-main section > article button,
-main > article:not(:has(> article)) button {
+.posting-card-summary__action,
+.posting-import-summary__delete-button,
+.posting-candidate__select-button {
   margin-top: 14px;
   margin-right: 8px;
 }
@@ -277,9 +259,9 @@ main > article:not(:has(> article)) button {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  main > article > article,
-  main > section > article,
-  main > article:not(:has(> article)) {
+  .posting-card-summary,
+  .posting-import-summary,
+  .posting-candidate {
     transform-origin: center;
     transition:
       transform 160ms ease,
@@ -287,9 +269,9 @@ main > article:not(:has(> article)) button {
       box-shadow 160ms ease;
   }
 
-  main > article > article:hover,
-  main > section > article:hover,
-  main > article:not(:has(> article)):hover {
+  .posting-card-summary:hover,
+  .posting-import-summary:hover,
+  .posting-candidate:hover {
     transform: translateY(-2px) scale(1.008);
     border-color: var(--color-border-strong);
     box-shadow:
@@ -317,35 +299,35 @@ main > article:not(:has(> article)) button {
 }
 
 @media (max-width: 900px) {
-  main {
+  .app-shell {
     padding-left: 260px;
   }
 
-  main::before {
+  .app-shell::before {
     width: 208px;
   }
 
-  main > h1,
-  main > h1 + p {
+  .app-shell__brand,
+  .app-shell__tagline {
     left: 36px;
   }
 
-  main > h1 + p {
+  .app-shell__tagline {
     width: 156px;
   }
 
-  main > nav {
+  .app-shell__navigation {
     left: 28px;
     width: 184px;
   }
 }
 
 @media (max-width: 720px) {
-  main {
+  .app-shell {
     padding: 136px 16px 40px;
   }
 
-  main::before {
+  .app-shell::before {
     inset: 0 0 auto;
     width: auto;
     height: 116px;
@@ -353,17 +335,17 @@ main > article:not(:has(> article)) button {
     border-radius: 0 0 20px 20px;
   }
 
-  main > h1 {
+  .app-shell__brand {
     top: 18px;
     left: 20px;
     font-size: 26px;
   }
 
-  main > h1 + p {
+  .app-shell__tagline {
     display: none;
   }
 
-  main > nav {
+  .app-shell__navigation {
     top: 62px;
     right: 16px;
     left: 16px;
@@ -373,29 +355,29 @@ main > article:not(:has(> article)) button {
     overflow-x: auto;
   }
 
-  main > nav button {
+  .app-shell__navigation-button {
     flex: 1 0 max-content;
     padding: 9px 11px;
     text-align: center;
   }
 
-  main > nav button:disabled {
+  .app-shell__navigation-button:disabled {
     box-shadow: 0 2px 0 var(--color-action-pressed);
   }
 
-  main > nav + p {
+  .app-shell__current-page {
     margin-bottom: 20px;
   }
 
-  textarea {
+  .posting-import-page__input {
     min-height: 240px;
     padding: 16px;
     border-radius: 16px;
   }
 
-  main article > article,
-  main section > article,
-  main > article:not(:has(> article)) {
+  .posting-card-summary,
+  .posting-import-summary,
+  .posting-candidate {
     padding: 16px;
     border-radius: 16px;
   }
@@ -404,9 +386,8 @@ main > article:not(:has(> article)) button {
 @media (prefers-reduced-motion: reduce) {
   button,
   .posting-candidate,
-  main > article > article,
-  main > section > article,
-  main > article:not(:has(> article)) {
+  .posting-card-summary,
+  .posting-import-summary {
     transition: none;
   }
 }

@@ -13,12 +13,15 @@ function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>('posting-import')
 
   return (
-    <main>
-      <h1>Tracer</h1>
-      <p>Review job postings before saving them.</p>
+    <main className="app-shell">
+      <h1 className="app-shell__brand">Tracer</h1>
+      <p className="app-shell__tagline">
+        Review job postings before saving them.
+      </p>
 
-      <nav aria-label="Main navigation">
+      <nav className="app-shell__navigation" aria-label="Main navigation">
         <button
+          className="app-shell__navigation-button"
           type="button"
           onClick={() => setCurrentPage('posting-import')}
           disabled={currentPage === 'posting-import'}
@@ -27,6 +30,7 @@ function App() {
         </button>
 
         <button
+          className="app-shell__navigation-button"
           type="button"
           onClick={() => setCurrentPage('card-library')}
           disabled={currentPage === 'card-library'}
@@ -35,6 +39,7 @@ function App() {
         </button>
 
         <button
+          className="app-shell__navigation-button"
           type="button"
           onClick={() => setCurrentPage('import-history')}
           disabled={currentPage === 'import-history'}
@@ -43,7 +48,7 @@ function App() {
         </button>
       </nav>
 
-      <p>Current page: {currentPage}</p>
+      <p className="app-shell__current-page">Current page: {currentPage}</p>
 
       {currentPage === 'posting-import' && <PostingImportPage />}
       {currentPage === 'card-library' && <CardLibraryPage />}

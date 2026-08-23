@@ -333,7 +333,7 @@ export function PostingCardDetails({
         </h2>
 
         <button
-          className="posting-card-details__close"
+          className="button--primary posting-card-details__close"
           type="button"
           onClick={() => dialogRef.current?.close()}
         >

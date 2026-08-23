@@ -70,6 +70,7 @@ export function ImportHistoryPage() {
       {error && <p role="alert">{error}</p>}
 
       <button
+        className="button--primary import-history-page__load-button"
         type="button"
         onClick={handleLoadImports}
         disabled={isLoadingImports}
