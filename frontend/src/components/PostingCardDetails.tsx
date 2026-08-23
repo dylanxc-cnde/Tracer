@@ -302,6 +302,10 @@ export function PostingCardDetails({
   const locations = posting.work_conditions.locations
     .map(formatLocation)
     .filter((location) => location.length > 0)
+  const weeklyHours =
+    posting.work_conditions.weekly_hours === null
+      ? null
+      : formatWeeklyHours(posting.work_conditions.weekly_hours)
   const quickFacts: QuickFact[] = []
 
   if (locations.length > 0) {
@@ -329,17 +333,11 @@ export function PostingCardDetails({
     })
   }
 
-  if (posting.work_conditions.weekly_hours !== null) {
-    const weeklyHours = formatWeeklyHours(
-      posting.work_conditions.weekly_hours,
-    )
-
-    if (weeklyHours !== null) {
-      quickFacts.push({
-        label: 'Weekly hours',
-        value: weeklyHours,
-      })
-    }
+  if (weeklyHours !== null) {
+    quickFacts.push({
+      label: 'Weekly hours',
+      value: weeklyHours,
+    })
   }
 
   if (posting.application_instructions.application_deadline !== null) {
@@ -374,6 +372,12 @@ export function PostingCardDetails({
   const hasRoleContent =
     posting.role_content.role_summary !== null ||
     posting.role_content.responsibilities.length > 0
+  const hasWorkConditions =
+    weeklyHours !== null ||
+    posting.work_conditions.schedule !== null ||
+    posting.work_conditions.travel_requirement !== null ||
+    posting.work_conditions.start_on !== null ||
+    posting.work_conditions.duration !== null
   const hasCompensation =
     posting.compensation.entries.length > 0 ||
     posting.compensation.benefits.length > 0 ||
@@ -566,6 +570,49 @@ export function PostingCardDetails({
               requirements={unknownRequirements}
               showSources={showSources}
             />
+          </section>
+        )}
+
+        {hasWorkConditions && (
+          <section className="posting-card-details__section">
+            <h3>Work conditions</h3>
+
+            <dl className="posting-card-details__work-conditions">
+              {weeklyHours !== null && (
+                <div>
+                  <dt>Weekly hours</dt>
+                  <dd>{weeklyHours}</dd>
+                </div>
+              )}
+
+              {posting.work_conditions.schedule !== null && (
+                <div>
+                  <dt>Schedule</dt>
+                  <dd>{posting.work_conditions.schedule.value}</dd>
+                </div>
+              )}
+
+              {posting.work_conditions.travel_requirement !== null && (
+                <div>
+                  <dt>Travel requirement</dt>
+                  <dd>{posting.work_conditions.travel_requirement.value}</dd>
+                </div>
+              )}
+
+              {posting.work_conditions.start_on !== null && (
+                <div>
+                  <dt>Start date</dt>
+                  <dd>{posting.work_conditions.start_on.value}</dd>
+                </div>
+              )}
+
+              {posting.work_conditions.duration !== null && (
+                <div>
+                  <dt>Duration</dt>
+                  <dd>{posting.work_conditions.duration.value}</dd>
+                </div>
+              )}
+            </dl>
           </section>
         )}
 
