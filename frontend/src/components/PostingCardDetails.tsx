@@ -8,6 +8,7 @@ import type {
   Requirement,
   RequirementImportance,
   SourceExcerpt,
+  WeeklyHours,
 } from '../postings/types/postingDetails'
 
 type PostingCardDetailsProps = {
@@ -44,6 +45,26 @@ function formatLocation(location: PostingLocation) {
   return [location.city, location.region, location.country]
     .filter((part): part is string => part !== null && part.trim().length > 0)
     .join(', ')
+}
+
+function formatWeeklyHours(weeklyHours: WeeklyHours) {
+  const { minimum, maximum } = weeklyHours
+
+  if (minimum !== null && maximum !== null) {
+    return minimum === maximum
+      ? `${minimum} hours/week`
+      : `${minimum}–${maximum} hours/week`
+  }
+
+  if (minimum !== null) {
+    return `From ${minimum} hours/week`
+  }
+
+  if (maximum !== null) {
+    return `Up to ${maximum} hours/week`
+  }
+
+  return null
 }
 
 function formatCompensation(entry: CompensationEntry) {
@@ -305,6 +326,19 @@ export function PostingCardDetails({
         .map(formatWords)
         .join(' · '),
     })
+  }
+
+  if (posting.work_conditions.weekly_hours !== null) {
+    const weeklyHours = formatWeeklyHours(
+      posting.work_conditions.weekly_hours,
+    )
+
+    if (weeklyHours !== null) {
+      quickFacts.push({
+        label: 'Weekly hours',
+        value: weeklyHours,
+      })
+    }
   }
 
   if (posting.application_instructions.application_deadline !== null) {
