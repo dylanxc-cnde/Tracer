@@ -1,4 +1,4 @@
-import type { PostingDetails, SourceExcerpt } from './postingDetails'
+import type { PostingDetails, PostingSource } from './postingDetails'
 
 export type PostingParseStatus =
   | 'complete'
@@ -14,7 +14,7 @@ export type PostingParseAmbiguity = {
   field_path: string
   description: string
   alternatives: string[]
-  sources: SourceExcerpt[]
+  source: PostingSource
 }
 
 export type ParsedPosting = {

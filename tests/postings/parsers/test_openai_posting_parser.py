@@ -65,10 +65,21 @@ def test_shared_prompt_uses_requirement_strategy_without_scenarios():
     assert "assign each its own importance" in prompt
     assert "Lists and conjunctions do not prove any_of by themselves" in prompt
     assert "Illustration items do not determine item_rule" in prompt
+    assert "Use all_of when there is one core item" in prompt
     assert "Run a consistency check" in prompt
+    assert "Requirement.text" not in POSTING_PARSE_PROMPT
     assert 'Example: "' not in POSTING_PARSE_PROMPT
     assert "By contrast," not in POSTING_PARSE_PROMPT
     assert "For example," not in POSTING_PARSE_PROMPT
+
+
+def test_shared_prompt_uses_one_source_bundle_per_section():
+    prompt = " ".join(POSTING_PARSE_PROMPT.split())
+
+    assert "Each PostingDetails section owns exactly one PostingSource" in prompt
+    assert "do not create or imply a field-to-excerpt" in prompt
+    assert "Multiple URLs are allowed" in prompt
+    assert "SourceExcerpt" not in POSTING_PARSE_PROMPT
 
 
 def test_parser_sends_text_import_with_shared_prompt():

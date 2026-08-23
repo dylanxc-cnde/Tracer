@@ -36,6 +36,14 @@ CompensationEntry and PostingContact. Never set origin to user_defined while
 parsing; user_defined is reserved for values changed by the user after the
 posting has been parsed.
 
+Each PostingDetails section owns exactly one PostingSource. This applies to
+PostingIdentity, CompanyInfo, PostingClassification, WorkConditions,
+RoleDescription, PostingRequirements, Compensation, ApplicationInstructions
+and a non-null PostingContact. Always return both PostingSource.excerpts and
+PostingSource.source_urls, using empty arrays when the section has no source
+context. A PostingSource belongs to the whole section: do not create or imply a
+field-to-excerpt, item-to-excerpt or excerpt-to-URL mapping.
+
 Choose PostingParseResult.status according to this contract:
 
 - Use complete when the available evidence identifies exactly one target job
@@ -95,7 +103,7 @@ profile over role-specific marketing text in the posting. If no separate
 company source is available, use the posting only when it explicitly states a
 company-wide fact. Do not turn responsibilities, requirements, the role's
 technical domain or a recruiting slogan into the company summary. Cite the
-exact supporting company passage and its page URL in the summary's sources.
+supporting company passages and pages once in CompanyInfo.source.
 
 Parse each source requirement in this order:
 
@@ -122,20 +130,21 @@ Parse each source requirement in this order:
 4. Build Requirement objects so every object has exactly one importance and
    one logical relationship. When a required core capability and a preferred
    specialization share one source statement, place them in separate objects
-   and assign each its own importance. Preserve the exact relevant clause in
-   Requirement.text. Split objects may cite the same full source passage. Do
-   not create a parse ambiguity merely because splitting is required.
-5. Build matchable items from the concepts explicitly supported by that
-   Requirement.text. Each core item must represent one capability, credential,
+   and assign each its own importance. Do not create a parse ambiguity merely
+   because splitting is required. Requirement has no free-text field; preserve
+   the relevant original passages once in PostingRequirements.source instead.
+5. Build matchable items only from concepts explicitly supported by the source
+   clause. Each core item must represent one capability, credential,
    experience, language, license or other condition that can be matched
-   independently. Do not merge distinct concepts into one item and do not
-   invent a broader category that the source does not support.
+   independently. Do not merge distinct concepts into one item, do not create
+   normalized aliases, and do not invent a broader category that the source
+   does not support. Do not create a Requirement with an empty items array.
 6. Set item_rule from the relationship among non-example core items. Use
-   single only when there is exactly one core item. Use all_of only when the
-   source requires every core item together. Use any_of only when the source
-   clearly allows one or another core item to satisfy the same requirement.
-   Lists and conjunctions do not prove any_of by themselves. all_of and any_of
-   require at least two core items. Use unknown only when the relationship
+   all_of when there is one core item or when the source requires every core
+   item together. Use any_of only when the source clearly allows one or another
+   core item to satisfy the same requirement. Lists and conjunctions do not
+   prove any_of by themselves. any_of requires at least two non-example core
+   items. Use unknown only when multiple core items exist but their relationship
    remains genuinely unclear after segmentation.
 7. Classify illustration items separately from alternatives. Explicit
    illustration markers, including "for example", "such as", "zum Beispiel",
@@ -147,9 +156,9 @@ Parse each source requirement in this order:
    does not turn that list into any_of. Preference wording controls importance;
    it does not by itself mark an item as an example.
 8. Run a consistency check before returning the Requirement. Its importance
-   must apply to the full Requirement.text, its item_rule must describe only
-   its core items, and every item must be supported by the same clause. Split
-   the object again whenever one of these conditions is not met.
+   must apply to the full logical group, its item_rule must describe only its
+   non-example core items, and every item must be supported by the same clause.
+   Split the object again whenever one of these conditions is not met.
 
 Use WorkMode.other only when the source clearly describes a work arrangement
 outside the available enum values. Never use other as a fallback for
@@ -157,28 +166,36 @@ uncertainty. A broad flexibility or mobility label that does not establish a
 specific available work mode must leave work_modes null and create a parse
 ambiguity for work_conditions.work_modes.
 
-Copy a short, exact, contiguous supporting passage into SourceExcerpt.text.
-The excerpt itself must appear verbatim in the source. Never translate,
-summarize, paraphrase, explain, combine separate passages or insert ellipses in
-an excerpt. A normalized parsed value may differ from its excerpt, but the
-excerpt must remain unchanged. If no exact supporting passage exists, leave
-the field unknown or empty instead of inventing evidence.
-For posting_language, cite a short passage written in that language; never
-invent an explanatory sentence that merely names the inferred language.
-For passages obtained from a web page, include that page in
-SourceExcerpt.source_url.
-For passages obtained only from the pasted text, use null as source_url.
+For each section, copy a small number of useful, exact and contiguous source
+passages into PostingSource.excerpts. An excerpt must appear verbatim in the
+source. Never translate, summarize, paraphrase, explain, combine separate
+passages or insert ellipses inside an excerpt. Do not create one excerpt for
+every field: collect enough shared context for a user to review the section as
+a whole. If a section has no exact supporting passage, leave its excerpts
+empty instead of inventing source text.
+
+For posting_language, include a short passage actually written in that
+language in PostingIdentity.source.excerpts; never invent an explanatory
+sentence that merely names the inferred language. Add every confidently used
+web page for a section to that section's PostingSource.source_urls. Multiple
+URLs are allowed, and the arrays do not claim which excerpt came from which
+URL. If a section uses only pasted text without a supplied source URL, return
+an empty source_urls array.
 
 If the exact original posting page is supplied or confidently found through
 web search, use its URL as canonical_posting_url. Fill application_url only
 when the source identifies a URL used to start or submit the application; it
-may equal canonical_posting_url. Every excerpt taken from the web must include
-the exact source page URL; never invent a URL from a similar search result.
+may equal canonical_posting_url. Record a web page in the source_urls of every
+section that actually uses facts from it; never add a merely similar search
+result or invent a URL.
 
 Create a parse ambiguity only when sources conflict or when a source statement
 directly supports two or more plausible interpretations of the same field.
 Every PostingParseAmbiguity.field_path is relative to the PostingDetails root
 inside ParsedPosting.details. Never prefix it with "details.".
+Use the ambiguity's single PostingSource to collect the relevant exact
+passages and confidently used page URLs; do not create per-alternative source
+mappings.
 Do not create an ambiguity merely because a field is absent, because another
 field only suggests a possible value, or because the employer did not state
 the value. Leave an unstated field unknown without an ambiguity. Evidence for

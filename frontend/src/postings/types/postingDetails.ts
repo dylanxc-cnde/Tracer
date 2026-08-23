@@ -1,6 +1,6 @@
-export type SourceExcerpt = {
-  text: string
-  source_url: string | null
+export type PostingSource = {
+  excerpts: string[]
+  source_urls: string[]
 }
 
 export type FactOrigin = 'source' | 'user_defined'
@@ -8,7 +8,6 @@ export type FactOrigin = 'source' | 'user_defined'
 export type ParsedValue<ValueType> = {
   value: ValueType
   origin: FactOrigin
-  sources: SourceExcerpt[]
 }
 
 export type RoleFamily =
@@ -63,11 +62,7 @@ export type RequirementCategory =
   | 'license'
   | 'other'
 
-export type RequirementItemRule =
-  | 'single'
-  | 'all_of'
-  | 'any_of'
-  | 'unknown'
+export type RequirementItemRule = 'all_of' | 'any_of' | 'unknown'
 
 export type CompensationType =
   | 'base_salary'
@@ -94,6 +89,7 @@ export type ApplicationChannel =
   | 'other'
 
 export type PostingIdentity = {
+  source: PostingSource
   company_name: ParsedValue<string> | null
   department_name: ParsedValue<string> | null
   position_title: ParsedValue<string> | null
@@ -105,12 +101,14 @@ export type PostingIdentity = {
 }
 
 export type CompanyInfo = {
+  source: PostingSource
   industry_tags: ParsedValue<string>[]
   employee_range: ParsedValue<string> | null
   company_summary: ParsedValue<string> | null
 }
 
 export type PostingClassification = {
+  source: PostingSource
   role_families: ParsedValue<RoleFamily[]> | null
   original_employment_type: ParsedValue<string> | null
   contract_type: ParsedValue<ContractType> | null
@@ -123,21 +121,20 @@ export type PostingClassification = {
 }
 
 export type PostingLocation = {
+  origin: FactOrigin
   city: string | null
   region: string | null
   country: string | null
-  origin: FactOrigin
-  sources: SourceExcerpt[]
 }
 
 export type WeeklyHours = {
+  origin: FactOrigin
   minimum: number | null
   maximum: number | null
-  origin: FactOrigin
-  sources: SourceExcerpt[]
 }
 
 export type WorkConditions = {
+  source: PostingSource
   locations: PostingLocation[]
   work_modes: ParsedValue<WorkMode[]> | null
   weekly_hours: WeeklyHours | null
@@ -148,6 +145,7 @@ export type WorkConditions = {
 }
 
 export type RoleDescription = {
+  source: PostingSource
   role_summary: ParsedValue<string> | null
   responsibilities: ParsedValue<string>[]
   domains: ParsedValue<string>[]
@@ -156,20 +154,23 @@ export type RoleDescription = {
 export type RequirementItem = {
   name: string
   category: RequirementCategory
-  normalized_name: string | null
   is_example: boolean
 }
 
 export type Requirement = {
-  text: string
+  origin: FactOrigin
   importance: RequirementImportance
   item_rule: RequirementItemRule
   items: RequirementItem[]
-  origin: FactOrigin
-  sources: SourceExcerpt[]
+}
+
+export type PostingRequirements = {
+  source: PostingSource
+  groups: Requirement[]
 }
 
 export type CompensationEntry = {
+  origin: FactOrigin
   compensation_type: CompensationType
   minimum_amount: number | null
   maximum_amount: number | null
@@ -178,17 +179,17 @@ export type CompensationEntry = {
   pay_basis: PayBasis
   applicable_groups: string[]
   payment_conditions: string | null
-  origin: FactOrigin
-  sources: SourceExcerpt[]
 }
 
 export type Compensation = {
+  source: PostingSource
   entries: CompensationEntry[]
   benefits: ParsedValue<string>[]
   vacation_days: ParsedValue<number> | null
 }
 
 export type ApplicationInstructions = {
+  source: PostingSource
   channels: ParsedValue<ApplicationChannel[]> | null
   application_url: ParsedValue<string> | null
   required_email_subject: ParsedValue<string> | null
@@ -198,12 +199,12 @@ export type ApplicationInstructions = {
 }
 
 export type PostingContact = {
+  source: PostingSource
   name: string | null
   role: string | null
   email: string | null
   phone: string | null
   origin: FactOrigin
-  sources: SourceExcerpt[]
 }
 
 export type PostingDetails = {
@@ -212,7 +213,7 @@ export type PostingDetails = {
   classification: PostingClassification
   work_conditions: WorkConditions
   role_content: RoleDescription
-  requirements: Requirement[]
+  requirements: PostingRequirements
   compensation: Compensation
   application_instructions: ApplicationInstructions
   contact: PostingContact | null

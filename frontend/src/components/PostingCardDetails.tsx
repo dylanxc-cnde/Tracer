@@ -3,11 +3,10 @@ import './PostingCardDetails.css'
 import type { PostingCard } from '../postings/types/postingCard'
 import type {
   CompensationEntry,
-  FactOrigin,
   PostingLocation,
+  PostingSource,
   Requirement,
   RequirementImportance,
-  SourceExcerpt,
   WeeklyHours,
 } from '../postings/types/postingDetails'
 
@@ -25,12 +24,10 @@ type RequirementGroupProps = {
   title: string
   importance: RequirementImportance
   requirements: Requirement[]
-  showSources: boolean
 }
 
-type SourceEvidenceProps = {
-  origin: FactOrigin
-  sources: SourceExcerpt[]
+type SourceContextProps = {
+  source: PostingSource
   showSources: boolean
 }
 
@@ -117,20 +114,12 @@ function getSafeSourceUrl(sourceUrl: string | null) {
   return null
 }
 
-function SourceEvidence({ origin, sources, showSources }: SourceEvidenceProps) {
+function SourceContext({ source, showSources }: SourceContextProps) {
   if (!showSources) {
     return null
   }
 
-  if (origin === 'user_defined') {
-    return (
-      <p className="posting-card-details__source-user-defined">
-        User-defined
-      </p>
-    )
-  }
-
-  if (sources.length === 0) {
+  if (source.excerpts.length === 0 && source.source_urls.length === 0) {
     return (
       <p className="posting-card-details__source-unavailable">
         No source available
@@ -142,44 +131,48 @@ function SourceEvidence({ origin, sources, showSources }: SourceEvidenceProps) {
     <details className="posting-card-details__source">
       <summary>View source</summary>
 
-      <ul className="posting-card-details__source-list">
-        {sources.map((source, index) => {
-          const safeSourceUrl = getSafeSourceUrl(source.source_url)
+      {source.excerpts.length > 0 && (
+        <ul className="posting-card-details__source-list">
+          {source.excerpts.map((excerpt, index) => (
+            <li key={`${excerpt}-${index}`}>
+              <blockquote>{excerpt}</blockquote>
+            </li>
+          ))}
+        </ul>
+      )}
 
-          return (
-            <li key={`${source.text}-${source.source_url ?? 'no-url'}-${index}`}>
-              <blockquote>{source.text}</blockquote>
+      {source.source_urls.length > 0 && (
+        <div className="posting-card-details__source-url">
+          <strong>Source URLs</strong>
 
-              {source.source_url !== null && (
-                <div className="posting-card-details__source-url">
-                  <strong>Source URL</strong>
+          <ul>
+            {source.source_urls.map((sourceUrl, index) => {
+              const safeSourceUrl = getSafeSourceUrl(sourceUrl)
 
+              return (
+                <li key={`${sourceUrl}-${index}`}>
                   {safeSourceUrl === null ? (
-                    <span>{source.source_url}</span>
+                    <span>{sourceUrl}</span>
                   ) : (
                     <a
                       href={safeSourceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {source.source_url}
+                      {sourceUrl}
                     </a>
                   )}
-                </div>
-              )}
-            </li>
-          )
-        })}
-      </ul>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
     </details>
   )
 }
 
 function getItemRuleLabel(requirement: Requirement) {
-  if (requirement.items.length <= 1 || requirement.item_rule === 'single') {
-    return null
-  }
-
   if (requirement.item_rule === 'any_of') {
     return 'Choose any one'
   }
@@ -207,7 +200,6 @@ function RequirementGroup({
   title,
   importance,
   requirements,
-  showSources,
 }: RequirementGroupProps) {
   if (requirements.length === 0) {
     return null
@@ -227,10 +219,8 @@ function RequirementGroup({
           return (
             <article
               className="posting-card-details__requirement"
-              key={`${requirement.text}-${requirementIndex}`}
+              key={`${requirement.item_rule}-${requirementIndex}`}
             >
-              <p>{requirement.text}</p>
-
               {requirement.items.length > 0 && (
                 <div className="posting-card-details__requirement-items">
                   {itemRuleLabel !== null && (
@@ -243,9 +233,12 @@ function RequirementGroup({
                     {requirement.items.map((item, itemIndex) => (
                       <span
                         className="posting-card-details__pill-with-connector"
-                        key={`${item.normalized_name ?? item.name}-${itemIndex}`}
+                        key={`${item.name}-${itemIndex}`}
                       >
-                        {itemIndex > 0 && itemConnector !== null && (
+                        {itemIndex > 0 &&
+                          !item.is_example &&
+                          !requirement.items[itemIndex - 1].is_example &&
+                          itemConnector !== null && (
                           <span className="posting-card-details__item-connector">
                             {itemConnector}
                           </span>
@@ -267,12 +260,6 @@ function RequirementGroup({
                   </div>
                 </div>
               )}
-
-              <SourceEvidence
-                origin={requirement.origin}
-                sources={requirement.sources}
-                showSources={showSources}
-              />
             </article>
           )
         })}
@@ -359,13 +346,13 @@ export function PostingCardDetails({
     })
   }
 
-  const requiredRequirements = posting.requirements.filter(
+  const requiredRequirements = posting.requirements.groups.filter(
     (requirement) => requirement.importance === 'required',
   )
-  const preferredRequirements = posting.requirements.filter(
+  const preferredRequirements = posting.requirements.groups.filter(
     (requirement) => requirement.importance === 'preferred',
   )
-  const unknownRequirements = posting.requirements.filter(
+  const unknownRequirements = posting.requirements.groups.filter(
     (requirement) => requirement.importance === 'unknown',
   )
 
@@ -523,6 +510,11 @@ export function PostingCardDetails({
           </div>
         )}
 
+        <SourceContext
+          source={posting.identity.source}
+          showSources={showSources}
+        />
+
         <label className="posting-card-details__source-toggle">
           <input
             type="checkbox"
@@ -541,11 +533,6 @@ export function PostingCardDetails({
             {posting.role_content.role_summary !== null && (
               <div className="posting-card-details__lead">
                 <p>{posting.role_content.role_summary.value}</p>
-                <SourceEvidence
-                  origin={posting.role_content.role_summary.origin}
-                  sources={posting.role_content.role_summary.sources}
-                  showSources={showSources}
-                />
               </div>
             )}
 
@@ -555,11 +542,6 @@ export function PostingCardDetails({
                   (responsibility, index) => (
                     <li key={`${responsibility.value}-${index}`}>
                       <span>{responsibility.value}</span>
-                      <SourceEvidence
-                        origin={responsibility.origin}
-                        sources={responsibility.sources}
-                        showSources={showSources}
-                      />
                     </li>
                   ),
                 )}
@@ -581,10 +563,15 @@ export function PostingCardDetails({
                 </div>
               </div>
             )}
+
+            <SourceContext
+              source={posting.role_content.source}
+              showSources={showSources}
+            />
           </section>
         )}
 
-        {posting.requirements.length > 0 && (
+        {posting.requirements.groups.length > 0 && (
           <section className="posting-card-details__section">
             <h3>What they’re looking for</h3>
 
@@ -592,18 +579,20 @@ export function PostingCardDetails({
               title="Required"
               importance="required"
               requirements={requiredRequirements}
-              showSources={showSources}
             />
             <RequirementGroup
               title="Nice to have"
               importance="preferred"
               requirements={preferredRequirements}
-              showSources={showSources}
             />
             <RequirementGroup
               title="Unclear"
               importance="unknown"
               requirements={unknownRequirements}
+            />
+
+            <SourceContext
+              source={posting.requirements.source}
               showSources={showSources}
             />
           </section>
@@ -649,6 +638,11 @@ export function PostingCardDetails({
                 </div>
               )}
             </dl>
+
+            <SourceContext
+              source={posting.work_conditions.source}
+              showSources={showSources}
+            />
           </section>
         )}
 
@@ -670,12 +664,6 @@ export function PostingCardDetails({
                       {entry.payment_conditions !== null && (
                         <span>{entry.payment_conditions}</span>
                       )}
-
-                      <SourceEvidence
-                        origin={entry.origin}
-                        sources={entry.sources}
-                        showSources={showSources}
-                      />
                     </li>
                   )
                 })}
@@ -690,11 +678,6 @@ export function PostingCardDetails({
                   {posting.compensation.benefits.map((benefit, index) => (
                     <li key={`${benefit.value}-${index}`}>
                       <span>{benefit.value}</span>
-                      <SourceEvidence
-                        origin={benefit.origin}
-                        sources={benefit.sources}
-                        showSources={showSources}
-                      />
                     </li>
                   ))}
                 </ul>
@@ -707,13 +690,13 @@ export function PostingCardDetails({
                 <span>
                   {posting.compensation.vacation_days.value} days per year
                 </span>
-                <SourceEvidence
-                  origin={posting.compensation.vacation_days.origin}
-                  sources={posting.compensation.vacation_days.sources}
-                  showSources={showSources}
-                />
               </div>
             )}
+
+            <SourceContext
+              source={posting.compensation.source}
+              showSources={showSources}
+            />
           </section>
         )}
 
@@ -730,15 +713,6 @@ export function PostingCardDetails({
                       {posting.application_instructions.channels.value
                         .map(formatWords)
                         .join(' · ')}
-                      <SourceEvidence
-                        origin={
-                          posting.application_instructions.channels.origin
-                        }
-                        sources={
-                          posting.application_instructions.channels.sources
-                        }
-                        showSources={showSources}
-                      />
                     </dd>
                   </div>
                 )}
@@ -758,11 +732,6 @@ export function PostingCardDetails({
                         {applicationUrlField.value}
                       </a>
                     )}
-                    <SourceEvidence
-                      origin={applicationUrlField.origin}
-                      sources={applicationUrlField.sources}
-                      showSources={showSources}
-                    />
                   </dd>
                 </div>
               )}
@@ -776,17 +745,6 @@ export function PostingCardDetails({
                       posting.application_instructions.application_deadline
                         .value
                     }
-                    <SourceEvidence
-                      origin={
-                        posting.application_instructions.application_deadline
-                          .origin
-                      }
-                      sources={
-                        posting.application_instructions.application_deadline
-                          .sources
-                      }
-                      showSources={showSources}
-                    />
                   </dd>
                 </div>
               )}
@@ -800,17 +758,6 @@ export function PostingCardDetails({
                       posting.application_instructions.required_email_subject
                         .value
                     }
-                    <SourceEvidence
-                      origin={
-                        posting.application_instructions.required_email_subject
-                          .origin
-                      }
-                      sources={
-                        posting.application_instructions.required_email_subject
-                          .sources
-                      }
-                      showSources={showSources}
-                    />
                   </dd>
                 </div>
               )}
@@ -824,11 +771,6 @@ export function PostingCardDetails({
                     (document, index) => (
                       <li key={`${document.value}-${index}`}>
                         <span>{document.value}</span>
-                        <SourceEvidence
-                          origin={document.origin}
-                          sources={document.sources}
-                          showSources={showSources}
-                        />
                       </li>
                     ),
                   )}
@@ -845,17 +787,17 @@ export function PostingCardDetails({
                     (instruction, index) => (
                       <li key={`${instruction.value}-${index}`}>
                         <span>{instruction.value}</span>
-                        <SourceEvidence
-                          origin={instruction.origin}
-                          sources={instruction.sources}
-                          showSources={showSources}
-                        />
                       </li>
                     ),
                   )}
                 </ul>
               </div>
             )}
+
+            <SourceContext
+              source={posting.application_instructions.source}
+              showSources={showSources}
+            />
           </section>
         )}
 
@@ -894,9 +836,8 @@ export function PostingCardDetails({
                 )}
               </dl>
 
-              <SourceEvidence
-                origin={contact.origin}
-                sources={contact.sources}
+              <SourceContext
+                source={contact.source}
                 showSources={showSources}
               />
             </div>
@@ -911,11 +852,6 @@ export function PostingCardDetails({
               {posting.company.company_summary !== null && (
                 <div>
                   <p>{posting.company.company_summary.value}</p>
-                  <SourceEvidence
-                    origin={posting.company.company_summary.origin}
-                    sources={posting.company.company_summary.sources}
-                    showSources={showSources}
-                  />
                 </div>
               )}
 
@@ -941,6 +877,11 @@ export function PostingCardDetails({
                   {posting.company.employee_range.value}
                 </p>
               )}
+
+              <SourceContext
+                source={posting.company.source}
+                showSources={showSources}
+              />
             </div>
           </details>
         )}

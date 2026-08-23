@@ -2,7 +2,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
-from .posting_details import PostingDetails, SourceExcerpt
+from .posting_details import PostingDetails, PostingSource
 
 
 class _PostingParseModel(BaseModel):
@@ -30,7 +30,7 @@ class PostingParseAmbiguity(_PostingParseModel):
     field_path: str
     description: str
     alternatives: tuple[str, ...]
-    sources: tuple[SourceExcerpt, ...]
+    source: PostingSource
 
 
 class ParsedPosting(_PostingParseModel):
