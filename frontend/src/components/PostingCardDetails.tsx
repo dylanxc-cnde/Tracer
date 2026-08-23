@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './PostingCardDetails.css'
 import type { PostingCard } from '../postings/types/postingCard'
 import type {
@@ -23,6 +23,12 @@ type RequirementGroupProps = {
   title: string
   importance: RequirementImportance
   requirements: Requirement[]
+  showSources: boolean
+}
+
+type SourceEvidenceProps = {
+  sources: SourceExcerpt[]
+  showSources: boolean
 }
 
 function formatWords(value: string) {
@@ -88,9 +94,17 @@ function getSafeSourceUrl(sourceUrl: string | null) {
   return null
 }
 
-function SourceEvidence({ sources }: { sources: SourceExcerpt[] }) {
-  if (sources.length === 0) {
+function SourceEvidence({ sources, showSources }: SourceEvidenceProps) {
+  if (!showSources) {
     return null
+  }
+
+  if (sources.length === 0) {
+    return (
+      <p className="posting-card-details__source-unavailable">
+        No source available
+      </p>
+    )
   }
 
   return (
@@ -162,6 +176,7 @@ function RequirementGroup({
   title,
   importance,
   requirements,
+  showSources,
 }: RequirementGroupProps) {
   if (requirements.length === 0) {
     return null
@@ -222,7 +237,10 @@ function RequirementGroup({
                 </div>
               )}
 
-              <SourceEvidence sources={requirement.sources} />
+              <SourceEvidence
+                sources={requirement.sources}
+                showSources={showSources}
+              />
             </article>
           )
         })}
@@ -236,6 +254,7 @@ export function PostingCardDetails({
   onClose,
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const [showSources, setShowSources] = useState(false)
   const posting = card.posting
 
   useEffect(() => {
@@ -359,6 +378,15 @@ export function PostingCardDetails({
             ))}
           </dl>
         )}
+
+        <label className="posting-card-details__source-toggle">
+          <input
+            type="checkbox"
+            checked={showSources}
+            onChange={(event) => setShowSources(event.target.checked)}
+          />
+          <span>Show sources</span>
+        </label>
       </header>
 
       <div className="posting-card-details__content">
@@ -371,6 +399,7 @@ export function PostingCardDetails({
                 <p>{posting.role_content.role_summary.value}</p>
                 <SourceEvidence
                   sources={posting.role_content.role_summary.sources}
+                  showSources={showSources}
                 />
               </div>
             )}
@@ -381,7 +410,10 @@ export function PostingCardDetails({
                   (responsibility, index) => (
                     <li key={`${responsibility.value}-${index}`}>
                       <span>{responsibility.value}</span>
-                      <SourceEvidence sources={responsibility.sources} />
+                      <SourceEvidence
+                        sources={responsibility.sources}
+                        showSources={showSources}
+                      />
                     </li>
                   ),
                 )}
@@ -398,16 +430,19 @@ export function PostingCardDetails({
               title="Required"
               importance="required"
               requirements={requiredRequirements}
+              showSources={showSources}
             />
             <RequirementGroup
               title="Nice to have"
               importance="preferred"
               requirements={preferredRequirements}
+              showSources={showSources}
             />
             <RequirementGroup
               title="Unclear"
               importance="unknown"
               requirements={unknownRequirements}
+              showSources={showSources}
             />
           </section>
         )}
@@ -431,7 +466,10 @@ export function PostingCardDetails({
                         <span>{entry.payment_conditions}</span>
                       )}
 
-                      <SourceEvidence sources={entry.sources} />
+                      <SourceEvidence
+                        sources={entry.sources}
+                        showSources={showSources}
+                      />
                     </li>
                   )
                 })}
@@ -446,7 +484,10 @@ export function PostingCardDetails({
                   {posting.compensation.benefits.map((benefit, index) => (
                     <li key={`${benefit.value}-${index}`}>
                       <span>{benefit.value}</span>
-                      <SourceEvidence sources={benefit.sources} />
+                      <SourceEvidence
+                        sources={benefit.sources}
+                        showSources={showSources}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -461,6 +502,7 @@ export function PostingCardDetails({
                 </span>
                 <SourceEvidence
                   sources={posting.compensation.vacation_days.sources}
+                  showSources={showSources}
                 />
               </div>
             )}
@@ -477,6 +519,7 @@ export function PostingCardDetails({
                   <p>{posting.company.company_summary.value}</p>
                   <SourceEvidence
                     sources={posting.company.company_summary.sources}
+                    showSources={showSources}
                   />
                 </div>
               )}

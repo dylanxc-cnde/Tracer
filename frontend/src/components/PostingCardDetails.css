@@ -92,6 +92,30 @@
   font-weight: 600;
 }
 
+.posting-card-details__source-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.posting-card-details__source-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-action-primary);
+  cursor: pointer;
+}
+
+.posting-card-details__source-toggle input:focus-visible {
+  outline: 3px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
 .posting-card-details__close {
   flex: 0 0 auto;
   min-height: 40px;
@@ -266,6 +290,13 @@
   margin-top: 10px;
   color: var(--color-text-secondary);
   font-size: 13px;
+}
+
+.posting-card-details__source-unavailable {
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-style: italic;
 }
 
 .posting-card-details__source > summary {
