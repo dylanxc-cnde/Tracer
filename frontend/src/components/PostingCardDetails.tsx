@@ -287,6 +287,7 @@ export function PostingCardDetails({
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [showSources, setShowSources] = useState(false)
+  const [showPostingInfo, setShowPostingInfo] = useState(false)
   const posting = card.posting
 
   useEffect(() => {
@@ -381,6 +382,13 @@ export function PostingCardDetails({
     posting.company.company_summary !== null ||
     posting.company.industry_tags.length > 0 ||
     posting.company.employee_range !== null
+  const hasPostingSourceDetails =
+    posting.identity.canonical_posting_url !== null ||
+    posting.identity.source_platform !== null ||
+    posting.identity.published_on !== null ||
+    posting.identity.posting_language !== null
+  const postingUrl = posting.identity.canonical_posting_url?.value ?? null
+  const safePostingUrl = getSafeSourceUrl(postingUrl)
 
   return (
     <dialog
@@ -406,12 +414,30 @@ export function PostingCardDetails({
       </div>
 
       <header className="posting-card-details__header">
-        <p className="posting-card-details__company">
-          {posting.identity.company_name?.value ?? 'Unknown Company'}
-          {posting.identity.department_name !== null && (
-            <span> · {posting.identity.department_name.value}</span>
+        <div className="posting-card-details__metadata-row">
+          <p className="posting-card-details__company">
+            {posting.identity.company_name?.value ?? 'Unknown Company'}
+            {posting.identity.department_name !== null && (
+              <span> · {posting.identity.department_name.value}</span>
+            )}
+            {posting.identity.external_job_id !== null && (
+              <span> · Job ID: {posting.identity.external_job_id.value}</span>
+            )}
+          </p>
+
+          {hasPostingSourceDetails && (
+            <button
+              className="posting-card-details__posting-info-toggle"
+              type="button"
+              aria-expanded={showPostingInfo}
+              aria-controls="posting-card-details-posting-info"
+              onClick={() => setShowPostingInfo((current) => !current)}
+            >
+              Posting info
+              <span aria-hidden="true">▾</span>
+            </button>
           )}
-        </p>
+        </div>
 
         {quickFacts.length > 0 && (
           <dl className="posting-card-details__quick-facts">
@@ -422,6 +448,55 @@ export function PostingCardDetails({
               </div>
             ))}
           </dl>
+        )}
+
+        {hasPostingSourceDetails && showPostingInfo && (
+          <div
+            id="posting-card-details-posting-info"
+            className="posting-card-details__posting-info"
+          >
+            <dl className="posting-card-details__posting-info-list">
+              {postingUrl !== null && (
+                <div>
+                  <dt>Posting URL</dt>
+                  <dd>
+                    {safePostingUrl === null ? (
+                      postingUrl
+                    ) : (
+                      <a
+                        href={safePostingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {postingUrl}
+                      </a>
+                    )}
+                  </dd>
+                </div>
+              )}
+
+              {posting.identity.source_platform !== null && (
+                <div>
+                  <dt>Source platform</dt>
+                  <dd>{posting.identity.source_platform.value}</dd>
+                </div>
+              )}
+
+              {posting.identity.published_on !== null && (
+                <div>
+                  <dt>Published</dt>
+                  <dd>{posting.identity.published_on.value}</dd>
+                </div>
+              )}
+
+              {posting.identity.posting_language !== null && (
+                <div>
+                  <dt>Language</dt>
+                  <dd>{posting.identity.posting_language.value}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
         )}
 
         <label className="posting-card-details__source-toggle">

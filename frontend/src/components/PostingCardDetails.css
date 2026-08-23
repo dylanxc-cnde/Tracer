@@ -40,7 +40,7 @@
 }
 
 .posting-card-details__header {
-  padding: 16px 24px 24px;
+  padding: 12px 24px 24px;
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
@@ -61,11 +61,85 @@
   line-height: 1.45;
 }
 
+.posting-card-details__metadata-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.posting-card-details__posting-info-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.posting-card-details__posting-info-toggle:hover {
+  color: var(--color-action-primary);
+}
+
+.posting-card-details__posting-info-toggle > span {
+  transition: transform 320ms ease;
+}
+
+.posting-card-details__posting-info-toggle[aria-expanded='true'] > span {
+  transform: rotate(180deg);
+}
+
+.posting-card-details__posting-info {
+  margin-top: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.posting-card-details__posting-info-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.posting-card-details__posting-info-list > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.posting-card-details__posting-info-list dt {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.posting-card-details__posting-info-list dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-details__posting-info-list a {
+  color: var(--color-action-primary);
+  font-weight: 650;
+}
+
 .posting-card-details__quick-facts {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 20px 0 0;
+  margin: 12px 0 0;
 }
 
 .posting-card-details__quick-facts > div {
@@ -146,6 +220,7 @@
 }
 
 .posting-card-details__close:focus-visible,
+.posting-card-details__posting-info-toggle:focus-visible,
 .posting-card-details__disclosure > summary:focus-visible,
 .posting-card-details__source > summary:focus-visible,
 .posting-card-details a:focus-visible {
@@ -429,7 +504,7 @@
   }
 
   .posting-card-details__header {
-    padding: 16px 20px 20px;
+    padding: 12px 20px 20px;
   }
 
   .posting-card-details__title {
@@ -447,5 +522,15 @@
 
   .posting-card-details__quick-facts > div {
     justify-content: space-between;
+  }
+
+  .posting-card-details__metadata-row {
+    display: grid;
+    gap: 8px;
+  }
+
+  .posting-card-details__posting-info-list > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }
