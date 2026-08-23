@@ -63,6 +63,10 @@ def test_shared_prompt_uses_requirement_strategy_without_scenarios():
     assert "applies only to the capability or clause that it modifies" in prompt
     assert "Do not downgrade an unqualified broader requirement" in prompt
     assert "assign each its own importance" in prompt
+    assert "compact UI pill label, not a copied sentence or clause" in prompt
+    assert "short noun phrase in the source language" in prompt
+    assert "Preserve qualifiers that affect matching" in prompt
+    assert "complete original wording only in PostingRequirements.source" in prompt
     assert "Lists and conjunctions do not prove any_of by themselves" in prompt
     assert "Illustration items do not determine item_rule" in prompt
     assert "Use all_of when there is one core item" in prompt

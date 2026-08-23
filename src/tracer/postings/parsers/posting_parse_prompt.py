@@ -138,7 +138,16 @@ Parse each source requirement in this order:
    experience, language, license or other condition that can be matched
    independently. Do not merge distinct concepts into one item, do not create
    normalized aliases, and do not invent a broader category that the source
-   does not support. Do not create a Requirement with an empty items array.
+   does not support. RequirementItem.name is a compact UI pill label, not a
+   copied sentence or clause. Write it as a short noun phrase in the source
+   language, normally one to six words. Remove candidate-directed framing,
+   sentence openers, articles, filler and mandatory or optional wording already
+   represented by importance. Preserve qualifiers that affect matching, such
+   as proficiency level, subject, domain, credential type or scope. Do not
+   reduce a specific requirement to a vague umbrella label, and do not add
+   sentence-ending punctuation. Keep the complete original wording only in
+   PostingRequirements.source.excerpts. Do not create a Requirement with an
+   empty items array.
 6. Set item_rule from the relationship among non-example core items. Use
    all_of when there is one core item or when the source requires every core
    item together. Use any_of only when the source clearly allows one or another
