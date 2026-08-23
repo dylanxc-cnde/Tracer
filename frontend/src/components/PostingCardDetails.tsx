@@ -243,6 +243,7 @@ export function PostingCardDetails({
 
     if (dialog !== null && !dialog.open) {
       dialog.showModal()
+      dialog.focus({ preventScroll: true })
     }
   }, [])
 
@@ -321,15 +322,26 @@ export function PostingCardDetails({
     <dialog
       ref={dialogRef}
       className="posting-card-details"
+      tabIndex={-1}
       onClose={onClose}
     >
-      <header className="posting-card-details__header">
+      <div className="posting-card-details__topbar">
         <h2 className="posting-card-details__title">
           {card.posting_alias ??
             posting.identity.position_title?.value ??
             'Unknown Position'}
         </h2>
 
+        <button
+          className="posting-card-details__close"
+          type="button"
+          onClick={() => dialogRef.current?.close()}
+        >
+          Close
+        </button>
+      </div>
+
+      <header className="posting-card-details__header">
         <p className="posting-card-details__company">
           {posting.identity.company_name?.value ?? 'Unknown Company'}
           {posting.identity.department_name !== null && (
@@ -348,14 +360,6 @@ export function PostingCardDetails({
           </dl>
         )}
       </header>
-
-      <button
-        className="posting-card-details__close"
-        type="button"
-        onClick={() => dialogRef.current?.close()}
-      >
-        Close
-      </button>
 
       <div className="posting-card-details__content">
         {hasRoleContent && (
