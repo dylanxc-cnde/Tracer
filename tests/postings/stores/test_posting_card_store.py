@@ -298,3 +298,28 @@ def test_store_returns_false_when_deleting_missing_card(tmp_path):
     store = PostingCardStore(tmp_path / "tracer.db")
 
     assert not store.delete(MISSING_CARD_KEY)
+
+
+def test_store_replaces_posting_card(tmp_path):
+    store = PostingCardStore(tmp_path / "tracer.db")
+    card = make_card()
+    store.add(card)
+    updated_card = PostingCard.model_validate(
+        {
+            **card.model_dump(),
+            "posting_alias": "Munich robotics",
+            "user_notes": "Check the start date.",
+            "tags": ("priority", "internship"),
+        }
+    )
+
+    updated = store.update(updated_card)
+
+    assert updated
+    assert store.get_by_card_key(card.card_key) == updated_card
+
+
+def test_store_returns_false_when_updating_missing_card(tmp_path):
+    store = PostingCardStore(tmp_path / "tracer.db")
+
+    assert not store.update(make_card(card_key=MISSING_CARD_KEY))
