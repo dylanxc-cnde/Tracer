@@ -383,6 +383,21 @@ export function PostingCardDetails({
     posting.compensation.entries.length > 0 ||
     posting.compensation.benefits.length > 0 ||
     posting.compensation.vacation_days !== null
+  const hasApplicationDetails =
+    (posting.application_instructions.channels !== null &&
+      posting.application_instructions.channels.value.length > 0) ||
+    posting.application_instructions.application_url !== null ||
+    posting.application_instructions.required_email_subject !== null ||
+    posting.application_instructions.required_documents.length > 0 ||
+    posting.application_instructions.special_instructions.length > 0 ||
+    posting.application_instructions.application_deadline !== null
+  const contact = posting.contact
+  const hasContactDetails =
+    contact !== null &&
+    (contact.name !== null ||
+      contact.role !== null ||
+      contact.email !== null ||
+      contact.phone !== null)
   const hasCompanyDetails =
     posting.company.company_summary !== null ||
     posting.company.industry_tags.length > 0 ||
@@ -394,6 +409,10 @@ export function PostingCardDetails({
     posting.identity.posting_language !== null
   const postingUrl = posting.identity.canonical_posting_url?.value ?? null
   const safePostingUrl = getSafeSourceUrl(postingUrl)
+  const applicationUrlField =
+    posting.application_instructions.application_url
+  const applicationUrl = applicationUrlField?.value ?? null
+  const safeApplicationUrl = getSafeSourceUrl(applicationUrl)
 
   return (
     <dialog
@@ -698,6 +717,192 @@ export function PostingCardDetails({
           </section>
         )}
 
+        {hasApplicationDetails && (
+          <section className="posting-card-details__section">
+            <h3>Application</h3>
+
+            <dl className="posting-card-details__application-facts">
+              {posting.application_instructions.channels !== null &&
+                posting.application_instructions.channels.value.length > 0 && (
+                  <div>
+                    <dt>Channels</dt>
+                    <dd>
+                      {posting.application_instructions.channels.value
+                        .map(formatWords)
+                        .join(' · ')}
+                      <SourceEvidence
+                        origin={
+                          posting.application_instructions.channels.origin
+                        }
+                        sources={
+                          posting.application_instructions.channels.sources
+                        }
+                        showSources={showSources}
+                      />
+                    </dd>
+                  </div>
+                )}
+
+              {applicationUrlField !== null && (
+                <div>
+                  <dt>Application URL</dt>
+                  <dd>
+                    {safeApplicationUrl === null ? (
+                      applicationUrlField.value
+                    ) : (
+                      <a
+                        href={safeApplicationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {applicationUrlField.value}
+                      </a>
+                    )}
+                    <SourceEvidence
+                      origin={applicationUrlField.origin}
+                      sources={applicationUrlField.sources}
+                      showSources={showSources}
+                    />
+                  </dd>
+                </div>
+              )}
+
+              {posting.application_instructions.application_deadline !==
+                null && (
+                <div>
+                  <dt>Deadline</dt>
+                  <dd>
+                    {
+                      posting.application_instructions.application_deadline
+                        .value
+                    }
+                    <SourceEvidence
+                      origin={
+                        posting.application_instructions.application_deadline
+                          .origin
+                      }
+                      sources={
+                        posting.application_instructions.application_deadline
+                          .sources
+                      }
+                      showSources={showSources}
+                    />
+                  </dd>
+                </div>
+              )}
+
+              {posting.application_instructions.required_email_subject !==
+                null && (
+                <div>
+                  <dt>Email subject</dt>
+                  <dd>
+                    {
+                      posting.application_instructions.required_email_subject
+                        .value
+                    }
+                    <SourceEvidence
+                      origin={
+                        posting.application_instructions.required_email_subject
+                          .origin
+                      }
+                      sources={
+                        posting.application_instructions.required_email_subject
+                          .sources
+                      }
+                      showSources={showSources}
+                    />
+                  </dd>
+                </div>
+              )}
+            </dl>
+
+            {posting.application_instructions.required_documents.length > 0 && (
+              <div className="posting-card-details__application-list">
+                <h4>Required documents</h4>
+                <ul className="posting-card-details__content-list">
+                  {posting.application_instructions.required_documents.map(
+                    (document, index) => (
+                      <li key={`${document.value}-${index}`}>
+                        <span>{document.value}</span>
+                        <SourceEvidence
+                          origin={document.origin}
+                          sources={document.sources}
+                          showSources={showSources}
+                        />
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {posting.application_instructions.special_instructions.length >
+              0 && (
+              <div className="posting-card-details__application-list">
+                <h4>Special instructions</h4>
+                <ul className="posting-card-details__content-list">
+                  {posting.application_instructions.special_instructions.map(
+                    (instruction, index) => (
+                      <li key={`${instruction.value}-${index}`}>
+                        <span>{instruction.value}</span>
+                        <SourceEvidence
+                          origin={instruction.origin}
+                          sources={instruction.sources}
+                          showSources={showSources}
+                        />
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
+
+        {hasContactDetails && contact !== null && (
+          <details className="posting-card-details__disclosure">
+            <summary>Contact</summary>
+
+            <div className="posting-card-details__disclosure-content">
+              <dl className="posting-card-details__contact-list">
+                {contact.name !== null && (
+                  <div>
+                    <dt>Name</dt>
+                    <dd>{contact.name}</dd>
+                  </div>
+                )}
+
+                {contact.role !== null && (
+                  <div>
+                    <dt>Role</dt>
+                    <dd>{contact.role}</dd>
+                  </div>
+                )}
+
+                {contact.email !== null && (
+                  <div>
+                    <dt>Email</dt>
+                    <dd>{contact.email}</dd>
+                  </div>
+                )}
+
+                {contact.phone !== null && (
+                  <div>
+                    <dt>Phone</dt>
+                    <dd>{contact.phone}</dd>
+                  </div>
+                )}
+              </dl>
+
+              <SourceEvidence
+                origin={contact.origin}
+                sources={contact.sources}
+                showSources={showSources}
+              />
+            </div>
+          </details>
+        )}
+
         {hasCompanyDetails && (
           <details className="posting-card-details__disclosure">
             <summary>About the company</summary>
@@ -739,6 +944,10 @@ export function PostingCardDetails({
             </div>
           </details>
         )}
+
+        <p className="posting-card-details__created-at">
+          Created at <time dateTime={card.created_at}>{card.created_at}</time>
+        </p>
       </div>
     </dialog>
   )

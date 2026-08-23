@@ -429,21 +429,25 @@
   font-weight: 650;
 }
 
-.posting-card-details__work-conditions {
+.posting-card-details__work-conditions,
+.posting-card-details__application-facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   margin: 0;
 }
 
-.posting-card-details__work-conditions > div {
+.posting-card-details__work-conditions > div,
+.posting-card-details__application-facts > div {
   padding: 14px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
   background-color: var(--color-surface-muted);
 }
 
-.posting-card-details__work-conditions dt {
+.posting-card-details__work-conditions dt,
+.posting-card-details__application-facts dt,
+.posting-card-details__contact-list dt {
   margin-bottom: 6px;
   color: var(--color-text-secondary);
   font-size: 12px;
@@ -452,9 +456,29 @@
   text-transform: uppercase;
 }
 
-.posting-card-details__work-conditions dd {
+.posting-card-details__work-conditions dd,
+.posting-card-details__application-facts dd,
+.posting-card-details__contact-list dd {
   margin: 0;
   line-height: 1.5;
+}
+
+.posting-card-details__application-facts dd {
+  overflow-wrap: anywhere;
+}
+
+.posting-card-details__application-facts a {
+  color: var(--color-action-primary);
+  font-weight: 650;
+}
+
+.posting-card-details__application-list {
+  margin-top: 20px;
+}
+
+.posting-card-details__application-list > h4 {
+  margin: 0;
+  font-size: 15px;
 }
 
 .posting-card-details__compensation-list {
@@ -518,6 +542,21 @@
   display: grid;
   gap: 20px;
   padding: 16px;
+}
+
+.posting-card-details__contact-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.posting-card-details__created-at {
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 12px;
 }
 
 .posting-card-details__tag-group {
