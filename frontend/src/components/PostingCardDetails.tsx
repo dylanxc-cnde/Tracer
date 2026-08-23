@@ -371,7 +371,8 @@ export function PostingCardDetails({
 
   const hasRoleContent =
     posting.role_content.role_summary !== null ||
-    posting.role_content.responsibilities.length > 0
+    posting.role_content.responsibilities.length > 0 ||
+    posting.role_content.domains.length > 0
   const hasWorkConditions =
     weeklyHours !== null ||
     posting.work_conditions.schedule !== null ||
@@ -544,6 +545,22 @@ export function PostingCardDetails({
                   ),
                 )}
               </ul>
+            )}
+
+            {posting.role_content.domains.length > 0 && (
+              <div className="posting-card-details__tag-group">
+                <strong>Role domains</strong>
+                <div className="posting-card-details__pill-list">
+                  {posting.role_content.domains.map((domain, index) => (
+                    <span
+                      className="posting-card-details__pill"
+                      key={`${domain.value}-${index}`}
+                    >
+                      {domain.value}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
           </section>
         )}
