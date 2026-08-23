@@ -314,7 +314,6 @@
 .posting-card-details__requirement-items {
   display: grid;
   gap: 8px;
-  margin-top: 12px;
 }
 
 .posting-card-details__item-rule {
