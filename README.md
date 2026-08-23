@@ -30,9 +30,10 @@ job URL or pasted text
   information, source excerpts, and creation metadata;
 - a responsive three-page application shell with class-based component styles;
 - selectable posting candidates with loading, error, and confirmation states;
-- source excerpts for extracted facts;
+- section-level source excerpts and URLs for reviewing extracted facts;
 - multiple posting candidates without mixing in recommended jobs;
-- grouped requirements such as `all_of`, `any_of`, and named examples;
+- compact requirement pills with distinct `all_of`, `any_of`, and example
+  presentation;
 - explicit ambiguities when a value cannot be classified safely.
 
 Model output is always a proposal. Missing information stays unknown, and the
@@ -112,20 +113,21 @@ the repository.
 
 ## Next
 
-- finish the compact Card header and decide which displayed posting fields are
-  actually editable;
-- define how the editor adds values that are currently missing, including new
-  requirements, repeated items, and optional work-condition fields;
-- define the Card update contract while keeping `card_key`, `import_key`,
-  `created_at`, and source excerpts outside normal user editing;
-- add an edit-and-save flow that validates the complete update with Pydantic
-  before replacing the Card JSON in SQLite;
-- make the requirement overview compact, with grouped pills first and original
-  wording, relationships, and sources available on expansion;
-- show user notes near the bottom of Card Details, while leaving the larger tag
-  catalog and tag-selection UI until their data contract is clear;
+- add a user-owned area to Card Details for the posting alias, tags, and notes,
+  separate from posting facts and source excerpts;
+- use the existing string tags for the first display and basic editing flow,
+  without blocking on a larger tag catalog;
+- define the smallest Card update contract for alias, tags, and notes while
+  keeping `card_key`, `import_key`, `created_at`, posting facts, and source
+  excerpts unchanged;
+- add the Store update, HTTP route, validation tests, and React save/error state
+  for that user-owned area;
+- after this narrow update loop works, define which structured posting fields
+  are editable and how missing, repeated, and grouped requirement values can be
+  added safely;
 - show the relationship between an Import and the Cards created from it;
-- add Card update tests and clear validation/storage error states.
+- keep validation, not-found, concurrent-update, and storage failures visible
+  to the frontend rather than hiding them behind a generic success state.
 
 Deleting a Card does not delete its original Import. Deleting an Import does
 not delete saved Cards either: a Card keeps its `import_key` as historical
