@@ -296,9 +296,19 @@
 
 .posting-card-details__requirement {
   padding: 14px;
-  border: 1px solid var(--color-border-subtle);
+  border: 2px solid var(--color-border-subtle);
   border-radius: 14px;
   background-color: var(--color-surface);
+}
+
+.posting-card-details__requirement--all-of {
+  border-color: var(--color-border-strong);
+  border-style: solid;
+}
+
+.posting-card-details__requirement--any-of {
+  border-color: var(--color-border-strong);
+  border-style: dashed;
 }
 
 .posting-card-details__requirement-items {
@@ -321,6 +331,10 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.posting-card-details__example-list {
+  padding-top: 2px;
 }
 
 .posting-card-details__pill-with-connector {
@@ -351,12 +365,14 @@
 }
 
 .posting-card-details__pill--example {
+  border-width: 2px;
   border-color: var(--color-information);
+  border-style: dotted;
+  color: var(--color-text-tertiary);
   background-color: rgba(185, 207, 213, 0.28);
 }
 
 .posting-card-details__example-prefix {
-  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 700;
 }

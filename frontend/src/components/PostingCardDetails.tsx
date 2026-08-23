@@ -26,6 +26,8 @@ type RequirementGroupProps = {
   requirements: Requirement[]
 }
 
+type DisplayRequirement = Pick<Requirement, 'item_rule' | 'items'>
+
 type SourceContextProps = {
   source: PostingSource
   showSources: boolean
@@ -172,28 +174,47 @@ function SourceContext({ source, showSources }: SourceContextProps) {
   )
 }
 
-function getItemRuleLabel(requirement: Requirement) {
-  if (requirement.item_rule === 'any_of') {
+function getItemRuleLabel(itemRule: Requirement['item_rule']) {
+  if (itemRule === 'any_of') {
     return 'Choose any one'
   }
 
-  if (requirement.item_rule === 'all_of') {
+  if (itemRule === 'all_of') {
     return 'All required together'
   }
 
   return 'Combination unclear'
 }
 
-function getItemConnector(requirement: Requirement) {
-  if (requirement.item_rule === 'any_of') {
+function getItemConnector(itemRule: Requirement['item_rule']) {
+  if (itemRule === 'any_of') {
     return 'OR'
   }
 
-  if (requirement.item_rule === 'all_of') {
+  if (itemRule === 'all_of') {
     return 'AND'
   }
 
   return null
+}
+
+function mergeAllOfRequirements(
+  requirements: Requirement[],
+): DisplayRequirement[] {
+  const allOfItems = requirements
+    .filter((requirement) => requirement.item_rule === 'all_of')
+    .flatMap((requirement) => requirement.items)
+  
+  const otherRequirements = requirements.filter(
+    (requirement) => requirement.item_rule !== 'all_of',
+  )
+
+  return [
+    ...(allOfItems.length > 0
+      ? [{ item_rule: 'all_of' as const, items: allOfItems }]
+      : []),
+    ...otherRequirements,
+  ]
 }
 
 function RequirementGroup({
@@ -205,6 +226,8 @@ function RequirementGroup({
     return null
   }
 
+  const displayRequirements = mergeAllOfRequirements(requirements)
+
   return (
     <section
       className={`posting-card-details__requirement-group posting-card-details__requirement-group--${importance}`}
@@ -212,13 +235,19 @@ function RequirementGroup({
       <h4>{title}</h4>
 
       <div className="posting-card-details__requirement-list">
-        {requirements.map((requirement, requirementIndex) => {
-          const itemRuleLabel = getItemRuleLabel(requirement)
-          const itemConnector = getItemConnector(requirement)
+        {displayRequirements.map((requirement, requirementIndex) => {
+          const itemRuleLabel = getItemRuleLabel(requirement.item_rule)
+          const itemConnector = getItemConnector(requirement.item_rule)
+          const coreItems = requirement.items.filter(
+            (item) => !item.is_example,
+          )
+          const exampleItems = requirement.items.filter(
+            (item) => item.is_example,
+          )
 
           return (
             <article
-              className="posting-card-details__requirement"
+              className={`posting-card-details__requirement posting-card-details__requirement--${requirement.item_rule.replace('_', '-')}`}
               key={`${requirement.item_rule}-${requirementIndex}`}
             >
               {requirement.items.length > 0 && (
@@ -229,35 +258,46 @@ function RequirementGroup({
                     </span>
                   )}
 
-                  <div className="posting-card-details__pill-list">
-                    {requirement.items.map((item, itemIndex) => (
-                      <span
-                        className="posting-card-details__pill-with-connector"
-                        key={`${item.name}-${itemIndex}`}
-                      >
-                        {itemIndex > 0 &&
-                          !item.is_example &&
-                          !requirement.items[itemIndex - 1].is_example &&
-                          itemConnector !== null && (
-                          <span className="posting-card-details__item-connector">
-                            {itemConnector}
-                          </span>
-                        )}
-
+                  {coreItems.length > 0 && (
+                    <div className="posting-card-details__pill-list">
+                      {coreItems.map((item, itemIndex) => (
                         <span
-                          className={`posting-card-details__pill${item.is_example ? ' posting-card-details__pill--example' : ''}`}
-                          title={formatWords(item.category)}
+                          className="posting-card-details__pill-with-connector"
+                          key={`${item.name}-${itemIndex}`}
                         >
-                          {item.is_example && (
-                            <span className="posting-card-details__example-prefix">
-                              e.g.
+                          {itemIndex > 0 && itemConnector !== null && (
+                            <span className="posting-card-details__item-connector">
+                              {itemConnector}
                             </span>
                           )}
+
+                          <span
+                            className="posting-card-details__pill"
+                            title={formatWords(item.category)}
+                          >
+                            {item.name}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {exampleItems.length > 0 && (
+                    <div className="posting-card-details__pill-list posting-card-details__example-list">
+                      {exampleItems.map((item, itemIndex) => (
+                        <span
+                          className="posting-card-details__pill posting-card-details__pill--example"
+                          title={formatWords(item.category)}
+                          key={`${item.name}-${itemIndex}`}
+                        >
+                          <span className="posting-card-details__example-prefix">
+                            e.g.
+                          </span>
                           {item.name}
                         </span>
-                      </span>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </article>
