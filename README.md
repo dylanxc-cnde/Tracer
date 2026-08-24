@@ -116,12 +116,15 @@ the repository.
 
 ## Next
 
-- define which structured posting fields are editable and how missing,
-  repeated, and grouped requirement values can be added safely;
-- add section-specific editors to the existing global edit draft and Save flow
-  instead of turning Card Details into one generic JSON form;
-- show which values the user changed while keeping the original section-level
-  source context available;
+- grow Card Details one field shape and one business section at a time;
+- extract a section component only when its display and editing behavior has
+  been implemented, reviewed, and reopened successfully from SQLite;
+- keep headers and Quick Facts as read-only projections while editing their
+  underlying structured fields;
+- build quiet inline editing surfaces and section-level add controls without
+  turning Card Details into one generic JSON form;
+- signal only unsaved draft changes in the UI while preserving the original
+  section-level source context;
 - design a stable tag catalog and selection UI only when filtering and matching
   need more than the current string tags;
 - show the relationship between an Import and the Cards created from it;

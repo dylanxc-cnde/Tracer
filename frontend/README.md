@@ -19,8 +19,10 @@ Python still handles AI calls, validation, SQLite, and card creation.
 - Confirm sends the selected posting back to FastAPI and saves a Posting Card;
 - a Load button retrieves saved Cards and renders them through `CardLibrary`
   and `PostingCardSummary`;
-- saved Cards reopen in a read-only details dialog with a sticky title bar,
-  quick facts, requirements, compensation, source excerpts, and company details;
+- saved Cards reopen in a details dialog with a sticky title bar, quick facts,
+  requirements, compensation, source excerpts, and company details;
+- the global Card edit mode updates alias, string tags, and notes through one
+  draft and Save action;
 - saved Cards can be permanently deleted after confirmation;
 - Import History loads saved import requests and supports the same explicit
   deletion flow;
@@ -30,17 +32,21 @@ Python still handles AI calls, validation, SQLite, and card creation.
   are shown in the page.
 
 The current interface is intentionally small. Card and Import records can be
-loaded and deleted, and saved Cards can be reviewed in detail. Editing and
-updating the SQLite record are not built yet.
+loaded and deleted, saved Cards can be reviewed in detail, and the user-owned
+Card area can be updated. Structured posting facts are still read-only.
 
 ## Source layout
 
 ```text
-src/App.tsx                     application shell and page switching
-src/pages/                      page-level state and API actions
-src/components/                 reusable React UI components
-src/postings/types/             TypeScript versions of the API JSON contracts
-src/postings/api/postings.ts    HTTP functions for posting routes
+src/App.tsx                              application shell and page switching
+src/pages/                               page-level state and API actions
+src/components/posting-import/           Import-only components
+src/components/import-history/           Import History components
+src/components/card-library/             Card Library components
+src/components/posting-card/             shared Card components
+src/components/posting-card/details/     Card Details and its editor hook
+src/postings/types/                      TypeScript API JSON contracts
+src/postings/api/postings.ts             HTTP functions for posting routes
 ```
 
 React components use these functions instead of writing HTTP requests directly.
@@ -83,6 +89,7 @@ POST /posting-imports
 -> user selects one candidate
 -> POST /posting-cards
 -> GET /posting-cards
+-> PATCH /posting-cards/{card_key}
 -> DELETE /posting-cards/{card_key}
 
 GET /posting-imports
@@ -94,13 +101,21 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
 
 ## Next steps
 
-- define which Card fields are editable and submit the complete editable value
-  instead of sending one HTTP request per changed field;
-- distinguish user-defined values from original source excerpts without
-  rewriting the original evidence;
-- replace the expanded requirement wall with grouped pills and expandable
-  wording, relationships, and sources;
-- add editing, aliases, notes, and tags after those update rules are settled;
+- extend Card editing one field shape and one business section at a time;
+- extract each section only when its display and editing behavior is stable,
+  rather than splitting the entire Details component in advance;
+- prototype an inline text editor whose reading and editing geometry stays
+  visually stable, then reuse that proven pattern;
+- keep Quick Facts and header summaries read-only and derive them from the
+  current edit draft;
+- add section-level controls for missing supported fields without opening a
+  second modal dialog;
+- show a subtle signal only for unsaved changes and keep saved content visually
+  quiet;
+- leave Requirements until the simpler scalar, repeated-text, pill, enum, date,
+  and compensation editors have established the shared patterns;
+- add the wider Details layout and section navigation rail only after section
+  boundaries and stable section IDs exist;
 - show which saved Cards came from each Import;
 - add validation and storage error states without losing the unsaved form;
 - add frontend component and API tests;
