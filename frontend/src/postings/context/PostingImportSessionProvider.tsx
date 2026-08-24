@@ -124,6 +124,12 @@ export function PostingImportSessionProvider({
     )
   }
 
+  function handleCardUpdated(card: PostingCard) {
+    setCreatedCard((currentCard) =>
+      currentCard?.card_key === card.card_key ? card : currentCard,
+    )
+  }
+
   function handleImportDeleted(deletedImportKey: string) {
     if (importKey === deletedImportKey) {
       setImportKey(null)
@@ -148,6 +154,7 @@ export function PostingImportSessionProvider({
     confirmSelection,
     deleteCreatedCard,
     handleCardDeleted,
+    handleCardUpdated,
     handleImportDeleted,
   }
 

@@ -2,8 +2,12 @@ import { useState } from 'react'
 import { PostingCandidateCard } from '../components/PostingCandidateCard'
 import { PostingCardDetails } from '../components/PostingCardDetails'
 import { PostingCardSummary } from '../components/PostingCardSummary'
+import { updatePostingCard } from '../postings/api/postings'
 import { usePostingImportSession } from '../postings/context/usePostingImportSession'
-import type { PostingCard } from '../postings/types/postingCard'
+import type {
+  PostingCard,
+  UpdatePostingCardRequest,
+} from '../postings/types/postingCard'
 
 export function PostingImportPage() {
   const [selectedCard, setSelectedCard] = useState<PostingCard | null>(null)
@@ -22,6 +26,7 @@ export function PostingImportPage() {
     analyze,
     confirmSelection,
     deleteCreatedCard,
+    handleCardUpdated,
   } = usePostingImportSession()
 
   function saveButtonLabel() {
@@ -36,6 +41,17 @@ export function PostingImportPage() {
 
   function handleCloseCard() {
     setSelectedCard(null)
+  }
+
+  async function handleUpdateCard(
+    cardKey: string,
+    request: UpdatePostingCardRequest,
+  ) {
+    const updatedCard = await updatePostingCard(cardKey, request)
+    handleCardUpdated(updatedCard)
+    setSelectedCard(updatedCard)
+
+    return updatedCard
   }
 
   return (
@@ -110,6 +126,7 @@ export function PostingImportPage() {
         <PostingCardDetails
           card={selectedCard}
           onClose={handleCloseCard}
+          onUpdate={handleUpdateCard}
         />
       )}
     </>

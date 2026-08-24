@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import './PostingCardDetails.css'
-import type { PostingCard } from '../postings/types/postingCard'
+import type {
+  PostingCard,
+  UpdatePostingCardRequest,
+} from '../postings/types/postingCard'
 import type {
   CompensationEntry,
   PostingLocation,
@@ -9,10 +12,19 @@ import type {
   RequirementImportance,
   WeeklyHours,
 } from '../postings/types/postingDetails'
+import {
+  PostingCardUserArea,
+} from './PostingCardUserArea'
+import { PostingCardDetailsTopbar } from './PostingCardDetailsTopbar'
+import { usePostingCardEditor } from './usePostingCardEditor'
 
 type PostingCardDetailsProps = {
   card: PostingCard
   onClose: () => void
+  onUpdate: (
+    cardKey: string,
+    request: UpdatePostingCardRequest,
+  ) => Promise<PostingCard>
 }
 
 type QuickFact = {
@@ -311,10 +323,12 @@ function RequirementGroup({
 export function PostingCardDetails({
   card,
   onClose,
+  onUpdate,
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [showSources, setShowSources] = useState(false)
   const [showPostingInfo, setShowPostingInfo] = useState(false)
+  const editor = usePostingCardEditor(card, onUpdate)
   const posting = card.posting
 
   useEffect(() => {
@@ -440,29 +454,37 @@ export function PostingCardDetails({
     posting.application_instructions.application_url
   const applicationUrl = applicationUrlField?.value ?? null
   const safeApplicationUrl = getSafeSourceUrl(applicationUrl)
-
   return (
     <dialog
       ref={dialogRef}
       className="posting-card-details"
       tabIndex={-1}
       onClose={onClose}
+      onCancel={(event) => {
+        if (editor.isEditing) {
+          event.preventDefault()
+          editor.cancel()
+        }
+      }}
     >
-      <div className="posting-card-details__topbar">
-        <h2 className="posting-card-details__title">
-          {card.posting_alias ??
-            posting.identity.position_title?.value ??
-            'Unknown Position'}
-        </h2>
+      <PostingCardDetailsTopbar
+        displayedTitle={editor.displayedTitle}
+        originalTitle={editor.originalTitle}
+        showOriginalTitle={editor.showOriginalTitle}
+        isEditing={editor.isEditing}
+        isSaving={editor.isSaving}
+        hasChanges={editor.hasChanges}
+        onCancel={editor.cancel}
+        onClose={() => dialogRef.current?.close()}
+        onEdit={editor.start}
+        onSave={editor.save}
+      />
 
-        <button
-          className="button--primary posting-card-details__close"
-          type="button"
-          onClick={() => dialogRef.current?.close()}
-        >
-          Close
-        </button>
-      </div>
+      {editor.error !== null && (
+        <p className="posting-card-details__edit-error" role="alert">
+          {editor.error}
+        </p>
+      )}
 
       <header className="posting-card-details__header">
         <div className="posting-card-details__metadata-row">
@@ -925,6 +947,14 @@ export function PostingCardDetails({
             </div>
           </details>
         )}
+
+        <PostingCardUserArea
+          draft={editor.draft}
+          isEditing={editor.isEditing}
+          onAliasChange={editor.setPostingAlias}
+          onTagsChange={editor.setTags}
+          onNotesChange={editor.setUserNotes}
+        />
 
         <p className="posting-card-details__created-at">
           Created at <time dateTime={card.created_at}>{card.created_at}</time>

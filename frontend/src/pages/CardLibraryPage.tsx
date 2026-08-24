@@ -3,13 +3,17 @@ import { CardLibrary } from '../components/CardLibrary'
 import {
   deletePostingCard,
   getPostingCards,
+  updatePostingCard,
 } from '../postings/api/postings'
 import { usePostingImportSession } from '../postings/context/usePostingImportSession'
-import type { PostingCard } from '../postings/types/postingCard'
+import type {
+  PostingCard,
+  UpdatePostingCardRequest,
+} from '../postings/types/postingCard'
 import { PostingCardDetails } from '../components/PostingCardDetails'
 
 export function CardLibraryPage() {
-  const { handleCardDeleted } = usePostingImportSession()
+  const { handleCardDeleted, handleCardUpdated } = usePostingImportSession()
   const [cards, setCards] = useState<PostingCard[]>([])
   const [isLoadingCards, setIsLoadingCards] = useState(false)
   const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
@@ -71,6 +75,22 @@ export function CardLibraryPage() {
     setSelectedCard(null)
   }
 
+  async function handleUpdateCard(
+    cardKey: string,
+    request: UpdatePostingCardRequest,
+  ) {
+    const updatedCard = await updatePostingCard(cardKey, request)
+    setCards((currentCards) =>
+      currentCards.map((card) =>
+        card.card_key === updatedCard.card_key ? updatedCard : card,
+      ),
+    )
+    setSelectedCard(updatedCard)
+    handleCardUpdated(updatedCard)
+
+    return updatedCard
+  }
+
   return (
     <>
       {error && <p role="alert">{error}</p>}
@@ -95,6 +115,7 @@ export function CardLibraryPage() {
         <PostingCardDetails
           card={selectedCard}
           onClose={handleCloseCard}
+          onUpdate={handleUpdateCard}
         />
       )}
     </>

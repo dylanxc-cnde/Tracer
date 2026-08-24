@@ -25,9 +25,11 @@ job URL or pasted text
 - a working React and TypeScript browser flow from pasted text to a saved card;
 - local Card and Import libraries that reload records from SQLite;
 - explicit, confirmed deletion for saved Cards and Import history;
-- a read-only Card Details dialog with quick facts, role content, requirements,
+- a Card Details dialog with quick facts, role content, requirements,
   work conditions, compensation, application and contact details, company
   information, source excerpts, and creation metadata;
+- a global Card edit mode that saves a user-owned alias, string tags, and notes
+  back to SQLite while preserving posting facts and sources;
 - a responsive three-page application shell with class-based component styles;
 - selectable posting candidates with loading, error, and confirmation states;
 - section-level source excerpts and URLs for reviewing extracted facts;
@@ -86,6 +88,7 @@ POST /posting-imports/{import_key}/parse-results
 POST /posting-cards
 GET  /posting-cards
 GET  /posting-cards/{card_key}
+PATCH /posting-cards/{card_key}
 DELETE /posting-cards/{card_key}
 ```
 
@@ -113,18 +116,14 @@ the repository.
 
 ## Next
 
-- add a user-owned area to Card Details for the posting alias, tags, and notes,
-  separate from posting facts and source excerpts;
-- use the existing string tags for the first display and basic editing flow,
-  without blocking on a larger tag catalog;
-- define the smallest Card update contract for alias, tags, and notes while
-  keeping `card_key`, `import_key`, `created_at`, posting facts, and source
-  excerpts unchanged;
-- add the Store update, HTTP route, validation tests, and React save/error state
-  for that user-owned area;
-- after this narrow update loop works, define which structured posting fields
-  are editable and how missing, repeated, and grouped requirement values can be
-  added safely;
+- define which structured posting fields are editable and how missing,
+  repeated, and grouped requirement values can be added safely;
+- add section-specific editors to the existing global edit draft and Save flow
+  instead of turning Card Details into one generic JSON form;
+- show which values the user changed while keeping the original section-level
+  source context available;
+- design a stable tag catalog and selection UI only when filtering and matching
+  need more than the current string tags;
 - show the relationship between an Import and the Cards created from it;
 - keep validation, not-found, concurrent-update, and storage failures visible
   to the frontend rather than hiding them behind a generic success state.

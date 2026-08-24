@@ -21,6 +21,7 @@ export type PostingImportSession = {
   confirmSelection: () => Promise<void>
   deleteCreatedCard: (cardKey: string) => Promise<void>
   handleCardDeleted: (cardKey: string) => void
+  handleCardUpdated: (card: PostingCard) => void
   handleImportDeleted: (importKey: string) => void
 }
 

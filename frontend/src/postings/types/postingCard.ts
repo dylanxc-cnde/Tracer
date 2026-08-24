@@ -18,3 +18,9 @@ export type PostingCard = {
   user_notes: string | null
   tags: string[]
 }
+
+export type UpdatePostingCardRequest = {
+  posting_alias: string | null
+  user_notes: string | null
+  tags: string[]
+}
