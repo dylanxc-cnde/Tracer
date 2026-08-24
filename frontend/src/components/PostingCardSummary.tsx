@@ -4,10 +4,11 @@ type PostingCardSummaryProps = {
     card: PostingCard
     isDeleting: boolean
     onDelete: (cardKey: string) => void
+    onOpen: (card: PostingCard) => void
 }
 
 export function PostingCardSummary(
-    {card, isDeleting, onDelete,} : PostingCardSummaryProps
+    {card, isDeleting, onDelete, onOpen,} : PostingCardSummaryProps
 ) {
     const posting = card.posting
     const title = card.posting_alias ??
@@ -28,18 +29,28 @@ export function PostingCardSummary(
         'Unknown workmode'
 
     return (
-        <article>
-            <h3>{title}</h3>
-            <p>{company}</p>
-            <p>{location}</p>
-            <p>{workMode}</p>
-            <p>Saved at: {card.created_at}</p>
+        <article className="posting-card-summary">
+            <h3 className="posting-card-summary__title">{title}</h3>
+            <p className="posting-card-summary__metadata">{company}</p>
+            <p className="posting-card-summary__metadata">{location}</p>
+            <p className="posting-card-summary__metadata">{workMode}</p>
+            <p className="posting-card-summary__metadata">
+                Saved at: {card.created_at}
+            </p>
             <button
+                className="button--danger posting-card-summary__action"
                 type="button"
                 onClick={() => onDelete(card.card_key)}
                 disabled={isDeleting}
             >
                 {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+            <button
+                className="button--primary posting-card-summary__action"
+                type="button"
+                onClick={() => onOpen(card)}
+            >
+                View details
             </button>
         </article>
     )

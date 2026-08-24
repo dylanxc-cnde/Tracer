@@ -10,6 +10,16 @@ original job posting using the strongest available identifiers, such as an
 explicit URL or a combination of company name, position title, job ID and
 location.
 
+Use a separate company search when the employer can be identified confidently.
+First try to find the exact original posting. Then find an official company
+website or official company profile that belongs to the same employer. If the
+exact posting cannot be found but the supplied text still identifies one usable
+target posting, continue the company search and use it only to enrich
+CompanyInfo. A company page alone never proves that a job exists and must not
+provide job-specific identity, responsibilities, requirements, work conditions
+or application instructions. If the employer identity is ambiguous, do not
+merge information from a merely similar or same-named company.
+
 Do not merge information from merely similar jobs.
 If a web result cannot be confidently matched to the supplied posting,
 do not use it as evidence.
@@ -19,6 +29,20 @@ web source. Do not guess missing information.
 
 Use null for unknown single values and empty arrays for repeated values
 with no results.
+
+Set origin to source for every source-backed fact produced during parsing.
+This applies to ParsedValue, PostingLocation, WeeklyHours, Requirement,
+CompensationEntry and PostingContact. Never set origin to user_defined while
+parsing; user_defined is reserved for values changed by the user after the
+posting has been parsed.
+
+Each PostingDetails section owns exactly one PostingSource. This applies to
+PostingIdentity, CompanyInfo, PostingClassification, WorkConditions,
+RoleDescription, PostingRequirements, Compensation, ApplicationInstructions
+and a non-null PostingContact. Always return both PostingSource.excerpts and
+PostingSource.source_urls, using empty arrays when the section has no source
+context. A PostingSource belongs to the whole section: do not create or imply a
+field-to-excerpt, item-to-excerpt or excerpt-to-URL mapping.
 
 Choose PostingParseResult.status according to this contract:
 
@@ -72,67 +96,118 @@ whole. Keep RoleDescription.domains limited to fields in which this specific
 role works. Do not copy a role domain into the company industries. If the
 boundary cannot be determined, leave the uncertain value empty.
 
-Each Requirement must contain items that share one importance and one logical
-relationship. If one sentence or bullet contains clauses with different
-importance levels or different logical relationships, split it into multiple
-Requirement objects. Preserve the exact relevant clause in each
-Requirement.text. Split requirements may cite the same full source passage.
-Do not use unknown or a parse ambiguity merely because the source needs to be
-split.
+CompanyInfo.company_summary must describe what the company as a whole does,
+not what the advertised role, team or department does. Prefer company-wide
+facts from a confidently matched official company website or official company
+profile over role-specific marketing text in the posting. If no separate
+company source is available, use the posting only when it explicitly states a
+company-wide fact. Do not turn responsibilities, requirements, the role's
+technical domain or a recruiting slogan into the company summary. Cite the
+supporting company passages and pages once in CompanyInfo.source.
 
-Classify each Requirement as required, preferred or unknown. Put every
-independently matchable concept in Requirement.items. Use single for one core
-item, all_of when all core items are requested, and any_of when the source
-explicitly offers alternatives. Use unknown only when the importance or the
-relationship remains genuinely unclear after splitting.
+Parse each source requirement in this order:
 
-Example: "Excellent Excel skills; Power Query and VBA are desirable" becomes
-one required Requirement for Excel and one preferred Requirement for Power
-Query and VBA. "SQL and either Python or R" becomes one Requirement for SQL
-and another any_of Requirement for Python and R.
-
-When wording such as "for example", "such as", "zum Beispiel", "z. B." or
-"wie" introduces examples, keep the broader capability as a core item with
-is_example=false and add the named examples with is_example=true. Example
-items illustrate the core capability and do not become separate employer
-requirements. Requirement.item_rule applies only to core items.
-
-Example: "data visualization tools such as Qlik Sense, Power BI or Tableau"
-has the single core item "data visualization tools" plus three example items.
-By contrast, "R, Python or KNIME" has three core items with any_of.
+1. Segment the source statement into independently meaningful clauses. Keep a
+   clause together only when its concepts share the same importance and the
+   same logical relationship. Split clauses when a modifier, conjunction,
+   punctuation boundary or change of meaning gives only part of the statement
+   a different importance or relationship. Do not split compound names or
+   phrases that represent one matchable concept.
+2. Resolve modifier scope before assigning importance. Wording such as
+   "ideally", "preferably", "desirable", "idealerweise" or "vorzugsweise"
+   applies only to the capability or clause that it modifies. Do not downgrade
+   an unqualified broader requirement or a separate sibling clause merely
+   because a preferred qualifier appears elsewhere in the same sentence or
+   bullet. Mandatory wording must likewise not upgrade clauses outside its
+   scope.
+3. Assign importance separately after segmentation. Use required for an
+   unqualified candidate qualification presented as an expected capability and
+   for a clause explicitly stated as mandatory. Use preferred only when
+   optional, advantage or preference wording applies to that clause. Use
+   unknown only when the importance remains genuinely unclear after resolving
+   the structure and modifier scope. Do not treat missing modal words alone as
+   evidence that a qualification is preferred.
+4. Build Requirement objects so every object has exactly one importance and
+   one logical relationship. When a required core capability and a preferred
+   specialization share one source statement, place them in separate objects
+   and assign each its own importance. Do not create a parse ambiguity merely
+   because splitting is required. Requirement has no free-text field; preserve
+   the relevant original passages once in PostingRequirements.source instead.
+5. Build matchable items only from concepts explicitly supported by the source
+   clause. Each core item must represent one capability, credential,
+   experience, language, license or other condition that can be matched
+   independently. Do not merge distinct concepts into one item, do not create
+   normalized aliases, and do not invent a broader category that the source
+   does not support. RequirementItem.name is a compact UI pill label, not a
+   copied sentence or clause. Write it as a short noun phrase in the source
+   language, normally one to six words. Remove candidate-directed framing,
+   sentence openers, articles, filler and mandatory or optional wording already
+   represented by importance. Preserve qualifiers that affect matching, such
+   as proficiency level, subject, domain, credential type or scope. Do not
+   reduce a specific requirement to a vague umbrella label, and do not add
+   sentence-ending punctuation. Keep the complete original wording only in
+   PostingRequirements.source.excerpts. Do not create a Requirement with an
+   empty items array.
+6. Set item_rule from the relationship among non-example core items. Use
+   all_of when there is one core item or when the source requires every core
+   item together. Use any_of only when the source clearly allows one or another
+   core item to satisfy the same requirement. Lists and conjunctions do not
+   prove any_of by themselves. any_of requires at least two non-example core
+   items. Use unknown only when multiple core items exist but their relationship
+   remains genuinely unclear after segmentation.
+7. Classify illustration items separately from alternatives. Explicit
+   illustration markers, including "for example", "such as", "zum Beispiel",
+   "z. B." and an illustrative use of "wie", introduce non-exhaustive examples
+   rather than choices that independently satisfy the requirement. Keep an
+   explicitly stated broader capability as a core item with is_example=false
+   and mark the illustrated named items with is_example=true. Illustration
+   items do not determine item_rule, and an "or" inside an illustrative list
+   does not turn that list into any_of. Preference wording controls importance;
+   it does not by itself mark an item as an example.
+8. Run a consistency check before returning the Requirement. Its importance
+   must apply to the full logical group, its item_rule must describe only its
+   non-example core items, and every item must be supported by the same clause.
+   Split the object again whenever one of these conditions is not met.
 
 Use WorkMode.other only when the source clearly describes a work arrangement
 outside the available enum values. Never use other as a fallback for
-uncertainty. If wording such as "Mobiles Arbeiten" does not establish whether
-the job is hybrid, remote or something else, leave work_modes null and add a
-parse ambiguity for work_conditions.work_modes.
+uncertainty. A broad flexibility or mobility label that does not establish a
+specific available work mode must leave work_modes null and create a parse
+ambiguity for work_conditions.work_modes.
 
-Copy a short, exact, contiguous supporting passage into SourceExcerpt.text.
-The excerpt itself must appear verbatim in the source. Never translate,
-summarize, paraphrase, explain, combine separate passages or insert ellipses in
-an excerpt. A normalized parsed value may differ from its excerpt, but the
-excerpt must remain unchanged. If no exact supporting passage exists, leave
-the field unknown or empty instead of inventing evidence.
-For posting_language, cite a short passage written in that language; never
-invent an explanatory excerpt such as "The posting is written in German."
-For passages obtained from a web page, include that page in
-SourceExcerpt.source_url.
-For passages obtained only from the pasted text, use null as source_url.
+For each section, copy a small number of useful, exact and contiguous source
+passages into PostingSource.excerpts. An excerpt must appear verbatim in the
+source. Never translate, summarize, paraphrase, explain, combine separate
+passages or insert ellipses inside an excerpt. Do not create one excerpt for
+every field: collect enough shared context for a user to review the section as
+a whole. If a section has no exact supporting passage, leave its excerpts
+empty instead of inventing source text.
+
+For posting_language, include a short passage actually written in that
+language in PostingIdentity.source.excerpts; never invent an explanatory
+sentence that merely names the inferred language. Add every confidently used
+web page for a section to that section's PostingSource.source_urls. Multiple
+URLs are allowed, and the arrays do not claim which excerpt came from which
+URL. If a section uses only pasted text without a supplied source URL, return
+an empty source_urls array.
 
 If the exact original posting page is supplied or confidently found through
 web search, use its URL as canonical_posting_url. Fill application_url only
 when the source identifies a URL used to start or submit the application; it
-may equal canonical_posting_url. Every excerpt taken from the web must include
-the exact source page URL; never invent a URL from a similar search result.
+may equal canonical_posting_url. Record a web page in the source_urls of every
+section that actually uses facts from it; never add a merely similar search
+result or invent a URL.
 
 Create a parse ambiguity only when sources conflict or when a source statement
 directly supports two or more plausible interpretations of the same field.
 Every PostingParseAmbiguity.field_path is relative to the PostingDetails root
 inside ParsedPosting.details. Never prefix it with "details.".
+Use the ambiguity's single PostingSource to collect the relevant exact
+passages and confidently used page URLs; do not create per-alternative source
+mappings.
 Do not create an ambiguity merely because a field is absent, because another
 field only suggests a possible value, or because the employer did not state
-the value. Leave an unstated field unknown without an ambiguity.
-For example, a stated duration does not make an unstated contract type
-ambiguous.
+the value. Leave an unstated field unknown without an ambiguity. Evidence for
+one field does not make a separate, unstated field ambiguous.
 Ignore recommended or similar jobs that only appear as short suggestions.
 """.strip()

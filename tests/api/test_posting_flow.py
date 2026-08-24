@@ -33,16 +33,19 @@ class FakePostingParser:
 
 
 def make_posting_details() -> PostingDetails:
+    empty_source = {"excerpts": [], "source_urls": []}
+
     return PostingDetails(
         identity={
+            "source": empty_source,
             "company_name": {
                 "value": "Velora Grid Systems SE",
-                "sources": [],
+                "origin": "source",
             },
             "department_name": None,
             "position_title": {
                 "value": "Working Student Data Analytics",
-                "sources": [],
+                "origin": "source",
             },
             "external_job_id": None,
             "canonical_posting_url": None,
@@ -51,11 +54,13 @@ def make_posting_details() -> PostingDetails:
             "posting_language": None,
         },
         company={
+            "source": empty_source,
             "industry_tags": [],
             "employee_range": None,
             "company_summary": None,
         },
         classification={
+            "source": empty_source,
             "role_families": None,
             "original_employment_type": None,
             "contract_type": None,
@@ -67,6 +72,7 @@ def make_posting_details() -> PostingDetails:
             "target_semester": None,
         },
         work_conditions={
+            "source": empty_source,
             "locations": [],
             "work_modes": None,
             "weekly_hours": None,
@@ -76,17 +82,20 @@ def make_posting_details() -> PostingDetails:
             "duration": None,
         },
         role_content={
+            "source": empty_source,
             "role_summary": None,
             "responsibilities": [],
             "domains": [],
         },
-        requirements=[],
+        requirements={"source": empty_source, "groups": []},
         compensation={
+            "source": empty_source,
             "entries": [],
             "benefits": [],
             "vacation_days": None,
         },
         application_instructions={
+            "source": empty_source,
             "channels": None,
             "application_url": None,
             "required_email_subject": None,
@@ -196,6 +205,36 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
             for item in cards_response.json()
         ) == (card,)
 
+        update_card_response = client.patch(
+            f"/posting-cards/{card.card_key}",
+            json={
+                "posting_alias": "Velora analytics",
+                "user_notes": "Prepare questions for the team.",
+                "tags": ["priority", "analytics"],
+            },
+        )
+
+        assert update_card_response.status_code == 200
+        updated_card = PostingCard.model_validate(
+            update_card_response.json()
+        )
+        assert updated_card.card_key == card.card_key
+        assert updated_card.import_key == card.import_key
+        assert updated_card.created_at == card.created_at
+        assert updated_card.posting == card.posting
+        assert updated_card.posting_alias == "Velora analytics"
+        assert updated_card.user_notes == "Prepare questions for the team."
+        assert updated_card.tags == ("priority", "analytics")
+
+        stored_card_response = client.get(
+            f"/posting-cards/{card.card_key}"
+        )
+
+        assert stored_card_response.status_code == 200
+        assert PostingCard.model_validate(
+            stored_card_response.json()
+        ) == updated_card
+
     stored_import = PostingImportRequestStore(database_path).get(
         import_request.import_key
     )
@@ -218,6 +257,14 @@ def test_missing_import_and_card_return_not_found(tmp_path):
             f"/posting-imports/{missing_key}"
         )
         card_response = client.get(f"/posting-cards/{missing_key}")
+        update_card_response = client.patch(
+            f"/posting-cards/{missing_key}",
+            json={
+                "posting_alias": None,
+                "user_notes": None,
+                "tags": [],
+            },
+        )
 
     assert import_response.status_code == 404
     assert import_response.json() == {"detail": "Posting import not found"}
@@ -228,6 +275,10 @@ def test_missing_import_and_card_return_not_found(tmp_path):
     }
     assert card_response.status_code == 404
     assert card_response.json() == {"detail": "Posting card not found"}
+    assert update_card_response.status_code == 404
+    assert update_card_response.json() == {
+        "detail": "Posting card not found"
+    }
 
 
 def test_http_deletes_posting_card(tmp_path):

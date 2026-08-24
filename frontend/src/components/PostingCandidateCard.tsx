@@ -36,13 +36,17 @@ export function PostingCandidateCard({
           : 'posting-candidate'
       }
     >
-      <h3>{title}</h3>
+      <h3 className="posting-candidate__title">{title}</h3>
 
-      <p>{company}</p>
-      <p>{location}</p>
-      <p>{workModes}</p>
+      <p className="posting-candidate__metadata">{company}</p>
+      <p className="posting-candidate__metadata">{location}</p>
+      <p className="posting-candidate__metadata">{workModes}</p>
 
-      <button type="button" onClick={onSelect}>
+      <button
+        className="button--primary posting-candidate__select-button"
+        type="button"
+        onClick={onSelect}
+      >
         {isSelected ? 'Selected' : 'Select'}
       </button>
     </article>

@@ -1,0 +1,133 @@
+.posting-card-user-area {
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--color-border-subtle);
+  border-left: 4px solid var(--color-accent-warm);
+  border-radius: 0 16px 16px 0;
+  background-color: var(--color-surface-muted);
+}
+
+.posting-card-user-area > h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.posting-card-user-area__field {
+  display: grid;
+  gap: 8px;
+}
+
+.posting-card-user-area__field > label,
+.posting-card-user-area__label {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.posting-card-user-area__field > p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.posting-card-user-area .is-empty {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+.posting-card-user-area input,
+.posting-card-user-area textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  font: inherit;
+}
+
+.posting-card-user-area input {
+  min-height: 42px;
+  padding: 9px 11px;
+}
+
+.posting-card-user-area textarea {
+  min-height: 120px;
+  padding: 11px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.posting-card-user-area input:focus-visible,
+.posting-card-user-area textarea:focus-visible,
+.posting-card-user-area button:focus-visible {
+  outline: 3px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+.posting-card-user-area__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.posting-card-user-area__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.posting-card-user-area__tag--removable {
+  border-color: var(--color-border-strong);
+  cursor: pointer;
+}
+
+.posting-card-user-area__tag--removable:hover {
+  border-color: var(--color-attention);
+}
+
+.posting-card-user-area__tag-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  max-width: 420px;
+}
+
+.posting-card-user-area__tag-form button {
+  min-width: 68px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-action-primary);
+  border-radius: 10px;
+  color: var(--color-surface);
+  background-color: var(--color-action-primary);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.posting-card-user-area__tag-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .posting-card-user-area {
+    padding: 16px;
+  }
+
+  .posting-card-user-area__tag-form {
+    grid-template-columns: 1fr;
+  }
+}

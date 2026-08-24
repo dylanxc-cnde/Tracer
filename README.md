@@ -6,7 +6,7 @@
 
 Tracer is a small side project for internships, working-student roles, HiWi
 jobs, and thesis openings in Germany. I am building it while learning more
-about Python, LLM APIs, data modeling, and desktop apps.
+about Python, LLM APIs, data modeling, React, TypeScript, and desktop apps.
 
 ```text
 job URL or pasted text
@@ -25,10 +25,17 @@ job URL or pasted text
 - a working React and TypeScript browser flow from pasted text to a saved card;
 - local Card and Import libraries that reload records from SQLite;
 - explicit, confirmed deletion for saved Cards and Import history;
+- a Card Details dialog with quick facts, role content, requirements,
+  work conditions, compensation, application and contact details, company
+  information, source excerpts, and creation metadata;
+- a global Card edit mode that saves a user-owned alias, string tags, and notes
+  back to SQLite while preserving posting facts and sources;
+- a responsive three-page application shell with class-based component styles;
 - selectable posting candidates with loading, error, and confirmation states;
-- source excerpts for extracted facts;
+- section-level source excerpts and URLs for reviewing extracted facts;
 - multiple posting candidates without mixing in recommended jobs;
-- grouped requirements such as `all_of`, `any_of`, and named examples;
+- compact requirement pills with distinct `all_of`, `any_of`, and example
+  presentation;
 - explicit ambiguities when a value cannot be classified safely.
 
 Model output is always a proposal. Missing information stays unknown, and the
@@ -81,6 +88,7 @@ POST /posting-imports/{import_key}/parse-results
 POST /posting-cards
 GET  /posting-cards
 GET  /posting-cards/{card_key}
+PATCH /posting-cards/{card_key}
 DELETE /posting-cards/{card_key}
 ```
 
@@ -108,11 +116,17 @@ the repository.
 
 ## Next
 
-- reopen one saved Card and inspect its full details and evidence;
-- add Card editing later, once the user-owned and evidence-backed fields have
-  clear update rules;
+- define which structured posting fields are editable and how missing,
+  repeated, and grouped requirement values can be added safely;
+- add section-specific editors to the existing global edit draft and Save flow
+  instead of turning Card Details into one generic JSON form;
+- show which values the user changed while keeping the original section-level
+  source context available;
+- design a stable tag catalog and selection UI only when filtering and matching
+  need more than the current string tags;
 - show the relationship between an Import and the Cards created from it;
-- give the Card and Import pages a simple, usable layout.
+- keep validation, not-found, concurrent-update, and storage failures visible
+  to the frontend rather than hiding them behind a generic success state.
 
 Deleting a Card does not delete its original Import. Deleting an Import does
 not delete saved Cards either: a Card keeps its `import_key` as historical

@@ -24,21 +24,28 @@ class _PostingDetailsModel(BaseModel):
     )
 
 
-class SourceExcerpt(_PostingDetailsModel):
-    """One passage copied from the source content."""
+class PostingSource(_PostingDetailsModel):
+    """Source context collected for one part of a posting."""
 
-    text: str
-    source_url: OutputHttpUrl | None
+    excerpts: tuple[str, ...]
+    source_urls: tuple[OutputHttpUrl, ...]
+
+
+class FactOrigin(StrEnum):
+    """Where the current fact value came from."""
+
+    SOURCE = "source"
+    USER_DEFINED = "user_defined"
 
 
 ValueType = TypeVar("ValueType")
 
 
 class ParsedValue(_PostingDetailsModel, Generic[ValueType]):
-    """One parsed value with its original source."""
+    """One current structured value."""
 
+    origin: FactOrigin
     value: ValueType
-    sources: tuple[SourceExcerpt, ...]
 
 
 class RoleFamily(StrEnum):
@@ -103,7 +110,6 @@ class RequirementCategory(StrEnum):
 class RequirementItemRule(StrEnum):
     """How the core items combine within one requirement."""
 
-    SINGLE = "single"
     ALL_OF = "all_of"
     ANY_OF = "any_of"
     UNKNOWN = "unknown"
@@ -140,6 +146,7 @@ class ApplicationChannel(StrEnum):
 class PostingIdentity(_PostingDetailsModel):
     """Fields used to identify one job posting."""
 
+    source: PostingSource
     company_name: ParsedValue[str] | None
     department_name: ParsedValue[str] | None
     position_title: ParsedValue[str] | None
@@ -153,6 +160,7 @@ class PostingIdentity(_PostingDetailsModel):
 class CompanyInfo(_PostingDetailsModel):
     """Company information stated by the posting source."""
 
+    source: PostingSource
     industry_tags: tuple[ParsedValue[str], ...]
     employee_range: ParsedValue[str] | None
     company_summary: ParsedValue[str] | None
@@ -161,6 +169,7 @@ class CompanyInfo(_PostingDetailsModel):
 class PostingClassification(_PostingDetailsModel):
     """Normalized job and student-role classifications."""
 
+    source: PostingSource
     role_families: ParsedValue[tuple[RoleFamily, ...]] | None
     original_employment_type: ParsedValue[str] | None
     contract_type: ParsedValue[ContractType] | None
@@ -175,23 +184,24 @@ class PostingClassification(_PostingDetailsModel):
 class PostingLocation(_PostingDetailsModel):
     """One work location stated by the posting."""
 
+    origin: FactOrigin
     city: str | None
     region: str | None
     country: str | None
-    sources: tuple[SourceExcerpt, ...]
 
 
 class WeeklyHours(_PostingDetailsModel):
     """A normalized weekly-hours range."""
 
+    origin: FactOrigin
     minimum: float | None = Field(..., ge=0)
     maximum: float | None = Field(..., ge=0)
-    sources: tuple[SourceExcerpt, ...]
 
 
 class WorkConditions(_PostingDetailsModel):
     """Location, schedule and timing information for the job."""
 
+    source: PostingSource
     locations: tuple[PostingLocation, ...]
     work_modes: ParsedValue[tuple[WorkMode, ...]] | None
     weekly_hours: WeeklyHours | None
@@ -204,6 +214,7 @@ class WorkConditions(_PostingDetailsModel):
 class RoleDescription(_PostingDetailsModel):
     """Summary, responsibilities and domain information."""
 
+    source: PostingSource
     role_summary: ParsedValue[str] | None
     responsibilities: tuple[ParsedValue[str], ...]
     domains: tuple[ParsedValue[str], ...]
@@ -214,23 +225,29 @@ class RequirementItem(_PostingDetailsModel):
 
     name: str
     category: RequirementCategory
-    normalized_name: str | None
     is_example: bool
 
 
 class Requirement(_PostingDetailsModel):
-    """One source-level requirement and its matchable items."""
+    """One logical group of matchable requirement items."""
 
-    text: str
+    origin: FactOrigin
     importance: RequirementImportance
     item_rule: RequirementItemRule
     items: tuple[RequirementItem, ...]
-    sources: tuple[SourceExcerpt, ...]
+
+
+class PostingRequirements(_PostingDetailsModel):
+    """Requirement groups and shared source context for the section."""
+
+    source: PostingSource
+    groups: tuple[Requirement, ...]
 
 
 class CompensationEntry(_PostingDetailsModel):
     """One salary, bonus or allowance statement."""
 
+    origin: FactOrigin
     compensation_type: CompensationType
     minimum_amount: float | None = Field(..., ge=0)
     maximum_amount: float | None = Field(..., ge=0)
@@ -239,12 +256,12 @@ class CompensationEntry(_PostingDetailsModel):
     pay_basis: PayBasis
     applicable_groups: tuple[str, ...]
     payment_conditions: str | None
-    sources: tuple[SourceExcerpt, ...]
 
 
 class Compensation(_PostingDetailsModel):
     """Compensation statements and benefits from the posting."""
 
+    source: PostingSource
     entries: tuple[CompensationEntry, ...]
     benefits: tuple[ParsedValue[str], ...]
     vacation_days: ParsedValue[int] | None
@@ -253,6 +270,7 @@ class Compensation(_PostingDetailsModel):
 class ApplicationInstructions(_PostingDetailsModel):
     """Instructions stated by the employer for applying."""
 
+    source: PostingSource
     channels: ParsedValue[tuple[ApplicationChannel, ...]] | None
     application_url: ParsedValue[OutputHttpUrl] | None
     required_email_subject: ParsedValue[str] | None
@@ -264,11 +282,12 @@ class ApplicationInstructions(_PostingDetailsModel):
 class PostingContact(_PostingDetailsModel):
     """The contact selected as most relevant to this posting."""
 
+    source: PostingSource
     name: str | None
     role: str | None
     email: str | None
     phone: str | None
-    sources: tuple[SourceExcerpt, ...]
+    origin: FactOrigin
 
 
 class PostingDetails(_PostingDetailsModel):
@@ -279,7 +298,7 @@ class PostingDetails(_PostingDetailsModel):
     classification: PostingClassification
     work_conditions: WorkConditions
     role_content: RoleDescription
-    requirements: tuple[Requirement, ...]
+    requirements: PostingRequirements
     compensation: Compensation
     application_instructions: ApplicationInstructions
     contact: PostingContact | None

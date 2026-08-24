@@ -66,6 +66,18 @@ _DELETE_POSTING_CARD_BY_CARD_KEY = """
     WHERE card_key = ?
 """
 
+_UPDATE_POSTING_CARD_BY_CARD_KEY = """
+    UPDATE posting_cards
+    SET
+        import_key = ?,
+        schema_version = ?,
+        created_at = ?,
+        company_name = ?,
+        position_title = ?,
+        payload_json = ?
+    WHERE card_key = ?
+"""
+
 
 class PostingCardStore:
     """SQLite store for confirmed posting cards.
@@ -233,3 +245,36 @@ class PostingCardStore:
             connection.close()
 
         return deleted
+
+    def update(self, new_card: PostingCard) -> bool:
+        """Replace one stored posting card.
+
+        Args:
+            new_card: The validated posting card to store.
+
+        Returns:
+            True if the card was updated, otherwise False.
+        """
+        company_name = new_card.posting.identity.company_name
+        position_title = new_card.posting.identity.position_title
+        connection = sqlite3.connect(self._database_path)
+
+        try:
+            cursor = connection.execute(
+                _UPDATE_POSTING_CARD_BY_CARD_KEY,
+                (
+                    str(new_card.import_key),
+                    new_card.schema_version,
+                    new_card.created_at.isoformat(),
+                    company_name.value if company_name is not None else None,
+                    position_title.value if position_title is not None else None,
+                    new_card.model_dump_json(),
+                    str(new_card.card_key),
+                ),
+            )
+            connection.commit()
+            updated = cursor.rowcount > 0
+        finally:
+            connection.close()
+
+        return updated

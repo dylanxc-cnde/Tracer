@@ -16,12 +16,15 @@ from tracer.postings.parsers.openai_posting_parser import (
 from tracer.postings.services.create_posting_card import (
     CreatePostingCardService,
 )
+from tracer.postings.services.update_posting_card import (
+    UpdatePostingCardService,
+)
 from tracer.postings.stores.posting_card_store import PostingCardStore
 from tracer.postings.stores.posting_import_request_store import (
     PostingImportRequestStore,
 )
 
-from .models import CreatePostingCardRequest
+from .models import CreatePostingCardRequest, UpdatePostingCardRequest
 
 
 def create_postings_router(
@@ -41,6 +44,9 @@ def create_postings_router(
     posting_import_request_store = PostingImportRequestStore(database_path)
     posting_card_store = PostingCardStore(database_path)
     create_posting_card_service = CreatePostingCardService(
+        posting_card_store
+    )
+    update_posting_card_service = UpdatePostingCardService(
         posting_card_store
     )
     router = APIRouter(tags=["postings"])
@@ -138,6 +144,25 @@ def create_postings_router(
     @router.get("/posting-cards")
     def read_posting_cards() -> tuple[PostingCard, ...]:
         return posting_card_store.get_all()
+
+    @router.patch("/posting-cards/{card_key}")
+    def update_posting_card(
+        card_key: UUID,
+        request: UpdatePostingCardRequest,
+    ) -> PostingCard:
+        card = update_posting_card_service.update_user_content(
+            card_key=card_key,
+            posting_alias=request.posting_alias,
+            user_notes=request.user_notes,
+            tags=request.tags,
+        )
+        if card is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Posting card not found",
+            )
+
+        return card
 
     @router.delete(
         "/posting-cards/{card_key}",

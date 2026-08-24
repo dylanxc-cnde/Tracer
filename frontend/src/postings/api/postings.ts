@@ -1,4 +1,8 @@
-import type { CreatePostingCardRequest, PostingCard } from '../types/postingCard'
+import type {
+  CreatePostingCardRequest,
+  PostingCard,
+  UpdatePostingCardRequest,
+} from '../types/postingCard'
 import type {
   PostingImportRequest,
   PostingImportSource,
@@ -142,4 +146,27 @@ export async function deletePostingCard(
             `Failed to delete posting card (${response.status}): ${errorBody}`,
         )
     }
+}
+
+export async function updatePostingCard(
+  cardKey: string,
+  request: UpdatePostingCardRequest,
+): Promise<PostingCard> {
+  const response = await fetch(`${API_BASE_URL}/posting-cards/${cardKey}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text()
+
+    throw new Error(
+      `Failed to update posting card (${response.status}): ${errorBody}`,
+    )
+  }
+
+  return (await response.json()) as PostingCard
 }
