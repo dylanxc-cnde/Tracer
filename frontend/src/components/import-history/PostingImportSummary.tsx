@@ -1,4 +1,4 @@
-import type { PostingImportRequest } from "../postings/types/postingImport"
+import type { PostingImportRequest } from '../../postings/types/postingImport'
 
 type PostingImportSummaryProps = {
     postingImport: PostingImportRequest

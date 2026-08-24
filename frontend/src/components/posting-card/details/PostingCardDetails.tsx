@@ -3,7 +3,7 @@ import './PostingCardDetails.css'
 import type {
   PostingCard,
   UpdatePostingCardRequest,
-} from '../postings/types/postingCard'
+} from '../../../postings/types/postingCard'
 import type {
   CompensationEntry,
   PostingLocation,
@@ -11,7 +11,7 @@ import type {
   Requirement,
   RequirementImportance,
   WeeklyHours,
-} from '../postings/types/postingDetails'
+} from '../../../postings/types/postingDetails'
 import {
   PostingCardUserArea,
 } from './PostingCardUserArea'
@@ -40,12 +40,12 @@ type RequirementGroupProps = {
 
 type DisplayRequirement = Pick<Requirement, 'item_rule' | 'items'>
 
-type SourceContextProps = {
+type PostingSourceEvidenceProps = {
   source: PostingSource
-  showSources: boolean
+  areSourcesVisible: boolean
 }
 
-function formatWords(value: string) {
+function formatEnumValue(value: string) {
   return value
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -128,8 +128,11 @@ function getSafeSourceUrl(sourceUrl: string | null) {
   return null
 }
 
-function SourceContext({ source, showSources }: SourceContextProps) {
-  if (!showSources) {
+function PostingSourceEvidence({
+  source,
+  areSourcesVisible,
+}: PostingSourceEvidenceProps) {
+  if (!areSourcesVisible) {
     return null
   }
 
@@ -285,7 +288,7 @@ function RequirementGroup({
 
                           <span
                             className="posting-card-details__pill"
-                            title={formatWords(item.category)}
+                            title={formatEnumValue(item.category)}
                           >
                             {item.name}
                           </span>
@@ -299,7 +302,7 @@ function RequirementGroup({
                       {exampleItems.map((item, itemIndex) => (
                         <span
                           className="posting-card-details__pill posting-card-details__pill--example"
-                          title={formatWords(item.category)}
+                          title={formatEnumValue(item.category)}
                           key={`${item.name}-${itemIndex}`}
                         >
                           <span className="posting-card-details__example-prefix">
@@ -326,8 +329,8 @@ export function PostingCardDetails({
   onUpdate,
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const [showSources, setShowSources] = useState(false)
-  const [showPostingInfo, setShowPostingInfo] = useState(false)
+  const [areSourcesVisible, setAreSourcesVisible] = useState(false)
+  const [isPostingInfoOpen, setIsPostingInfoOpen] = useState(false)
   const editor = usePostingCardEditor(card, onUpdate)
   const posting = card.posting
 
@@ -356,7 +359,9 @@ export function PostingCardDetails({
   if (posting.work_conditions.work_modes !== null) {
     quickFacts.push({
       label: 'Work mode',
-      value: posting.work_conditions.work_modes.value.map(formatWords).join(' · '),
+      value: posting.work_conditions.work_modes.value
+        .map(formatEnumValue)
+        .join(' · '),
     })
   }
 
@@ -369,7 +374,7 @@ export function PostingCardDetails({
     quickFacts.push({
       label: 'Job type',
       value: posting.classification.role_families.value
-        .map(formatWords)
+        .map(formatEnumValue)
         .join(' · '),
     })
   }
@@ -463,26 +468,26 @@ export function PostingCardDetails({
       onCancel={(event) => {
         if (editor.isEditing) {
           event.preventDefault()
-          editor.cancel()
+          editor.cancelEditing()
         }
       }}
     >
       <PostingCardDetailsTopbar
         displayedTitle={editor.displayedTitle}
         originalTitle={editor.originalTitle}
-        showOriginalTitle={editor.showOriginalTitle}
+        isOriginalTitleVisible={editor.isOriginalTitleVisible}
         isEditing={editor.isEditing}
-        isSaving={editor.isSaving}
+        isSavingCardChanges={editor.isSavingCardChanges}
         hasChanges={editor.hasChanges}
-        onCancel={editor.cancel}
+        onCancel={editor.cancelEditing}
         onClose={() => dialogRef.current?.close()}
-        onEdit={editor.start}
-        onSave={editor.save}
+        onEdit={editor.startEditing}
+        onSave={editor.saveCardChanges}
       />
 
-      {editor.error !== null && (
+      {editor.saveError !== null && (
         <p className="posting-card-details__edit-error" role="alert">
-          {editor.error}
+          {editor.saveError}
         </p>
       )}
 
@@ -502,9 +507,9 @@ export function PostingCardDetails({
             <button
               className="posting-card-details__posting-info-toggle"
               type="button"
-              aria-expanded={showPostingInfo}
+              aria-expanded={isPostingInfoOpen}
               aria-controls="posting-card-details-posting-info"
-              onClick={() => setShowPostingInfo((current) => !current)}
+              onClick={() => setIsPostingInfoOpen((current) => !current)}
             >
               Posting info
               <span aria-hidden="true">▾</span>
@@ -523,7 +528,7 @@ export function PostingCardDetails({
           </dl>
         )}
 
-        {hasPostingSourceDetails && showPostingInfo && (
+        {hasPostingSourceDetails && isPostingInfoOpen && (
           <div
             id="posting-card-details-posting-info"
             className="posting-card-details__posting-info"
@@ -572,16 +577,16 @@ export function PostingCardDetails({
           </div>
         )}
 
-        <SourceContext
+        <PostingSourceEvidence
           source={posting.identity.source}
-          showSources={showSources}
+          areSourcesVisible={areSourcesVisible}
         />
 
         <label className="posting-card-details__source-toggle">
           <input
             type="checkbox"
-            checked={showSources}
-            onChange={(event) => setShowSources(event.target.checked)}
+            checked={areSourcesVisible}
+            onChange={(event) => setAreSourcesVisible(event.target.checked)}
           />
           <span>Show sources</span>
         </label>
@@ -626,9 +631,9 @@ export function PostingCardDetails({
               </div>
             )}
 
-            <SourceContext
+            <PostingSourceEvidence
               source={posting.role_content.source}
-              showSources={showSources}
+              areSourcesVisible={areSourcesVisible}
             />
           </section>
         )}
@@ -653,9 +658,9 @@ export function PostingCardDetails({
               requirements={unknownRequirements}
             />
 
-            <SourceContext
+            <PostingSourceEvidence
               source={posting.requirements.source}
-              showSources={showSources}
+              areSourcesVisible={areSourcesVisible}
             />
           </section>
         )}
@@ -701,9 +706,9 @@ export function PostingCardDetails({
               )}
             </dl>
 
-            <SourceContext
+            <PostingSourceEvidence
               source={posting.work_conditions.source}
-              showSources={showSources}
+              areSourcesVisible={areSourcesVisible}
             />
           </section>
         )}
@@ -719,7 +724,7 @@ export function PostingCardDetails({
 
                   return (
                     <li key={`${entry.compensation_type}-${index}`}>
-                      <strong>{formatWords(entry.compensation_type)}</strong>
+                      <strong>{formatEnumValue(entry.compensation_type)}</strong>
 
                       {compensation !== null && <span>{compensation}</span>}
 
@@ -755,9 +760,9 @@ export function PostingCardDetails({
               </div>
             )}
 
-            <SourceContext
+            <PostingSourceEvidence
               source={posting.compensation.source}
-              showSources={showSources}
+              areSourcesVisible={areSourcesVisible}
             />
           </section>
         )}
@@ -773,7 +778,7 @@ export function PostingCardDetails({
                     <dt>Channels</dt>
                     <dd>
                       {posting.application_instructions.channels.value
-                        .map(formatWords)
+                        .map(formatEnumValue)
                         .join(' · ')}
                     </dd>
                   </div>
@@ -856,9 +861,9 @@ export function PostingCardDetails({
               </div>
             )}
 
-            <SourceContext
+            <PostingSourceEvidence
               source={posting.application_instructions.source}
-              showSources={showSources}
+              areSourcesVisible={areSourcesVisible}
             />
           </section>
         )}
@@ -898,9 +903,9 @@ export function PostingCardDetails({
                 )}
               </dl>
 
-              <SourceContext
+              <PostingSourceEvidence
                 source={contact.source}
-                showSources={showSources}
+                areSourcesVisible={areSourcesVisible}
               />
             </div>
           </details>
@@ -940,9 +945,9 @@ export function PostingCardDetails({
                 </p>
               )}
 
-              <SourceContext
+              <PostingSourceEvidence
                 source={posting.company.source}
-                showSources={showSources}
+                areSourcesVisible={areSourcesVisible}
               />
             </div>
           </details>
@@ -951,9 +956,9 @@ export function PostingCardDetails({
         <PostingCardUserArea
           draft={editor.draft}
           isEditing={editor.isEditing}
-          onAliasChange={editor.setPostingAlias}
-          onTagsChange={editor.setTags}
-          onNotesChange={editor.setUserNotes}
+          onAliasChange={editor.updateDraftAlias}
+          onTagsChange={editor.updateDraftTags}
+          onNotesChange={editor.updateDraftNotes}
         />
 
         <p className="posting-card-details__created-at">

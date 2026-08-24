@@ -20,12 +20,12 @@ export function PostingImportSessionProvider({
   children,
 }: PostingImportSessionProviderProps) {
   const [postingText, setPostingText] = useState('')
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isAnalyzingPosting, setIsAnalyzingPosting] = useState(false)
   const [parseResult, setParseResult] = useState<PostingParseResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [importSessionError, setImportSessionError] = useState<string | null>(null)
   const [selectedPostingIndex, setSelectedPostingIndex] = useState<number | null>(null)
   const [importKey, setImportKey] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isCreatingCard, setIsCreatingCard] = useState(false)
   const [createdCard, setCreatedCard] = useState<PostingCard | null>(null)
   const [isDeletingCreatedCard, setIsDeletingCreatedCard] = useState(false)
 
@@ -34,10 +34,18 @@ export function PostingImportSessionProvider({
       ? parseResult.postings[selectedPostingIndex] ?? null
       : null
 
-  async function analyze() {
-    setIsAnalyzing(true)
+  function updatePostingText(nextPostingText: string) {
+    setPostingText(nextPostingText)
+  }
+
+  function selectPostingCandidate(postingIndex: number) {
+    setSelectedPostingIndex(postingIndex)
+  }
+
+  async function analyzePostingText() {
+    setIsAnalyzingPosting(true)
     setParseResult(null)
-    setError(null)
+    setImportSessionError(null)
     setSelectedPostingIndex(null)
     setImportKey(null)
     setCreatedCard(null)
@@ -54,22 +62,22 @@ export function PostingImportSessionProvider({
       setParseResult(result)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
-        setError(caughtError.message)
+        setImportSessionError(caughtError.message)
       } else {
-        setError('Something went wrong.')
+        setImportSessionError('Something went wrong.')
       }
     } finally {
-      setIsAnalyzing(false)
+      setIsAnalyzingPosting(false)
     }
   }
 
-  async function confirmSelection() {
+  async function createCardFromSelectedPosting() {
     if (importKey === null || selectedPosting === null) {
       return
     }
 
-    setIsSaving(true)
-    setError(null)
+    setIsCreatingCard(true)
+    setImportSessionError(null)
 
     try {
       const card = await createPostingCard({
@@ -83,12 +91,12 @@ export function PostingImportSessionProvider({
       setCreatedCard(card)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
-        setError(caughtError.message)
+        setImportSessionError(caughtError.message)
       } else {
-        setError('Something went wrong while saving the card.')
+        setImportSessionError('Something went wrong while saving the card.')
       }
     } finally {
-      setIsSaving(false)
+      setIsCreatingCard(false)
     }
   }
 
@@ -102,35 +110,35 @@ export function PostingImportSessionProvider({
     }
 
     setIsDeletingCreatedCard(true)
-    setError(null)
+    setImportSessionError(null)
 
     try {
       await deletePostingCard(cardKey)
       setCreatedCard(null)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
-        setError(caughtError.message)
+        setImportSessionError(caughtError.message)
       } else {
-        setError('Something went wrong while deleting the card.')
+        setImportSessionError('Something went wrong while deleting the card.')
       }
     } finally {
       setIsDeletingCreatedCard(false)
     }
   }
 
-  function handleCardDeleted(cardKey: string) {
+  function syncPostingCardDeletion(cardKey: string) {
     setCreatedCard((currentCard) =>
       currentCard?.card_key === cardKey ? null : currentCard,
     )
   }
 
-  function handleCardUpdated(card: PostingCard) {
+  function syncPostingCardUpdate(card: PostingCard) {
     setCreatedCard((currentCard) =>
       currentCard?.card_key === card.card_key ? card : currentCard,
     )
   }
 
-  function handleImportDeleted(deletedImportKey: string) {
+  function syncPostingImportDeletion(deletedImportKey: string) {
     if (importKey === deletedImportKey) {
       setImportKey(null)
       setParseResult(null)
@@ -140,22 +148,22 @@ export function PostingImportSessionProvider({
 
   const session: PostingImportSession = {
     postingText,
-    isAnalyzing,
+    isAnalyzingPosting,
     parseResult,
-    error,
+    importSessionError,
     selectedPostingIndex,
     selectedPosting,
-    isSaving,
+    isCreatingCard,
     createdCard,
     isDeletingCreatedCard,
-    setPostingText,
-    selectPosting: setSelectedPostingIndex,
-    analyze,
-    confirmSelection,
+    updatePostingText,
+    selectPostingCandidate,
+    analyzePostingText,
+    createCardFromSelectedPosting,
     deleteCreatedCard,
-    handleCardDeleted,
-    handleCardUpdated,
-    handleImportDeleted,
+    syncPostingCardDeletion,
+    syncPostingCardUpdate,
+    syncPostingImportDeletion,
   }
 
   return (

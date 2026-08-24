@@ -1,4 +1,4 @@
-import type { ParsedPosting } from '../postings/types/postingParse'
+import type { ParsedPosting } from '../../postings/types/postingParse'
 
 type PostingCandidateCardProps = {
   posting: ParsedPosting

@@ -34,7 +34,7 @@ export async function createPostingImport(
     return (await response.json()) as PostingImportRequest
 }
 
-export async function getPostingImports(): Promise<PostingImportRequest[]> {
+export async function listPostingImports(): Promise<PostingImportRequest[]> {
     const response = await fetch(`${API_BASE_URL}/posting-imports`,
         {
             method: 'GET',
@@ -114,7 +114,7 @@ export async function createPostingCard(
     return (await response.json()) as PostingCard
 }
 
-export async function getPostingCards(): Promise<PostingCard[]> {
+export async function listPostingCards(): Promise<PostingCard[]> {
     const response = await fetch(`${API_BASE_URL}/posting-cards`,
         {
             method: 'GET',

@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { ImportHistory } from '../components/ImportHistory'
+import { ImportHistory } from '../components/import-history/ImportHistory'
 import {
   deletePostingImport,
-  getPostingImports,
+  listPostingImports,
 } from '../postings/api/postings'
 import { usePostingImportSession } from '../postings/context/usePostingImportSession'
 import type { PostingImportRequest } from '../postings/types/postingImport'
 
 export function ImportHistoryPage() {
-  const { handleImportDeleted } = usePostingImportSession()
+  const { syncPostingImportDeletion } = usePostingImportSession()
   const [postingImports, setPostingImports] = useState<PostingImportRequest[]>([])
   const [isLoadingImports, setIsLoadingImports] = useState(false)
   const [hasLoaded, setHasLoaded] = useState(false)
@@ -20,7 +20,7 @@ export function ImportHistoryPage() {
     setError(null)
 
     try {
-      const storedImports = await getPostingImports()
+      const storedImports = await listPostingImports()
       setPostingImports(storedImports)
       setHasLoaded(true)
     } catch (caughtError: unknown) {
@@ -53,7 +53,7 @@ export function ImportHistoryPage() {
           (postingImport) => postingImport.import_key !== importKey,
         ),
       )
-      handleImportDeleted(importKey)
+      syncPostingImportDeletion(importKey)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
         setError(caughtError.message)

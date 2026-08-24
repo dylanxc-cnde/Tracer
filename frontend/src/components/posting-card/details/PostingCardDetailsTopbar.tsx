@@ -1,9 +1,9 @@
 type PostingCardDetailsTopbarProps = {
   displayedTitle: string
   originalTitle: string | null
-  showOriginalTitle: boolean
+  isOriginalTitleVisible: boolean
   isEditing: boolean
-  isSaving: boolean
+  isSavingCardChanges: boolean
   hasChanges: boolean
   onCancel: () => void
   onClose: () => void
@@ -14,9 +14,9 @@ type PostingCardDetailsTopbarProps = {
 export function PostingCardDetailsTopbar({
   displayedTitle,
   originalTitle,
-  showOriginalTitle,
+  isOriginalTitleVisible,
   isEditing,
-  isSaving,
+  isSavingCardChanges,
   hasChanges,
   onCancel,
   onClose,
@@ -28,7 +28,7 @@ export function PostingCardDetailsTopbar({
       <div className="posting-card-details__title-group">
         <h2 className="posting-card-details__title">{displayedTitle}</h2>
 
-        {showOriginalTitle && (
+        {isOriginalTitleVisible && (
           <details className="posting-card-details__original-title">
             <summary>Original title</summary>
             <p>{originalTitle}</p>
@@ -42,7 +42,7 @@ export function PostingCardDetailsTopbar({
           type="button"
           aria-label={isEditing ? 'Cancel editing' : 'Edit card'}
           title={isEditing ? 'Cancel editing' : 'Edit card'}
-          disabled={isSaving}
+          disabled={isSavingCardChanges}
           onClick={isEditing ? onCancel : onEdit}
         >
           <span aria-hidden="true">{isEditing ? '×' : '✎'}</span>
@@ -52,10 +52,10 @@ export function PostingCardDetailsTopbar({
           <button
             className="button--primary posting-card-details__primary-action"
             type="button"
-            disabled={isSaving || !hasChanges}
+            disabled={isSavingCardChanges || !hasChanges}
             onClick={onSave}
           >
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSavingCardChanges ? 'Saving...' : 'Save'}
           </button>
         ) : (
           <button

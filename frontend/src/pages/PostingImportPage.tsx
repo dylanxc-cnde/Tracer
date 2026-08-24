@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { PostingCandidateCard } from '../components/PostingCandidateCard'
-import { PostingCardDetails } from '../components/PostingCardDetails'
-import { PostingCardSummary } from '../components/PostingCardSummary'
+import { PostingCandidateCard } from '../components/posting-import/PostingCandidateCard'
+import { PostingCardDetails } from '../components/posting-card/details/PostingCardDetails'
+import { PostingCardSummary } from '../components/posting-card/PostingCardSummary'
 import { updatePostingCard } from '../postings/api/postings'
 import { usePostingImportSession } from '../postings/context/usePostingImportSession'
 import type {
@@ -10,37 +10,37 @@ import type {
 } from '../postings/types/postingCard'
 
 export function PostingImportPage() {
-  const [selectedCard, setSelectedCard] = useState<PostingCard | null>(null)
+  const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
   const {
     postingText,
-    isAnalyzing,
+    isAnalyzingPosting,
     parseResult,
-    error,
+    importSessionError,
     selectedPostingIndex,
     selectedPosting,
-    isSaving,
+    isCreatingCard,
     createdCard,
     isDeletingCreatedCard,
-    setPostingText,
-    selectPosting,
-    analyze,
-    confirmSelection,
+    updatePostingText,
+    selectPostingCandidate,
+    analyzePostingText,
+    createCardFromSelectedPosting,
     deleteCreatedCard,
-    handleCardUpdated,
+    syncPostingCardUpdate,
   } = usePostingImportSession()
 
-  function saveButtonLabel() {
+  function getSaveButtonLabel() {
     if (createdCard) return 'Saved'
-    if (isSaving) return 'Saving…'
+    if (isCreatingCard) return 'Saving…'
     return 'Confirm and save'
   }
 
   function handleOpenCard(card: PostingCard) {
-    setSelectedCard(card)
+    setOpenedCard(card)
   }
 
   function handleCloseCard() {
-    setSelectedCard(null)
+    setOpenedCard(null)
   }
 
   async function handleUpdateCard(
@@ -48,21 +48,21 @@ export function PostingImportPage() {
     request: UpdatePostingCardRequest,
   ) {
     const updatedCard = await updatePostingCard(cardKey, request)
-    handleCardUpdated(updatedCard)
-    setSelectedCard(updatedCard)
+    syncPostingCardUpdate(updatedCard)
+    setOpenedCard(updatedCard)
 
     return updatedCard
   }
 
   return (
     <>
-      {error && <p role="alert">{error}</p>}
+      {importSessionError && <p role="alert">{importSessionError}</p>}
 
       <textarea
         className="posting-import-page__input"
         placeholder="Paste a job posting here"
         value={postingText}
-        onChange={(event) => setPostingText(event.target.value)}
+        onChange={(event) => updatePostingText(event.target.value)}
       />
 
       <p className="posting-import-page__character-count">
@@ -72,10 +72,10 @@ export function PostingImportPage() {
       <button
         className="button--primary posting-import-page__analyze-button"
         type="button"
-        onClick={analyze}
-        disabled={isAnalyzing || postingText.trim().length === 0}
+        onClick={analyzePostingText}
+        disabled={isAnalyzingPosting || postingText.trim().length === 0}
       >
-        {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+        {isAnalyzingPosting ? 'Analyzing...' : 'Analyze'}
       </button>
 
       <p className="posting-import-page__parse-status">
@@ -94,21 +94,21 @@ export function PostingImportPage() {
               key={index}
               posting={posting}
               isSelected={selectedPostingIndex === index}
-              onSelect={() => selectPosting(index)}
+              onSelect={() => selectPostingCandidate(index)}
             />
           ))}
 
           <button
             className="button--primary posting-import-page__save-button"
             type="button"
-            onClick={confirmSelection}
+            onClick={createCardFromSelectedPosting}
             disabled={
               selectedPosting === null ||
-              isSaving ||
+              isCreatingCard ||
               createdCard !== null
             }
           >
-            {saveButtonLabel()}
+            {getSaveButtonLabel()}
           </button>
         </section>
       )}
@@ -122,9 +122,9 @@ export function PostingImportPage() {
         />
       )}
 
-      {selectedCard && (
+      {openedCard && (
         <PostingCardDetails
-          card={selectedCard}
+          card={openedCard}
           onClose={handleCloseCard}
           onUpdate={handleUpdateCard}
         />
