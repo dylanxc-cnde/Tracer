@@ -1,5 +1,5 @@
-import type { PostingCard } from "../postings/types/postingCard"
-import { PostingCardSummary } from "./PostingCardSummary"
+import type { PostingCard } from '../../postings/types/postingCard'
+import { PostingCardSummary } from '../posting-card/PostingCardSummary'
 
 type CardLibraryProps = {
   cards: PostingCard[]

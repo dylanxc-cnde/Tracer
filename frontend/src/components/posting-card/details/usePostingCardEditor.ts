@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type {
   PostingCard,
   UpdatePostingCardRequest,
-} from '../postings/types/postingCard'
+} from '../../../postings/types/postingCard'
 
 // Type Definition: CardDraft
 export type PostingCardUserDraft = {

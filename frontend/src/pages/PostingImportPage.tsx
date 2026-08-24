@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { PostingCandidateCard } from '../components/PostingCandidateCard'
-import { PostingCardDetails } from '../components/PostingCardDetails'
-import { PostingCardSummary } from '../components/PostingCardSummary'
+import { PostingCandidateCard } from '../components/posting-import/PostingCandidateCard'
+import { PostingCardDetails } from '../components/posting-card/details/PostingCardDetails'
+import { PostingCardSummary } from '../components/posting-card/PostingCardSummary'
 import { updatePostingCard } from '../postings/api/postings'
 import { usePostingImportSession } from '../postings/context/usePostingImportSession'
 import type {

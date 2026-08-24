@@ -3,7 +3,7 @@ import './PostingCardDetails.css'
 import type {
   PostingCard,
   UpdatePostingCardRequest,
-} from '../postings/types/postingCard'
+} from '../../../postings/types/postingCard'
 import type {
   CompensationEntry,
   PostingLocation,
@@ -11,7 +11,7 @@ import type {
   Requirement,
   RequirementImportance,
   WeeklyHours,
-} from '../postings/types/postingDetails'
+} from '../../../postings/types/postingDetails'
 import {
   PostingCardUserArea,
 } from './PostingCardUserArea'

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ImportHistory } from '../components/ImportHistory'
+import { ImportHistory } from '../components/import-history/ImportHistory'
 import {
   deletePostingImport,
   listPostingImports,

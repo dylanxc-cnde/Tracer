@@ -1,5 +1,5 @@
-import type { PostingImportRequest } from "../postings/types/postingImport"
-import { PostingImportSummary } from "./PostingImportSummary"
+import type { PostingImportRequest } from '../../postings/types/postingImport'
+import { PostingImportSummary } from './PostingImportSummary'
 
 type ImportHistoryProps = {
     postingImports: PostingImportRequest[]

@@ -1,4 +1,4 @@
-import type { PostingCard } from "../postings/types/postingCard"
+import type { PostingCard } from '../../postings/types/postingCard'
 
 type PostingCardSummaryProps = {
     card: PostingCard

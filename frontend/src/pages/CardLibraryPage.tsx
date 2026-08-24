@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CardLibrary } from '../components/CardLibrary'
+import { CardLibrary } from '../components/card-library/CardLibrary'
 import {
   deletePostingCard,
   listPostingCards,
@@ -10,7 +10,7 @@ import type {
   PostingCard,
   UpdatePostingCardRequest,
 } from '../postings/types/postingCard'
-import { PostingCardDetails } from '../components/PostingCardDetails'
+import { PostingCardDetails } from '../components/posting-card/details/PostingCardDetails'
 
 export function CardLibraryPage() {
   const { syncPostingCardDeletion, syncPostingCardUpdate } =
