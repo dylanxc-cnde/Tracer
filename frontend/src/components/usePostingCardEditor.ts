@@ -12,12 +12,12 @@ export type PostingCardUserDraft = {
 }
 
 // Card key and Update Request
-type UpdatePostingCard = (
+type PostingCardUpdateCallback = (
   cardKey: string,
   request: UpdatePostingCardRequest,
 ) => Promise<PostingCard>
 
-function createUserDraft(card: PostingCard): PostingCardUserDraft {
+function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
   return {
     postingAlias: card.posting_alias ?? '',
     tags: [...card.tags],
@@ -33,7 +33,7 @@ function normalizeOptionalText(value: string) {
 }
 
 // Create Update Card Request using one draft.
-function createUpdateRequest(
+function createPostingCardUpdateRequest(
   draft: PostingCardUserDraft,
 ): UpdatePostingCardRequest {
   return {
@@ -46,89 +46,91 @@ function createUpdateRequest(
 // Editor which serves card detail component.
 export function usePostingCardEditor(
   card: PostingCard,
-  updateCard: UpdatePostingCard,
+  updateCard: PostingCardUpdateCallback,
 ) {
   const [isEditing, setIsEditing] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isSavingCardChanges, setIsSavingCardChanges] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [draft, setDraft] = useState<PostingCardUserDraft>(() =>
-    createUserDraft(card),
+    createCardUserDraft(card),
   )
-  const request = createUpdateRequest(draft)
+  const updateRequest = createPostingCardUpdateRequest(draft)
   const originalTitle = card.posting.identity.position_title?.value ?? null
-  const displayedAlias = isEditing ? request.posting_alias : card.posting_alias
+  const displayedAlias = isEditing
+    ? updateRequest.posting_alias
+    : card.posting_alias
   const displayedTitle =
     displayedAlias ?? originalTitle ?? 'Unknown Position'
   const hasChanges =
-    request.posting_alias !== card.posting_alias ||
-    request.user_notes !== card.user_notes ||
-    request.tags.length !== card.tags.length ||
-    request.tags.some((tag, index) => tag !== card.tags[index])
+    updateRequest.posting_alias !== card.posting_alias ||
+    updateRequest.user_notes !== card.user_notes ||
+    updateRequest.tags.length !== card.tags.length ||
+    updateRequest.tags.some((tag, index) => tag !== card.tags[index])
 
-  function start() {
-    setDraft(createUserDraft(card))
-    setError(null)
+  function startEditing() {
+    setDraft(createCardUserDraft(card))
+    setSaveError(null)
     setIsEditing(true)
   }
 
-  function cancel() {
-    if (isSaving) {
+  function cancelEditing() {
+    if (isSavingCardChanges) {
       return
     }
 
-    setDraft(createUserDraft(card))
-    setError(null)
+    setDraft(createCardUserDraft(card))
+    setSaveError(null)
     setIsEditing(false)
   }
 
-  async function save() {
-    setIsSaving(true)
-    setError(null)
+  async function saveCardChanges() {
+    setIsSavingCardChanges(true)
+    setSaveError(null)
 
     try {
-      const updatedCard = await updateCard(card.card_key, request)
-      setDraft(createUserDraft(updatedCard))
+      const updatedCard = await updateCard(card.card_key, updateRequest)
+      setDraft(createCardUserDraft(updatedCard))
       setIsEditing(false)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
-        setError(caughtError.message)
+        setSaveError(caughtError.message)
       } else {
-        setError('Something went wrong while saving the card.')
+        setSaveError('Something went wrong while saving the card.')
       }
     } finally {
-      setIsSaving(false)
+      setIsSavingCardChanges(false)
     }
   }
 
-  function setPostingAlias(postingAlias: string) {
+  function updateDraftAlias(postingAlias: string) {
     setDraft((currentDraft) => ({ ...currentDraft, postingAlias }))
   }
 
-  function setTags(tags: string[]) {
+  function updateDraftTags(tags: string[]) {
     setDraft((currentDraft) => ({ ...currentDraft, tags }))
   }
 
-  function setUserNotes(userNotes: string) {
+  function updateDraftNotes(userNotes: string) {
     setDraft((currentDraft) => ({ ...currentDraft, userNotes }))
   }
 
   return {
     draft,
-    error,
+    saveError,
     displayedTitle,
     hasChanges,
     isEditing,
-    isSaving,
+    isSavingCardChanges,
     originalTitle,
-    showOriginalTitle:
+    isOriginalTitleVisible:
       displayedAlias !== null &&
       originalTitle !== null &&
       displayedAlias !== originalTitle,
-    cancel,
-    save,
-    setPostingAlias,
-    setTags,
-    setUserNotes,
-    start,
+    cancelEditing,
+    saveCardChanges,
+    updateDraftAlias,
+    updateDraftTags,
+    updateDraftNotes,
+    startEditing,
   }
 }

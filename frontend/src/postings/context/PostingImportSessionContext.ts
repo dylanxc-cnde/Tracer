@@ -7,22 +7,22 @@ import type {
 
 export type PostingImportSession = {
   postingText: string
-  isAnalyzing: boolean
+  isAnalyzingPosting: boolean
   parseResult: PostingParseResult | null
-  error: string | null
+  importSessionError: string | null
   selectedPostingIndex: number | null
   selectedPosting: ParsedPosting | null
-  isSaving: boolean
+  isCreatingCard: boolean
   createdCard: PostingCard | null
   isDeletingCreatedCard: boolean
-  setPostingText: (postingText: string) => void
-  selectPosting: (postingIndex: number) => void
-  analyze: () => Promise<void>
-  confirmSelection: () => Promise<void>
+  updatePostingText: (postingText: string) => void
+  selectPostingCandidate: (postingIndex: number) => void
+  analyzePostingText: () => Promise<void>
+  createCardFromSelectedPosting: () => Promise<void>
   deleteCreatedCard: (cardKey: string) => Promise<void>
-  handleCardDeleted: (cardKey: string) => void
-  handleCardUpdated: (card: PostingCard) => void
-  handleImportDeleted: (importKey: string) => void
+  syncPostingCardDeletion: (cardKey: string) => void
+  syncPostingCardUpdate: (card: PostingCard) => void
+  syncPostingImportDeletion: (importKey: string) => void
 }
 
 export const PostingImportSessionContext =

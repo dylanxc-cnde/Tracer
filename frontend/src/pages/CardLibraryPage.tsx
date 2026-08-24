@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CardLibrary } from '../components/CardLibrary'
 import {
   deletePostingCard,
-  getPostingCards,
+  listPostingCards,
   updatePostingCard,
 } from '../postings/api/postings'
 import { usePostingImportSession } from '../postings/context/usePostingImportSession'
@@ -13,19 +13,20 @@ import type {
 import { PostingCardDetails } from '../components/PostingCardDetails'
 
 export function CardLibraryPage() {
-  const { handleCardDeleted, handleCardUpdated } = usePostingImportSession()
+  const { syncPostingCardDeletion, syncPostingCardUpdate } =
+    usePostingImportSession()
   const [cards, setCards] = useState<PostingCard[]>([])
   const [isLoadingCards, setIsLoadingCards] = useState(false)
   const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [selectedCard, setSelectedCard] = useState<PostingCard | null>(null)
+  const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
 
   async function handleLoadCards() {
     setIsLoadingCards(true)
     setError(null)
 
     try {
-      const storedCards = await getPostingCards()
+      const storedCards = await listPostingCards()
       setCards(storedCards)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
@@ -55,7 +56,7 @@ export function CardLibraryPage() {
       setCards((currentCards) =>
         currentCards.filter((card) => card.card_key !== cardKey),
       )
-      handleCardDeleted(cardKey)
+      syncPostingCardDeletion(cardKey)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
         setError(caughtError.message)
@@ -68,11 +69,11 @@ export function CardLibraryPage() {
   }
 
   function handleOpenCard(card: PostingCard) {
-    setSelectedCard(card)
+    setOpenedCard(card)
   }
 
   function handleCloseCard() {
-    setSelectedCard(null)
+    setOpenedCard(null)
   }
 
   async function handleUpdateCard(
@@ -85,8 +86,8 @@ export function CardLibraryPage() {
         card.card_key === updatedCard.card_key ? updatedCard : card,
       ),
     )
-    setSelectedCard(updatedCard)
-    handleCardUpdated(updatedCard)
+    setOpenedCard(updatedCard)
+    syncPostingCardUpdate(updatedCard)
 
     return updatedCard
   }
@@ -111,9 +112,9 @@ export function CardLibraryPage() {
         onOpen={handleOpenCard}
       />
 
-      {selectedCard !== null && (
+      {openedCard !== null && (
         <PostingCardDetails
-          card={selectedCard}
+          card={openedCard}
           onClose={handleCloseCard}
           onUpdate={handleUpdateCard}
         />
