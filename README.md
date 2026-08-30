@@ -16,6 +16,19 @@ job URL or pasted text
 -> confirmed Posting Card in SQLite
 ```
 
+## Current Card UI
+
+The current Card view turns a posting into reviewable sections instead of one
+long block of job-page text. These screenshots use a fictional posting and do
+not contain real employer or applicant data. Select an image to open it at full
+size.
+
+| Overview and quick facts | Structured requirements |
+| --- | --- |
+| [![Posting Card overview](docs/images/card_overview.png)](docs/images/card_overview.png) | [![Posting Card requirements](docs/images/card_requirements.png)](docs/images/card_requirements.png) |
+| Work conditions and compensation | Application details and My Card |
+| [![Posting Card work conditions](docs/images/card_workconditions.png)](docs/images/card_workconditions.png) | [![Posting Card application details](docs/images/card_application.png)](docs/images/card_application.png) |
+
 ## What works now
 
 - Pydantic models for imports, parsed posting details, and confirmed cards;
