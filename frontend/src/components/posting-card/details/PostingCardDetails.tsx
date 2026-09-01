@@ -15,6 +15,10 @@ import type {
 import {
   PostingCardUserArea,
 } from './PostingCardUserArea'
+import {
+  PostingCardQuickFacts,
+  type PostingCardQuickFact,
+} from './PostingCardQuickFacts'
 import { PostingCardDetailsTopbar } from './PostingCardDetailsTopbar'
 import { usePostingCardEditor } from './usePostingCardEditor'
 
@@ -25,11 +29,6 @@ type PostingCardDetailsProps = {
     cardKey: string,
     request: UpdatePostingCardRequest,
   ) => Promise<PostingCard>
-}
-
-type QuickFact = {
-  label: string
-  value: string
 }
 
 type RequirementGroupProps = {
@@ -350,7 +349,7 @@ export function PostingCardDetails({
     posting.work_conditions.weekly_hours === null
       ? null
       : formatWeeklyHours(posting.work_conditions.weekly_hours)
-  const quickFacts: QuickFact[] = []
+  const quickFacts: PostingCardQuickFact[] = []
 
   if (locations.length > 0) {
     quickFacts.push({ label: 'Location', value: locations.join(' · ') })
@@ -517,16 +516,7 @@ export function PostingCardDetails({
           )}
         </div>
 
-        {quickFacts.length > 0 && (
-          <dl className="posting-card-details__quick-facts">
-            {quickFacts.map((fact) => (
-              <div key={fact.label}>
-                <dt>{fact.label}</dt>
-                <dd>{fact.value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
+        <PostingCardQuickFacts facts={quickFacts} />
 
         {hasPostingSourceDetails && isPostingInfoOpen && (
           <div

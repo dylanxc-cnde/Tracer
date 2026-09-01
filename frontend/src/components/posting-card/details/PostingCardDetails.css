@@ -165,37 +165,6 @@
   font-weight: 650;
 }
 
-.posting-card-details__quick-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0 0;
-}
-
-.posting-card-details__quick-facts > div {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 7px 10px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 10px;
-  background-color: var(--color-surface-muted);
-}
-
-.posting-card-details__quick-facts dt {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.posting-card-details__quick-facts dd {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .posting-card-details__source-toggle {
   display: inline-flex;
   align-items: center;
@@ -678,14 +647,6 @@
   .posting-card-details__content {
     gap: 28px;
     padding: 28px 20px 20px;
-  }
-
-  .posting-card-details__quick-facts {
-    display: grid;
-  }
-
-  .posting-card-details__quick-facts > div {
-    justify-content: space-between;
   }
 
   .posting-card-details__metadata-row {
