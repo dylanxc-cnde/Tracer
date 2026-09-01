@@ -22,6 +22,7 @@ import {
 import { PostingCardDetailsTopbar } from './PostingCardDetailsTopbar'
 import { usePostingCardEditor } from './usePostingCardEditor'
 import { PostingCardPostingInfo } from './PostingCardPostingInfo'
+import { PostingCardRoleSummary } from './PostingCardRoleSummary'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -546,11 +547,9 @@ export function PostingCardDetails({
           <section className="posting-card-details__section">
             <h3>What you’ll do</h3>
 
-            {posting.role_content.role_summary !== null && (
-              <div className="posting-card-details__lead">
-                <p>{posting.role_content.role_summary.value}</p>
-              </div>
-            )}
+            <PostingCardRoleSummary
+              summary={posting.role_content.role_summary}
+            />
 
             {posting.role_content.responsibilities.length > 0 && (
               <ul className="posting-card-details__content-list">

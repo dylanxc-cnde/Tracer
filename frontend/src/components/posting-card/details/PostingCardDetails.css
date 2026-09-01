@@ -249,14 +249,6 @@
   line-height: 1.25;
 }
 
-.posting-card-details__lead {
-  padding: 16px;
-  border-left: 4px solid var(--color-information);
-  border-radius: 0 12px 12px 0;
-  background-color: var(--color-surface-muted);
-}
-
-.posting-card-details__lead > p,
 .posting-card-details__requirement > p,
 .posting-card-details__disclosure-content p {
   margin: 0;
