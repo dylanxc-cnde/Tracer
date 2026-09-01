@@ -5,7 +5,6 @@ import type {
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
 import type {
-  CompensationEntry,
   PostingLocation,
   PostingSource,
   Requirement,
@@ -26,6 +25,10 @@ import { PostingCardRoleSummary } from './PostingCardRoleSummary'
 import { PostingCardResponsibilities } from './PostingCardResponsibilities'
 import { PostingCardRoleDomains } from './PostingCardRoleDomains'
 import { PostingCardWorkConditions } from './PostingCardWorkConditions'
+import { PostingCardCompensation } from './PostingCardCompensation'
+import { PostingCardBenefits } from './PostingCardBenefits'
+import { PostingCardVacation } from './PostingCardVacation'
+import { formatCompensationEntry } from './formatCompensationEntry'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -80,38 +83,6 @@ function formatWeeklyHours(weeklyHours: WeeklyHours) {
   }
 
   return null
-}
-
-function formatCompensation(entry: CompensationEntry) {
-  let amount: string
-
-  if (entry.minimum_amount !== null && entry.maximum_amount !== null) {
-    amount =
-      entry.minimum_amount === entry.maximum_amount
-        ? `${entry.minimum_amount}`
-        : `${entry.minimum_amount}–${entry.maximum_amount}`
-  } else if (entry.minimum_amount !== null) {
-    amount = `From ${entry.minimum_amount}`
-  } else if (entry.maximum_amount !== null) {
-    amount = `Up to ${entry.maximum_amount}`
-  } else {
-    return null
-  }
-
-  const salary = [
-    amount,
-    entry.currency,
-    entry.period === null ? null : `per ${entry.period}`,
-    entry.pay_basis === 'unknown' ? null : entry.pay_basis,
-  ]
-    .filter((part): part is string => part !== null)
-    .join(' ')
-
-  if (entry.applicable_groups.length === 0) {
-    return salary
-  }
-
-  return `${entry.applicable_groups.join(', ')}: ${salary}`
 }
 
 function getSafeSourceUrl(sourceUrl: string | null) {
@@ -399,7 +370,7 @@ export function PostingCardDetails({
 
   const salaries = posting.compensation.entries
     .filter((entry) => entry.compensation_type === 'base_salary')
-    .map(formatCompensation)
+    .map(formatCompensationEntry)
     .filter((salary): salary is string => salary !== null)
 
   if (salaries.length > 0) {
@@ -616,48 +587,23 @@ export function PostingCardDetails({
           <section className="posting-card-details__section">
             <h3>Salary and benefits</h3>
 
-            {posting.compensation.entries.length > 0 && (
-              <ul className="posting-card-details__compensation-list">
-                {posting.compensation.entries.map((entry, index) => {
-                  const compensation = formatCompensation(entry)
-
-                  return (
-                    <li key={`${entry.compensation_type}-${index}`}>
-                      <strong>{formatEnumValue(entry.compensation_type)}</strong>
-
-                      {compensation !== null && <span>{compensation}</span>}
-
-                      {entry.payment_conditions !== null && (
-                        <span>{entry.payment_conditions}</span>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
+            <PostingCardCompensation
+              entries={posting.compensation.entries}
+            />
 
             {posting.compensation.benefits.length > 0 && (
               <div className="posting-card-details__benefits">
                 <h4>Benefits</h4>
 
-                <ul className="posting-card-details__content-list">
-                  {posting.compensation.benefits.map((benefit, index) => (
-                    <li key={`${benefit.value}-${index}`}>
-                      <span>{benefit.value}</span>
-                    </li>
-                  ))}
-                </ul>
+                <PostingCardBenefits
+                  benefits={posting.compensation.benefits}
+                />
               </div>
             )}
 
-            {posting.compensation.vacation_days !== null && (
-              <div className="posting-card-details__vacation">
-                <strong>Vacation</strong>
-                <span>
-                  {posting.compensation.vacation_days.value} days per year
-                </span>
-              </div>
-            )}
+            <PostingCardVacation
+              vacationDays={posting.compensation.vacation_days}
+            />
 
             <PostingSourceEvidence
               source={posting.compensation.source}

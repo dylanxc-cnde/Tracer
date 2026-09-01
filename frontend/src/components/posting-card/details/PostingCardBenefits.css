@@ -1,0 +1,11 @@
+.posting-card-benefits {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding-left: 22px;
+}
+
+.posting-card-benefits > li {
+  padding-left: 4px;
+  line-height: 1.55;
+}

@@ -493,24 +493,6 @@
   font-size: 15px;
 }
 
-.posting-card-details__compensation-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.posting-card-details__compensation-list > li {
-  display: grid;
-  gap: 6px;
-  padding: 14px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
-  background-color: var(--color-surface-muted);
-}
-
 .posting-card-details__benefits {
   margin-top: 20px;
 }
@@ -518,16 +500,6 @@
 .posting-card-details__benefits > h4 {
   margin: 0;
   font-size: 15px;
-}
-
-.posting-card-details__vacation {
-  display: grid;
-  gap: 4px;
-  margin-top: 20px;
-  padding: 14px;
-  border-left: 4px solid var(--color-information);
-  border-radius: 0 12px 12px 0;
-  background-color: var(--color-surface-muted);
 }
 
 .posting-card-details__disclosure {
