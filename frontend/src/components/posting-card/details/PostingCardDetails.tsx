@@ -21,6 +21,7 @@ import {
 } from './PostingCardQuickFacts'
 import { PostingCardDetailsTopbar } from './PostingCardDetailsTopbar'
 import { usePostingCardEditor } from './usePostingCardEditor'
+import { PostingCardPostingInfo } from './PostingCardPostingInfo'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -519,52 +520,10 @@ export function PostingCardDetails({
         <PostingCardQuickFacts facts={quickFacts} />
 
         {hasPostingSourceDetails && isPostingInfoOpen && (
-          <div
-            id="posting-card-details-posting-info"
-            className="posting-card-details__posting-info"
-          >
-            <dl className="posting-card-details__posting-info-list">
-              {postingUrl !== null && (
-                <div>
-                  <dt>Posting URL</dt>
-                  <dd>
-                    {safePostingUrl === null ? (
-                      postingUrl
-                    ) : (
-                      <a
-                        href={safePostingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {postingUrl}
-                      </a>
-                    )}
-                  </dd>
-                </div>
-              )}
-
-              {posting.identity.source_platform !== null && (
-                <div>
-                  <dt>Source platform</dt>
-                  <dd>{posting.identity.source_platform.value}</dd>
-                </div>
-              )}
-
-              {posting.identity.published_on !== null && (
-                <div>
-                  <dt>Published</dt>
-                  <dd>{posting.identity.published_on.value}</dd>
-                </div>
-              )}
-
-              {posting.identity.posting_language !== null && (
-                <div>
-                  <dt>Language</dt>
-                  <dd>{posting.identity.posting_language.value}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
+          <PostingCardPostingInfo
+            identity={posting.identity}
+            safePostingUrl={safePostingUrl}
+          />
         )}
 
         <PostingSourceEvidence
