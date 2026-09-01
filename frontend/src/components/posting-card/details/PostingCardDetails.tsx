@@ -14,7 +14,6 @@ import {
 } from './PostingCardUserArea'
 import {
   PostingCardQuickFacts,
-  type PostingCardQuickFact,
 } from './PostingCardQuickFacts'
 import { PostingCardDetailsTopbar } from './PostingCardDetailsTopbar'
 import { usePostingCardEditor } from './usePostingCardEditor'
@@ -27,9 +26,7 @@ import { PostingCardCompensation } from './PostingCardCompensation'
 import { PostingCardBenefits } from './PostingCardBenefits'
 import { PostingCardVacation } from './PostingCardVacation'
 import {
-  formatCompensationEntry,
   formatEnumValue,
-  formatLocation,
   formatWeeklyHours,
 } from './postingCardFormatters'
 
@@ -288,67 +285,10 @@ export function PostingCardDetails({
     }
   }, [])
 
-  const locations = posting.work_conditions.locations
-    .map(formatLocation)
-    .filter((location) => location.length > 0)
   const weeklyHours =
     posting.work_conditions.weekly_hours === null
       ? null
       : formatWeeklyHours(posting.work_conditions.weekly_hours)
-  const quickFacts: PostingCardQuickFact[] = []
-
-  if (locations.length > 0) {
-    quickFacts.push({ label: 'Location', value: locations.join(' · ') })
-  }
-
-  if (posting.work_conditions.work_modes !== null) {
-    quickFacts.push({
-      label: 'Work mode',
-      value: posting.work_conditions.work_modes.value
-        .map(formatEnumValue)
-        .join(' · '),
-    })
-  }
-
-  if (posting.classification.original_employment_type !== null) {
-    quickFacts.push({
-      label: 'Job type',
-      value: posting.classification.original_employment_type.value,
-    })
-  } else if (posting.classification.role_families !== null) {
-    quickFacts.push({
-      label: 'Job type',
-      value: posting.classification.role_families.value
-        .map(formatEnumValue)
-        .join(' · '),
-    })
-  }
-
-  if (weeklyHours !== null) {
-    quickFacts.push({
-      label: 'Weekly hours',
-      value: weeklyHours,
-    })
-  }
-
-  if (posting.application_instructions.application_deadline !== null) {
-    quickFacts.push({
-      label: 'Deadline',
-      value: posting.application_instructions.application_deadline.value,
-    })
-  }
-
-  const salaries = posting.compensation.entries
-    .filter((entry) => entry.compensation_type === 'base_salary')
-    .map(formatCompensationEntry)
-    .filter((salary): salary is string => salary !== null)
-
-  if (salaries.length > 0) {
-    quickFacts.push({
-      label: 'Salary',
-      value: salaries.join(' · '),
-    })
-  }
 
   const requiredRequirements = posting.requirements.groups.filter(
     (requirement) => requirement.importance === 'required',
@@ -462,7 +402,7 @@ export function PostingCardDetails({
           )}
         </div>
 
-        <PostingCardQuickFacts facts={quickFacts} />
+        <PostingCardQuickFacts posting={posting} />
 
         {hasPostingSourceDetails && isPostingInfoOpen && (
           <PostingCardPostingInfo
@@ -543,7 +483,6 @@ export function PostingCardDetails({
 
             <PostingCardWorkConditions
               workConditions={posting.work_conditions}
-              weeklyHours={weeklyHours}
             />
 
             <PostingSourceEvidence

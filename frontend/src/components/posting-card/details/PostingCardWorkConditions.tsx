@@ -1,9 +1,9 @@
 import './PostingCardWorkConditions.css'
 import type { WorkConditions } from '../../../postings/types/postingDetails'
+import { formatWeeklyHours } from './postingCardFormatters'
 
 type PostingCardWorkConditionsProps = {
   workConditions: WorkConditions
-  weeklyHours: string | null
 }
 
 type WorkConditionFieldProps = {
@@ -29,8 +29,12 @@ function WorkConditionField({
 
 export function PostingCardWorkConditions({
   workConditions,
-  weeklyHours,
 }: PostingCardWorkConditionsProps) {
+  const weeklyHours =
+    workConditions.weekly_hours === null
+      ? null
+      : formatWeeklyHours(workConditions.weekly_hours)
+
   return (
     <dl className="posting-card-work-conditions">
       <WorkConditionField
