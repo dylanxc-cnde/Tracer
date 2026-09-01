@@ -23,6 +23,8 @@ import { PostingCardDetailsTopbar } from './PostingCardDetailsTopbar'
 import { usePostingCardEditor } from './usePostingCardEditor'
 import { PostingCardPostingInfo } from './PostingCardPostingInfo'
 import { PostingCardRoleSummary } from './PostingCardRoleSummary'
+import { PostingCardResponsibilities } from './PostingCardResponsibilities'
+import { PostingCardRoleDomains } from './PostingCardRoleDomains'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -551,33 +553,13 @@ export function PostingCardDetails({
               summary={posting.role_content.role_summary}
             />
 
-            {posting.role_content.responsibilities.length > 0 && (
-              <ul className="posting-card-details__content-list">
-                {posting.role_content.responsibilities.map(
-                  (responsibility, index) => (
-                    <li key={`${responsibility.value}-${index}`}>
-                      <span>{responsibility.value}</span>
-                    </li>
-                  ),
-                )}
-              </ul>
-            )}
+            <PostingCardResponsibilities
+              responsibilities={posting.role_content.responsibilities}
+            />
 
-            {posting.role_content.domains.length > 0 && (
-              <div className="posting-card-details__tag-group">
-                <strong>Role domains</strong>
-                <div className="posting-card-details__pill-list">
-                  {posting.role_content.domains.map((domain, index) => (
-                    <span
-                      className="posting-card-details__pill"
-                      key={`${domain.value}-${index}`}
-                    >
-                      {domain.value}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+            <PostingCardRoleDomains
+              domains={posting.role_content.domains}
+            />
 
             <PostingSourceEvidence
               source={posting.role_content.source}
