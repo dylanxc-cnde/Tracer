@@ -25,6 +25,7 @@ import { PostingCardPostingInfo } from './PostingCardPostingInfo'
 import { PostingCardRoleSummary } from './PostingCardRoleSummary'
 import { PostingCardResponsibilities } from './PostingCardResponsibilities'
 import { PostingCardRoleDomains } from './PostingCardRoleDomains'
+import { PostingCardWorkConditions } from './PostingCardWorkConditions'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -599,42 +600,10 @@ export function PostingCardDetails({
           <section className="posting-card-details__section">
             <h3>Work conditions</h3>
 
-            <dl className="posting-card-details__work-conditions">
-              {weeklyHours !== null && (
-                <div>
-                  <dt>Weekly hours</dt>
-                  <dd>{weeklyHours}</dd>
-                </div>
-              )}
-
-              {posting.work_conditions.schedule !== null && (
-                <div>
-                  <dt>Schedule</dt>
-                  <dd>{posting.work_conditions.schedule.value}</dd>
-                </div>
-              )}
-
-              {posting.work_conditions.travel_requirement !== null && (
-                <div>
-                  <dt>Travel requirement</dt>
-                  <dd>{posting.work_conditions.travel_requirement.value}</dd>
-                </div>
-              )}
-
-              {posting.work_conditions.start_on !== null && (
-                <div>
-                  <dt>Start date</dt>
-                  <dd>{posting.work_conditions.start_on.value}</dd>
-                </div>
-              )}
-
-              {posting.work_conditions.duration !== null && (
-                <div>
-                  <dt>Duration</dt>
-                  <dd>{posting.work_conditions.duration.value}</dd>
-                </div>
-              )}
-            </dl>
+            <PostingCardWorkConditions
+              workConditions={posting.work_conditions}
+              weeklyHours={weeklyHours}
+            />
 
             <PostingSourceEvidence
               source={posting.work_conditions.source}

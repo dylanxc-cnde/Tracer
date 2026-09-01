@@ -445,7 +445,6 @@
   font-weight: 650;
 }
 
-.posting-card-details__work-conditions,
 .posting-card-details__application-facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -453,7 +452,6 @@
   margin: 0;
 }
 
-.posting-card-details__work-conditions > div,
 .posting-card-details__application-facts > div {
   padding: 14px;
   border: 1px solid var(--color-border-subtle);
@@ -461,7 +459,6 @@
   background-color: var(--color-surface-muted);
 }
 
-.posting-card-details__work-conditions dt,
 .posting-card-details__application-facts dt,
 .posting-card-details__contact-list dt {
   margin-bottom: 6px;
@@ -472,7 +469,6 @@
   text-transform: uppercase;
 }
 
-.posting-card-details__work-conditions dd,
 .posting-card-details__application-facts dd,
 .posting-card-details__contact-list dd {
   margin: 0;
