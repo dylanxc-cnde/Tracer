@@ -5,11 +5,9 @@ import type {
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
 import type {
-  PostingLocation,
   PostingSource,
   Requirement,
   RequirementImportance,
-  WeeklyHours,
 } from '../../../postings/types/postingDetails'
 import {
   PostingCardUserArea,
@@ -28,7 +26,12 @@ import { PostingCardWorkConditions } from './PostingCardWorkConditions'
 import { PostingCardCompensation } from './PostingCardCompensation'
 import { PostingCardBenefits } from './PostingCardBenefits'
 import { PostingCardVacation } from './PostingCardVacation'
-import { formatCompensationEntry } from './formatCompensationEntry'
+import {
+  formatCompensationEntry,
+  formatEnumValue,
+  formatLocation,
+  formatWeeklyHours,
+} from './postingCardFormatters'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -50,39 +53,6 @@ type DisplayRequirement = Pick<Requirement, 'item_rule' | 'items'>
 type PostingSourceEvidenceProps = {
   source: PostingSource
   areSourcesVisible: boolean
-}
-
-function formatEnumValue(value: string) {
-  return value
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-function formatLocation(location: PostingLocation) {
-  return [location.city, location.region, location.country]
-    .filter((part): part is string => part !== null && part.trim().length > 0)
-    .join(', ')
-}
-
-function formatWeeklyHours(weeklyHours: WeeklyHours) {
-  const { minimum, maximum } = weeklyHours
-
-  if (minimum !== null && maximum !== null) {
-    return minimum === maximum
-      ? `${minimum} hours/week`
-      : `${minimum}–${maximum} hours/week`
-  }
-
-  if (minimum !== null) {
-    return `From ${minimum} hours/week`
-  }
-
-  if (maximum !== null) {
-    return `Up to ${maximum} hours/week`
-  }
-
-  return null
 }
 
 function getSafeSourceUrl(sourceUrl: string | null) {

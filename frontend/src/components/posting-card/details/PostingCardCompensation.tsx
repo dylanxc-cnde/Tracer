@@ -1,6 +1,9 @@
 import './PostingCardCompensation.css'
 import type { CompensationEntry } from '../../../postings/types/postingDetails'
-import { formatCompensationEntry } from './formatCompensationEntry'
+import {
+  formatCompensationEntry,
+  formatEnumValue,
+} from './postingCardFormatters'
 
 type PostingCardCompensationProps = {
   entries: CompensationEntry[]
@@ -10,19 +13,12 @@ type CompensationFieldProps = {
   entry: CompensationEntry
 }
 
-function formatCompensationType(compensationType: string) {
-  return compensationType
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
 function CompensationField({ entry }: CompensationFieldProps) {
   const compensation = formatCompensationEntry(entry)
 
   return (
     <li className="posting-card-compensation__field">
-      <strong>{formatCompensationType(entry.compensation_type)}</strong>
+      <strong>{formatEnumValue(entry.compensation_type)}</strong>
 
       {compensation !== null && <span>{compensation}</span>}
 

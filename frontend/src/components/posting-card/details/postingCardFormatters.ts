@@ -1,4 +1,41 @@
-import type { CompensationEntry } from '../../../postings/types/postingDetails'
+import type {
+  CompensationEntry,
+  PostingLocation,
+  WeeklyHours,
+} from '../../../postings/types/postingDetails'
+
+export function formatEnumValue(value: string) {
+  return value
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+export function formatLocation(location: PostingLocation) {
+  return [location.city, location.region, location.country]
+    .filter((part): part is string => part !== null && part.trim().length > 0)
+    .join(', ')
+}
+
+export function formatWeeklyHours(weeklyHours: WeeklyHours) {
+  const { minimum, maximum } = weeklyHours
+
+  if (minimum !== null && maximum !== null) {
+    return minimum === maximum
+      ? `${minimum} hours/week`
+      : `${minimum}–${maximum} hours/week`
+  }
+
+  if (minimum !== null) {
+    return `From ${minimum} hours/week`
+  }
+
+  if (maximum !== null) {
+    return `Up to ${maximum} hours/week`
+  }
+
+  return null
+}
 
 export function formatCompensationEntry(entry: CompensationEntry) {
   let amount: string
