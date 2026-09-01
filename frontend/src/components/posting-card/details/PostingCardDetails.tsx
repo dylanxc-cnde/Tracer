@@ -25,6 +25,7 @@ import { PostingCardWorkConditions } from './PostingCardWorkConditions'
 import { PostingCardCompensation } from './PostingCardCompensation'
 import { PostingCardBenefits } from './PostingCardBenefits'
 import { PostingCardVacation } from './PostingCardVacation'
+import { PostingCardApplicationFacts } from './PostingCardApplicationFacts'
 import {
   formatEnumValue,
   formatWeeklyHours,
@@ -340,9 +341,8 @@ export function PostingCardDetails({
     posting.identity.posting_language !== null
   const postingUrl = posting.identity.canonical_posting_url?.value ?? null
   const safePostingUrl = getSafeSourceUrl(postingUrl)
-  const applicationUrlField =
-    posting.application_instructions.application_url
-  const applicationUrl = applicationUrlField?.value ?? null
+  const applicationUrl =
+    posting.application_instructions.application_url?.value ?? null
   const safeApplicationUrl = getSafeSourceUrl(applicationUrl)
   return (
     <dialog
@@ -525,64 +525,10 @@ export function PostingCardDetails({
           <section className="posting-card-details__section">
             <h3>Application</h3>
 
-            <dl className="posting-card-details__application-facts">
-              {posting.application_instructions.channels !== null &&
-                posting.application_instructions.channels.value.length > 0 && (
-                  <div>
-                    <dt>Channels</dt>
-                    <dd>
-                      {posting.application_instructions.channels.value
-                        .map(formatEnumValue)
-                        .join(' · ')}
-                    </dd>
-                  </div>
-                )}
-
-              {applicationUrlField !== null && (
-                <div>
-                  <dt>Application URL</dt>
-                  <dd>
-                    {safeApplicationUrl === null ? (
-                      applicationUrlField.value
-                    ) : (
-                      <a
-                        href={safeApplicationUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {applicationUrlField.value}
-                      </a>
-                    )}
-                  </dd>
-                </div>
-              )}
-
-              {posting.application_instructions.application_deadline !==
-                null && (
-                <div>
-                  <dt>Deadline</dt>
-                  <dd>
-                    {
-                      posting.application_instructions.application_deadline
-                        .value
-                    }
-                  </dd>
-                </div>
-              )}
-
-              {posting.application_instructions.required_email_subject !==
-                null && (
-                <div>
-                  <dt>Email subject</dt>
-                  <dd>
-                    {
-                      posting.application_instructions.required_email_subject
-                        .value
-                    }
-                  </dd>
-                </div>
-              )}
-            </dl>
+            <PostingCardApplicationFacts
+              applicationInstructions={posting.application_instructions}
+              safeApplicationUrl={safeApplicationUrl}
+            />
 
             {posting.application_instructions.required_documents.length > 0 && (
               <div className="posting-card-details__application-list">
