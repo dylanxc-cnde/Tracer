@@ -1,0 +1,61 @@
+.posting-card-source-evidence {
+  margin-top: 10px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.posting-card-source-evidence__unavailable {
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.posting-card-source-evidence > summary {
+  width: fit-content;
+  color: var(--color-text-secondary);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.posting-card-source-evidence > summary:focus-visible {
+  outline: 3px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+.posting-card-source-evidence__list {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.posting-card-source-evidence__list li {
+  padding: 10px 12px;
+  border-left: 3px solid var(--color-information);
+  background-color: rgba(185, 207, 213, 0.16);
+}
+
+.posting-card-source-evidence__list blockquote {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.posting-card-source-evidence__url {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-source-evidence__url strong {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.posting-card-source-evidence__url a {
+  color: var(--color-action-primary);
+  font-weight: 650;
+}

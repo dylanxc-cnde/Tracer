@@ -5,7 +5,6 @@ import type {
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
 import type {
-  PostingSource,
   Requirement,
   RequirementImportance,
 } from '../../../postings/types/postingDetails'
@@ -30,7 +29,7 @@ import { PostingCardRequiredDocuments } from './PostingCardRequiredDocuments'
 import { PostingCardSpecialInstructions } from './PostingCardSpecialInstructions'
 import { PostingCardContact } from './PostingCardContact'
 import { PostingCardAboutCompany } from './PostingCardAboutCompany'
-import { getSafeHttpUrl } from './PostingCardSanitizers'
+import { PostingCardSourceEvidence } from './PostingCardSourceEvidence'
 import {
   formatEnumValue,
   formatRequirementItemRuleConnector,
@@ -53,72 +52,6 @@ type RequirementGroupProps = {
 }
 
 type DisplayRequirement = Pick<Requirement, 'item_rule' | 'items'>
-
-type PostingSourceEvidenceProps = {
-  source: PostingSource
-  areSourcesVisible: boolean
-}
-
-function PostingSourceEvidence({
-  source,
-  areSourcesVisible,
-}: PostingSourceEvidenceProps) {
-  if (!areSourcesVisible) {
-    return null
-  }
-
-  if (source.excerpts.length === 0 && source.source_urls.length === 0) {
-    return (
-      <p className="posting-card-details__source-unavailable">
-        No source available
-      </p>
-    )
-  }
-
-  return (
-    <details className="posting-card-details__source">
-      <summary>View source</summary>
-
-      {source.excerpts.length > 0 && (
-        <ul className="posting-card-details__source-list">
-          {source.excerpts.map((excerpt, index) => (
-            <li key={`${excerpt}-${index}`}>
-              <blockquote>{excerpt}</blockquote>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {source.source_urls.length > 0 && (
-        <div className="posting-card-details__source-url">
-          <strong>Source URLs</strong>
-
-          <ul>
-            {source.source_urls.map((sourceUrl, index) => {
-              const safeSourceUrl = getSafeHttpUrl(sourceUrl)
-
-              return (
-                <li key={`${sourceUrl}-${index}`}>
-                  {safeSourceUrl === null ? (
-                    <span>{sourceUrl}</span>
-                  ) : (
-                    <a
-                      href={safeSourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {sourceUrl}
-                    </a>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
-    </details>
-  )
-}
 
 function mergeAllOfRequirements(
   requirements: Requirement[],
@@ -335,7 +268,7 @@ export function PostingCardDetails({
           />
         )}
 
-        <PostingSourceEvidence
+        <PostingCardSourceEvidence
           source={posting.identity.source}
           areSourcesVisible={areSourcesVisible}
         />
@@ -378,7 +311,7 @@ export function PostingCardDetails({
             />
           </div>
 
-          <PostingSourceEvidence
+          <PostingCardSourceEvidence
             source={posting.role_content.source}
             areSourcesVisible={areSourcesVisible}
           />
@@ -404,7 +337,7 @@ export function PostingCardDetails({
               requirements={unknownRequirements}
             />
 
-            <PostingSourceEvidence
+            <PostingCardSourceEvidence
               source={posting.requirements.source}
               areSourcesVisible={areSourcesVisible}
             />
@@ -418,7 +351,7 @@ export function PostingCardDetails({
             workConditions={posting.work_conditions}
           />
 
-          <PostingSourceEvidence
+          <PostingCardSourceEvidence
             source={posting.work_conditions.source}
             areSourcesVisible={areSourcesVisible}
           />
@@ -451,7 +384,7 @@ export function PostingCardDetails({
             />
           </div>
 
-          <PostingSourceEvidence
+          <PostingCardSourceEvidence
             source={posting.compensation.source}
             areSourcesVisible={areSourcesVisible}
           />
@@ -482,7 +415,7 @@ export function PostingCardDetails({
             />
           </div>
 
-          <PostingSourceEvidence
+          <PostingCardSourceEvidence
             source={posting.application_instructions.source}
             areSourcesVisible={areSourcesVisible}
           />
@@ -495,7 +428,7 @@ export function PostingCardDetails({
             <PostingCardContact contact={posting.contact} />
 
             {posting.contact !== null && (
-              <PostingSourceEvidence
+              <PostingCardSourceEvidence
                 source={posting.contact.source}
                 areSourcesVisible={areSourcesVisible}
               />
@@ -509,7 +442,7 @@ export function PostingCardDetails({
           <div className="posting-card-details__disclosure-content">
             <PostingCardAboutCompany company={posting.company} />
 
-            <PostingSourceEvidence
+            <PostingCardSourceEvidence
               source={posting.company.source}
               areSourcesVisible={areSourcesVisible}
             />
