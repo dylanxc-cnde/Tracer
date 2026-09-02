@@ -1,0 +1,40 @@
+.posting-card-quick-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.posting-card-quick-facts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  background-color: var(--color-surface-muted);
+}
+
+.posting-card-quick-facts dt {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.posting-card-quick-facts dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .posting-card-quick-facts {
+    display: grid;
+  }
+
+  .posting-card-quick-facts > div {
+    justify-content: space-between;
+  }
+}

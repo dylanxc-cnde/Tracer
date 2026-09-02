@@ -1,0 +1,27 @@
+.posting-card-work-conditions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.posting-card-work-conditions__field {
+  padding: 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background-color: var(--color-surface-muted);
+}
+
+.posting-card-work-conditions__field dt {
+  margin-bottom: 6px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.posting-card-work-conditions__field dd {
+  margin: 0;
+  line-height: 1.5;
+}

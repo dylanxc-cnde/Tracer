@@ -1,0 +1,11 @@
+.posting-card-special-instructions {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding-left: 22px;
+}
+
+.posting-card-special-instructions > li {
+  padding-left: 4px;
+  line-height: 1.55;
+}

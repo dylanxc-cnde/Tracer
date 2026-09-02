@@ -1,0 +1,11 @@
+.posting-card-role-summary {
+  padding: 16px;
+  border-left: 4px solid var(--color-information);
+  border-radius: 0 12px 12px 0;
+  background-color: var(--color-surface-muted);
+}
+
+.posting-card-role-summary > p {
+  margin: 0;
+  line-height: 1.6;
+}

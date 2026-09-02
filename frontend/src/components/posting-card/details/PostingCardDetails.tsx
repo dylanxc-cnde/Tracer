@@ -5,18 +5,36 @@ import type {
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
 import type {
-  CompensationEntry,
-  PostingLocation,
-  PostingSource,
   Requirement,
   RequirementImportance,
-  WeeklyHours,
 } from '../../../postings/types/postingDetails'
 import {
   PostingCardUserArea,
 } from './PostingCardUserArea'
+import {
+  PostingCardQuickFacts,
+} from './PostingCardQuickFacts'
 import { PostingCardDetailsTopbar } from './PostingCardDetailsTopbar'
 import { usePostingCardEditor } from './usePostingCardEditor'
+import { PostingCardPostingInfo } from './PostingCardPostingInfo'
+import { PostingCardRoleSummary } from './PostingCardRoleSummary'
+import { PostingCardResponsibilities } from './PostingCardResponsibilities'
+import { PostingCardRoleDomains } from './PostingCardRoleDomains'
+import { PostingCardWorkConditions } from './PostingCardWorkConditions'
+import { PostingCardCompensation } from './PostingCardCompensation'
+import { PostingCardBenefits } from './PostingCardBenefits'
+import { PostingCardVacation } from './PostingCardVacation'
+import { PostingCardApplicationFacts } from './PostingCardApplicationFacts'
+import { PostingCardRequiredDocuments } from './PostingCardRequiredDocuments'
+import { PostingCardSpecialInstructions } from './PostingCardSpecialInstructions'
+import { PostingCardContact } from './PostingCardContact'
+import { PostingCardAboutCompany } from './PostingCardAboutCompany'
+import { PostingCardSourceEvidence } from './PostingCardSourceEvidence'
+import {
+  formatEnumValue,
+  formatRequirementItemRuleConnector,
+  formatRequirementItemRuleLabel,
+} from './PostingCardFormatters'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -27,11 +45,6 @@ type PostingCardDetailsProps = {
   ) => Promise<PostingCard>
 }
 
-type QuickFact = {
-  label: string
-  value: string
-}
-
 type RequirementGroupProps = {
   title: string
   importance: RequirementImportance
@@ -39,179 +52,6 @@ type RequirementGroupProps = {
 }
 
 type DisplayRequirement = Pick<Requirement, 'item_rule' | 'items'>
-
-type PostingSourceEvidenceProps = {
-  source: PostingSource
-  areSourcesVisible: boolean
-}
-
-function formatEnumValue(value: string) {
-  return value
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-function formatLocation(location: PostingLocation) {
-  return [location.city, location.region, location.country]
-    .filter((part): part is string => part !== null && part.trim().length > 0)
-    .join(', ')
-}
-
-function formatWeeklyHours(weeklyHours: WeeklyHours) {
-  const { minimum, maximum } = weeklyHours
-
-  if (minimum !== null && maximum !== null) {
-    return minimum === maximum
-      ? `${minimum} hours/week`
-      : `${minimum}–${maximum} hours/week`
-  }
-
-  if (minimum !== null) {
-    return `From ${minimum} hours/week`
-  }
-
-  if (maximum !== null) {
-    return `Up to ${maximum} hours/week`
-  }
-
-  return null
-}
-
-function formatCompensation(entry: CompensationEntry) {
-  let amount: string
-
-  if (entry.minimum_amount !== null && entry.maximum_amount !== null) {
-    amount =
-      entry.minimum_amount === entry.maximum_amount
-        ? `${entry.minimum_amount}`
-        : `${entry.minimum_amount}–${entry.maximum_amount}`
-  } else if (entry.minimum_amount !== null) {
-    amount = `From ${entry.minimum_amount}`
-  } else if (entry.maximum_amount !== null) {
-    amount = `Up to ${entry.maximum_amount}`
-  } else {
-    return null
-  }
-
-  const salary = [
-    amount,
-    entry.currency,
-    entry.period === null ? null : `per ${entry.period}`,
-    entry.pay_basis === 'unknown' ? null : entry.pay_basis,
-  ]
-    .filter((part): part is string => part !== null)
-    .join(' ')
-
-  if (entry.applicable_groups.length === 0) {
-    return salary
-  }
-
-  return `${entry.applicable_groups.join(', ')}: ${salary}`
-}
-
-function getSafeSourceUrl(sourceUrl: string | null) {
-  if (sourceUrl === null) {
-    return null
-  }
-
-  try {
-    const parsedUrl = new URL(sourceUrl)
-
-    if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
-      return parsedUrl.href
-    }
-  } catch {
-    return null
-  }
-
-  return null
-}
-
-function PostingSourceEvidence({
-  source,
-  areSourcesVisible,
-}: PostingSourceEvidenceProps) {
-  if (!areSourcesVisible) {
-    return null
-  }
-
-  if (source.excerpts.length === 0 && source.source_urls.length === 0) {
-    return (
-      <p className="posting-card-details__source-unavailable">
-        No source available
-      </p>
-    )
-  }
-
-  return (
-    <details className="posting-card-details__source">
-      <summary>View source</summary>
-
-      {source.excerpts.length > 0 && (
-        <ul className="posting-card-details__source-list">
-          {source.excerpts.map((excerpt, index) => (
-            <li key={`${excerpt}-${index}`}>
-              <blockquote>{excerpt}</blockquote>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {source.source_urls.length > 0 && (
-        <div className="posting-card-details__source-url">
-          <strong>Source URLs</strong>
-
-          <ul>
-            {source.source_urls.map((sourceUrl, index) => {
-              const safeSourceUrl = getSafeSourceUrl(sourceUrl)
-
-              return (
-                <li key={`${sourceUrl}-${index}`}>
-                  {safeSourceUrl === null ? (
-                    <span>{sourceUrl}</span>
-                  ) : (
-                    <a
-                      href={safeSourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {sourceUrl}
-                    </a>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
-    </details>
-  )
-}
-
-function getItemRuleLabel(itemRule: Requirement['item_rule']) {
-  if (itemRule === 'any_of') {
-    return 'Choose any one'
-  }
-
-  if (itemRule === 'all_of') {
-    return 'All required together'
-  }
-
-  return 'Combination unclear'
-}
-
-function getItemConnector(itemRule: Requirement['item_rule']) {
-  if (itemRule === 'any_of') {
-    return 'OR'
-  }
-
-  if (itemRule === 'all_of') {
-    return 'AND'
-  }
-
-  return null
-}
 
 function mergeAllOfRequirements(
   requirements: Requirement[],
@@ -251,8 +91,12 @@ function RequirementGroup({
 
       <div className="posting-card-details__requirement-list">
         {displayRequirements.map((requirement, requirementIndex) => {
-          const itemRuleLabel = getItemRuleLabel(requirement.item_rule)
-          const itemConnector = getItemConnector(requirement.item_rule)
+          const itemRuleLabel = formatRequirementItemRuleLabel(
+            requirement.item_rule,
+          )
+          const itemConnector = formatRequirementItemRuleConnector(
+            requirement.item_rule,
+          )
           const coreItems = requirement.items.filter(
             (item) => !item.is_example,
           )
@@ -343,68 +187,6 @@ export function PostingCardDetails({
     }
   }, [])
 
-  const locations = posting.work_conditions.locations
-    .map(formatLocation)
-    .filter((location) => location.length > 0)
-  const weeklyHours =
-    posting.work_conditions.weekly_hours === null
-      ? null
-      : formatWeeklyHours(posting.work_conditions.weekly_hours)
-  const quickFacts: QuickFact[] = []
-
-  if (locations.length > 0) {
-    quickFacts.push({ label: 'Location', value: locations.join(' · ') })
-  }
-
-  if (posting.work_conditions.work_modes !== null) {
-    quickFacts.push({
-      label: 'Work mode',
-      value: posting.work_conditions.work_modes.value
-        .map(formatEnumValue)
-        .join(' · '),
-    })
-  }
-
-  if (posting.classification.original_employment_type !== null) {
-    quickFacts.push({
-      label: 'Job type',
-      value: posting.classification.original_employment_type.value,
-    })
-  } else if (posting.classification.role_families !== null) {
-    quickFacts.push({
-      label: 'Job type',
-      value: posting.classification.role_families.value
-        .map(formatEnumValue)
-        .join(' · '),
-    })
-  }
-
-  if (weeklyHours !== null) {
-    quickFacts.push({
-      label: 'Weekly hours',
-      value: weeklyHours,
-    })
-  }
-
-  if (posting.application_instructions.application_deadline !== null) {
-    quickFacts.push({
-      label: 'Deadline',
-      value: posting.application_instructions.application_deadline.value,
-    })
-  }
-
-  const salaries = posting.compensation.entries
-    .filter((entry) => entry.compensation_type === 'base_salary')
-    .map(formatCompensation)
-    .filter((salary): salary is string => salary !== null)
-
-  if (salaries.length > 0) {
-    quickFacts.push({
-      label: 'Salary',
-      value: salaries.join(' · '),
-    })
-  }
-
   const requiredRequirements = posting.requirements.groups.filter(
     (requirement) => requirement.importance === 'required',
   )
@@ -415,50 +197,11 @@ export function PostingCardDetails({
     (requirement) => requirement.importance === 'unknown',
   )
 
-  const hasRoleContent =
-    posting.role_content.role_summary !== null ||
-    posting.role_content.responsibilities.length > 0 ||
-    posting.role_content.domains.length > 0
-  const hasWorkConditions =
-    weeklyHours !== null ||
-    posting.work_conditions.schedule !== null ||
-    posting.work_conditions.travel_requirement !== null ||
-    posting.work_conditions.start_on !== null ||
-    posting.work_conditions.duration !== null
-  const hasCompensation =
-    posting.compensation.entries.length > 0 ||
-    posting.compensation.benefits.length > 0 ||
-    posting.compensation.vacation_days !== null
-  const hasApplicationDetails =
-    (posting.application_instructions.channels !== null &&
-      posting.application_instructions.channels.value.length > 0) ||
-    posting.application_instructions.application_url !== null ||
-    posting.application_instructions.required_email_subject !== null ||
-    posting.application_instructions.required_documents.length > 0 ||
-    posting.application_instructions.special_instructions.length > 0 ||
-    posting.application_instructions.application_deadline !== null
-  const contact = posting.contact
-  const hasContactDetails =
-    contact !== null &&
-    (contact.name !== null ||
-      contact.role !== null ||
-      contact.email !== null ||
-      contact.phone !== null)
-  const hasCompanyDetails =
-    posting.company.company_summary !== null ||
-    posting.company.industry_tags.length > 0 ||
-    posting.company.employee_range !== null
   const hasPostingSourceDetails =
     posting.identity.canonical_posting_url !== null ||
     posting.identity.source_platform !== null ||
     posting.identity.published_on !== null ||
     posting.identity.posting_language !== null
-  const postingUrl = posting.identity.canonical_posting_url?.value ?? null
-  const safePostingUrl = getSafeSourceUrl(postingUrl)
-  const applicationUrlField =
-    posting.application_instructions.application_url
-  const applicationUrl = applicationUrlField?.value ?? null
-  const safeApplicationUrl = getSafeSourceUrl(applicationUrl)
   return (
     <dialog
       ref={dialogRef}
@@ -517,67 +260,15 @@ export function PostingCardDetails({
           )}
         </div>
 
-        {quickFacts.length > 0 && (
-          <dl className="posting-card-details__quick-facts">
-            {quickFacts.map((fact) => (
-              <div key={fact.label}>
-                <dt>{fact.label}</dt>
-                <dd>{fact.value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
+        <PostingCardQuickFacts posting={posting} />
 
         {hasPostingSourceDetails && isPostingInfoOpen && (
-          <div
-            id="posting-card-details-posting-info"
-            className="posting-card-details__posting-info"
-          >
-            <dl className="posting-card-details__posting-info-list">
-              {postingUrl !== null && (
-                <div>
-                  <dt>Posting URL</dt>
-                  <dd>
-                    {safePostingUrl === null ? (
-                      postingUrl
-                    ) : (
-                      <a
-                        href={safePostingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {postingUrl}
-                      </a>
-                    )}
-                  </dd>
-                </div>
-              )}
-
-              {posting.identity.source_platform !== null && (
-                <div>
-                  <dt>Source platform</dt>
-                  <dd>{posting.identity.source_platform.value}</dd>
-                </div>
-              )}
-
-              {posting.identity.published_on !== null && (
-                <div>
-                  <dt>Published</dt>
-                  <dd>{posting.identity.published_on.value}</dd>
-                </div>
-              )}
-
-              {posting.identity.posting_language !== null && (
-                <div>
-                  <dt>Language</dt>
-                  <dd>{posting.identity.posting_language.value}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
+          <PostingCardPostingInfo
+            identity={posting.identity}
+          />
         )}
 
-        <PostingSourceEvidence
+        <PostingCardSourceEvidence
           source={posting.identity.source}
           areSourcesVisible={areSourcesVisible}
         />
@@ -593,50 +284,38 @@ export function PostingCardDetails({
       </header>
 
       <div className="posting-card-details__content">
-        {hasRoleContent && (
-          <section className="posting-card-details__section">
-            <h3>What you’ll do</h3>
+        <section className="posting-card-details__section">
+          <h3>What you’ll do</h3>
 
-            {posting.role_content.role_summary !== null && (
-              <div className="posting-card-details__lead">
-                <p>{posting.role_content.role_summary.value}</p>
-              </div>
-            )}
+          <div className="posting-card-details__field">
+            <h4>Role summary</h4>
 
-            {posting.role_content.responsibilities.length > 0 && (
-              <ul className="posting-card-details__content-list">
-                {posting.role_content.responsibilities.map(
-                  (responsibility, index) => (
-                    <li key={`${responsibility.value}-${index}`}>
-                      <span>{responsibility.value}</span>
-                    </li>
-                  ),
-                )}
-              </ul>
-            )}
-
-            {posting.role_content.domains.length > 0 && (
-              <div className="posting-card-details__tag-group">
-                <strong>Role domains</strong>
-                <div className="posting-card-details__pill-list">
-                  {posting.role_content.domains.map((domain, index) => (
-                    <span
-                      className="posting-card-details__pill"
-                      key={`${domain.value}-${index}`}
-                    >
-                      {domain.value}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <PostingSourceEvidence
-              source={posting.role_content.source}
-              areSourcesVisible={areSourcesVisible}
+            <PostingCardRoleSummary
+              summary={posting.role_content.role_summary}
             />
-          </section>
-        )}
+          </div>
+
+          <div className="posting-card-details__field">
+            <h4>Responsibilities</h4>
+
+            <PostingCardResponsibilities
+              responsibilities={posting.role_content.responsibilities}
+            />
+          </div>
+
+          <div className="posting-card-details__field">
+            <h4>Role domains</h4>
+
+            <PostingCardRoleDomains
+              domains={posting.role_content.domains}
+            />
+          </div>
+
+          <PostingCardSourceEvidence
+            source={posting.role_content.source}
+            areSourcesVisible={areSourcesVisible}
+          />
+        </section>
 
         {posting.requirements.groups.length > 0 && (
           <section className="posting-card-details__section">
@@ -658,300 +337,117 @@ export function PostingCardDetails({
               requirements={unknownRequirements}
             />
 
-            <PostingSourceEvidence
+            <PostingCardSourceEvidence
               source={posting.requirements.source}
               areSourcesVisible={areSourcesVisible}
             />
           </section>
         )}
 
-        {hasWorkConditions && (
-          <section className="posting-card-details__section">
-            <h3>Work conditions</h3>
+        <section className="posting-card-details__section">
+          <h3>Work conditions</h3>
 
-            <dl className="posting-card-details__work-conditions">
-              {weeklyHours !== null && (
-                <div>
-                  <dt>Weekly hours</dt>
-                  <dd>{weeklyHours}</dd>
-                </div>
-              )}
+          <PostingCardWorkConditions
+            workConditions={posting.work_conditions}
+          />
 
-              {posting.work_conditions.schedule !== null && (
-                <div>
-                  <dt>Schedule</dt>
-                  <dd>{posting.work_conditions.schedule.value}</dd>
-                </div>
-              )}
+          <PostingCardSourceEvidence
+            source={posting.work_conditions.source}
+            areSourcesVisible={areSourcesVisible}
+          />
+        </section>
 
-              {posting.work_conditions.travel_requirement !== null && (
-                <div>
-                  <dt>Travel requirement</dt>
-                  <dd>{posting.work_conditions.travel_requirement.value}</dd>
-                </div>
-              )}
+        <section className="posting-card-details__section">
+          <h3>Salary and benefits</h3>
 
-              {posting.work_conditions.start_on !== null && (
-                <div>
-                  <dt>Start date</dt>
-                  <dd>{posting.work_conditions.start_on.value}</dd>
-                </div>
-              )}
+          <div className="posting-card-details__field">
+            <h4>Salary</h4>
 
-              {posting.work_conditions.duration !== null && (
-                <div>
-                  <dt>Duration</dt>
-                  <dd>{posting.work_conditions.duration.value}</dd>
-                </div>
-              )}
-            </dl>
-
-            <PostingSourceEvidence
-              source={posting.work_conditions.source}
-              areSourcesVisible={areSourcesVisible}
+            <PostingCardCompensation
+              entries={posting.compensation.entries}
             />
-          </section>
-        )}
+          </div>
 
-        {hasCompensation && (
-          <section className="posting-card-details__section">
-            <h3>Salary and benefits</h3>
+          <div className="posting-card-details__benefits">
+            <h4>Benefits</h4>
 
-            {posting.compensation.entries.length > 0 && (
-              <ul className="posting-card-details__compensation-list">
-                {posting.compensation.entries.map((entry, index) => {
-                  const compensation = formatCompensation(entry)
-
-                  return (
-                    <li key={`${entry.compensation_type}-${index}`}>
-                      <strong>{formatEnumValue(entry.compensation_type)}</strong>
-
-                      {compensation !== null && <span>{compensation}</span>}
-
-                      {entry.payment_conditions !== null && (
-                        <span>{entry.payment_conditions}</span>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-
-            {posting.compensation.benefits.length > 0 && (
-              <div className="posting-card-details__benefits">
-                <h4>Benefits</h4>
-
-                <ul className="posting-card-details__content-list">
-                  {posting.compensation.benefits.map((benefit, index) => (
-                    <li key={`${benefit.value}-${index}`}>
-                      <span>{benefit.value}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {posting.compensation.vacation_days !== null && (
-              <div className="posting-card-details__vacation">
-                <strong>Vacation</strong>
-                <span>
-                  {posting.compensation.vacation_days.value} days per year
-                </span>
-              </div>
-            )}
-
-            <PostingSourceEvidence
-              source={posting.compensation.source}
-              areSourcesVisible={areSourcesVisible}
+            <PostingCardBenefits
+              benefits={posting.compensation.benefits}
             />
-          </section>
-        )}
+          </div>
 
-        {hasApplicationDetails && (
-          <section className="posting-card-details__section">
-            <h3>Application</h3>
+          <div className="posting-card-details__field">
+            <h4>Vacation</h4>
 
-            <dl className="posting-card-details__application-facts">
-              {posting.application_instructions.channels !== null &&
-                posting.application_instructions.channels.value.length > 0 && (
-                  <div>
-                    <dt>Channels</dt>
-                    <dd>
-                      {posting.application_instructions.channels.value
-                        .map(formatEnumValue)
-                        .join(' · ')}
-                    </dd>
-                  </div>
-                )}
-
-              {applicationUrlField !== null && (
-                <div>
-                  <dt>Application URL</dt>
-                  <dd>
-                    {safeApplicationUrl === null ? (
-                      applicationUrlField.value
-                    ) : (
-                      <a
-                        href={safeApplicationUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {applicationUrlField.value}
-                      </a>
-                    )}
-                  </dd>
-                </div>
-              )}
-
-              {posting.application_instructions.application_deadline !==
-                null && (
-                <div>
-                  <dt>Deadline</dt>
-                  <dd>
-                    {
-                      posting.application_instructions.application_deadline
-                        .value
-                    }
-                  </dd>
-                </div>
-              )}
-
-              {posting.application_instructions.required_email_subject !==
-                null && (
-                <div>
-                  <dt>Email subject</dt>
-                  <dd>
-                    {
-                      posting.application_instructions.required_email_subject
-                        .value
-                    }
-                  </dd>
-                </div>
-              )}
-            </dl>
-
-            {posting.application_instructions.required_documents.length > 0 && (
-              <div className="posting-card-details__application-list">
-                <h4>Required documents</h4>
-                <ul className="posting-card-details__content-list">
-                  {posting.application_instructions.required_documents.map(
-                    (document, index) => (
-                      <li key={`${document.value}-${index}`}>
-                        <span>{document.value}</span>
-                      </li>
-                    ),
-                  )}
-                </ul>
-              </div>
-            )}
-
-            {posting.application_instructions.special_instructions.length >
-              0 && (
-              <div className="posting-card-details__application-list">
-                <h4>Special instructions</h4>
-                <ul className="posting-card-details__content-list">
-                  {posting.application_instructions.special_instructions.map(
-                    (instruction, index) => (
-                      <li key={`${instruction.value}-${index}`}>
-                        <span>{instruction.value}</span>
-                      </li>
-                    ),
-                  )}
-                </ul>
-              </div>
-            )}
-
-            <PostingSourceEvidence
-              source={posting.application_instructions.source}
-              areSourcesVisible={areSourcesVisible}
+            <PostingCardVacation
+              vacationDays={posting.compensation.vacation_days}
             />
-          </section>
-        )}
+          </div>
 
-        {hasContactDetails && contact !== null && (
-          <details className="posting-card-details__disclosure">
-            <summary>Contact</summary>
+          <PostingCardSourceEvidence
+            source={posting.compensation.source}
+            areSourcesVisible={areSourcesVisible}
+          />
+        </section>
 
-            <div className="posting-card-details__disclosure-content">
-              <dl className="posting-card-details__contact-list">
-                {contact.name !== null && (
-                  <div>
-                    <dt>Name</dt>
-                    <dd>{contact.name}</dd>
-                  </div>
-                )}
+        <section className="posting-card-details__section">
+          <h3>Application</h3>
 
-                {contact.role !== null && (
-                  <div>
-                    <dt>Role</dt>
-                    <dd>{contact.role}</dd>
-                  </div>
-                )}
+          <PostingCardApplicationFacts
+            applicationInstructions={posting.application_instructions}
+          />
 
-                {contact.email !== null && (
-                  <div>
-                    <dt>Email</dt>
-                    <dd>{contact.email}</dd>
-                  </div>
-                )}
+          <div className="posting-card-details__application-field">
+            <h4>Required documents</h4>
+            <PostingCardRequiredDocuments
+              requiredDocuments={
+                posting.application_instructions.required_documents
+              }
+            />
+          </div>
 
-                {contact.phone !== null && (
-                  <div>
-                    <dt>Phone</dt>
-                    <dd>{contact.phone}</dd>
-                  </div>
-                )}
-              </dl>
+          <div className="posting-card-details__application-field">
+            <h4>Special instructions</h4>
+            <PostingCardSpecialInstructions
+              specialInstructions={
+                posting.application_instructions.special_instructions
+              }
+            />
+          </div>
 
-              <PostingSourceEvidence
-                source={contact.source}
+          <PostingCardSourceEvidence
+            source={posting.application_instructions.source}
+            areSourcesVisible={areSourcesVisible}
+          />
+        </section>
+
+        <details className="posting-card-details__disclosure" open>
+          <summary>Contact</summary>
+
+          <div className="posting-card-details__disclosure-content">
+            <PostingCardContact contact={posting.contact} />
+
+            {posting.contact !== null && (
+              <PostingCardSourceEvidence
+                source={posting.contact.source}
                 areSourcesVisible={areSourcesVisible}
               />
-            </div>
-          </details>
-        )}
+            )}
+          </div>
+        </details>
 
-        {hasCompanyDetails && (
-          <details className="posting-card-details__disclosure">
-            <summary>About the company</summary>
+        <details className="posting-card-details__disclosure" open>
+          <summary>About the company</summary>
 
-            <div className="posting-card-details__disclosure-content">
-              {posting.company.company_summary !== null && (
-                <div>
-                  <p>{posting.company.company_summary.value}</p>
-                </div>
-              )}
+          <div className="posting-card-details__disclosure-content">
+            <PostingCardAboutCompany company={posting.company} />
 
-              {posting.company.industry_tags.length > 0 && (
-                <div className="posting-card-details__tag-group">
-                  <strong>Industries</strong>
-                  <div className="posting-card-details__pill-list">
-                    {posting.company.industry_tags.map((industry, index) => (
-                      <span
-                        className="posting-card-details__pill"
-                        key={`${industry.value}-${index}`}
-                      >
-                        {industry.value}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {posting.company.employee_range !== null && (
-                <p>
-                  <strong>Company size:</strong>{' '}
-                  {posting.company.employee_range.value}
-                </p>
-              )}
-
-              <PostingSourceEvidence
-                source={posting.company.source}
-                areSourcesVisible={areSourcesVisible}
-              />
-            </div>
-          </details>
-        )}
+            <PostingCardSourceEvidence
+              source={posting.company.source}
+              areSourcesVisible={areSourcesVisible}
+            />
+          </div>
+        </details>
 
         <PostingCardUserArea
           draft={editor.draft}

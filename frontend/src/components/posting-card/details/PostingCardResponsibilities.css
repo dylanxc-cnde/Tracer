@@ -1,0 +1,11 @@
+.posting-card-responsibilities {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.posting-card-responsibilities > li {
+  padding-left: 4px;
+  line-height: 1.55;
+}

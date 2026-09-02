@@ -1,0 +1,33 @@
+.posting-card-application-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.posting-card-application-facts__field {
+  padding: 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background-color: var(--color-surface-muted);
+}
+
+.posting-card-application-facts dt {
+  margin-bottom: 6px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.posting-card-application-facts dd {
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-application-facts a {
+  color: var(--color-action-primary);
+  font-weight: 650;
+}

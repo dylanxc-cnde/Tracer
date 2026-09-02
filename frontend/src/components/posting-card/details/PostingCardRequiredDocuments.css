@@ -1,0 +1,11 @@
+.posting-card-required-documents {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding-left: 22px;
+}
+
+.posting-card-required-documents > li {
+  padding-left: 4px;
+  line-height: 1.55;
+}
