@@ -29,10 +29,7 @@ import { PostingCardApplicationFacts } from './PostingCardApplicationFacts'
 import { PostingCardRequiredDocuments } from './PostingCardRequiredDocuments'
 import { PostingCardSpecialInstructions } from './PostingCardSpecialInstructions'
 import { getSafeHttpUrl } from './PostingCardSanitizers'
-import {
-  formatEnumValue,
-  formatWeeklyHours,
-} from './PostingCardFormatters'
+import { formatEnumValue } from './PostingCardFormatters'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -271,11 +268,6 @@ export function PostingCardDetails({
     }
   }, [])
 
-  const weeklyHours =
-    posting.work_conditions.weekly_hours === null
-      ? null
-      : formatWeeklyHours(posting.work_conditions.weekly_hours)
-
   const requiredRequirements = posting.requirements.groups.filter(
     (requirement) => requirement.importance === 'required',
   )
@@ -286,28 +278,6 @@ export function PostingCardDetails({
     (requirement) => requirement.importance === 'unknown',
   )
 
-  const hasRoleContent =
-    posting.role_content.role_summary !== null ||
-    posting.role_content.responsibilities.length > 0 ||
-    posting.role_content.domains.length > 0
-  const hasWorkConditions =
-    weeklyHours !== null ||
-    posting.work_conditions.schedule !== null ||
-    posting.work_conditions.travel_requirement !== null ||
-    posting.work_conditions.start_on !== null ||
-    posting.work_conditions.duration !== null
-  const hasCompensation =
-    posting.compensation.entries.length > 0 ||
-    posting.compensation.benefits.length > 0 ||
-    posting.compensation.vacation_days !== null
-  const hasApplicationDetails =
-    (posting.application_instructions.channels !== null &&
-      posting.application_instructions.channels.value.length > 0) ||
-    posting.application_instructions.application_url !== null ||
-    posting.application_instructions.required_email_subject !== null ||
-    posting.application_instructions.required_documents.length > 0 ||
-    posting.application_instructions.special_instructions.length > 0 ||
-    posting.application_instructions.application_deadline !== null
   const contact = posting.contact
   const hasContactDetails =
     contact !== null &&
@@ -406,28 +376,38 @@ export function PostingCardDetails({
       </header>
 
       <div className="posting-card-details__content">
-        {hasRoleContent && (
-          <section className="posting-card-details__section">
-            <h3>What you’ll do</h3>
+        <section className="posting-card-details__section">
+          <h3>What you’ll do</h3>
+
+          <div className="posting-card-details__field">
+            <h4>Role summary</h4>
 
             <PostingCardRoleSummary
               summary={posting.role_content.role_summary}
             />
+          </div>
+
+          <div className="posting-card-details__field">
+            <h4>Responsibilities</h4>
 
             <PostingCardResponsibilities
               responsibilities={posting.role_content.responsibilities}
             />
+          </div>
+
+          <div className="posting-card-details__field">
+            <h4>Role domains</h4>
 
             <PostingCardRoleDomains
               domains={posting.role_content.domains}
             />
+          </div>
 
-            <PostingSourceEvidence
-              source={posting.role_content.source}
-              areSourcesVisible={areSourcesVisible}
-            />
-          </section>
-        )}
+          <PostingSourceEvidence
+            source={posting.role_content.source}
+            areSourcesVisible={areSourcesVisible}
+          />
+        </section>
 
         {posting.requirements.groups.length > 0 && (
           <section className="posting-card-details__section">
@@ -456,82 +436,82 @@ export function PostingCardDetails({
           </section>
         )}
 
-        {hasWorkConditions && (
-          <section className="posting-card-details__section">
-            <h3>Work conditions</h3>
+        <section className="posting-card-details__section">
+          <h3>Work conditions</h3>
 
-            <PostingCardWorkConditions
-              workConditions={posting.work_conditions}
-            />
+          <PostingCardWorkConditions
+            workConditions={posting.work_conditions}
+          />
 
-            <PostingSourceEvidence
-              source={posting.work_conditions.source}
-              areSourcesVisible={areSourcesVisible}
-            />
-          </section>
-        )}
+          <PostingSourceEvidence
+            source={posting.work_conditions.source}
+            areSourcesVisible={areSourcesVisible}
+          />
+        </section>
 
-        {hasCompensation && (
-          <section className="posting-card-details__section">
-            <h3>Salary and benefits</h3>
+        <section className="posting-card-details__section">
+          <h3>Salary and benefits</h3>
+
+          <div className="posting-card-details__field">
+            <h4>Salary</h4>
 
             <PostingCardCompensation
               entries={posting.compensation.entries}
             />
+          </div>
 
-            {posting.compensation.benefits.length > 0 && (
-              <div className="posting-card-details__benefits">
-                <h4>Benefits</h4>
+          <div className="posting-card-details__benefits">
+            <h4>Benefits</h4>
 
-                <PostingCardBenefits
-                  benefits={posting.compensation.benefits}
-                />
-              </div>
-            )}
+            <PostingCardBenefits
+              benefits={posting.compensation.benefits}
+            />
+          </div>
+
+          <div className="posting-card-details__field">
+            <h4>Vacation</h4>
 
             <PostingCardVacation
               vacationDays={posting.compensation.vacation_days}
             />
+          </div>
 
-            <PostingSourceEvidence
-              source={posting.compensation.source}
-              areSourcesVisible={areSourcesVisible}
+          <PostingSourceEvidence
+            source={posting.compensation.source}
+            areSourcesVisible={areSourcesVisible}
+          />
+        </section>
+
+        <section className="posting-card-details__section">
+          <h3>Application</h3>
+
+          <PostingCardApplicationFacts
+            applicationInstructions={posting.application_instructions}
+          />
+
+          <div className="posting-card-details__application-field">
+            <h4>Required documents</h4>
+            <PostingCardRequiredDocuments
+              requiredDocuments={
+                posting.application_instructions.required_documents
+              }
             />
-          </section>
-        )}
+          </div>
 
-        {hasApplicationDetails && (
-          <section className="posting-card-details__section">
-            <h3>Application</h3>
-
-            <PostingCardApplicationFacts
-              applicationInstructions={posting.application_instructions}
+          <div className="posting-card-details__application-field">
+            <h4>Special instructions</h4>
+            <PostingCardSpecialInstructions
+              specialInstructions={
+                posting.application_instructions.special_instructions
+              }
             />
+          </div>
 
-            <div className="posting-card-details__application-field">
-              <h4>Required documents</h4>
-              <PostingCardRequiredDocuments
-                requiredDocuments={
-                  posting.application_instructions.required_documents
-                }
-              />
-            </div>
-
-            <div className="posting-card-details__application-field">
-              <h4>Special instructions</h4>
-              <PostingCardSpecialInstructions
-                specialInstructions={
-                  posting.application_instructions.special_instructions
-                }
-              />
-            </div>
-
-            <PostingSourceEvidence
-              source={posting.application_instructions.source}
-              areSourcesVisible={areSourcesVisible}
-            />
-          </section>
-        )}
+          <PostingSourceEvidence
+            source={posting.application_instructions.source}
+            areSourcesVisible={areSourcesVisible}
+          />
+        </section>
 
         {hasContactDetails && contact !== null && (
           <details className="posting-card-details__disclosure">

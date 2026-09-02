@@ -15,14 +15,16 @@ function WorkConditionField({
   label,
   value,
 }: WorkConditionFieldProps) {
-  if (value === null) {
-    return null
-  }
-
   return (
     <div className="posting-card-work-conditions__field">
       <dt>{label}</dt>
-      <dd>{value}</dd>
+      <dd
+        className={
+          value === null ? 'posting-card-details__empty-value' : undefined
+        }
+      >
+        {value ?? 'None'}
+      </dd>
     </div>
   )
 }

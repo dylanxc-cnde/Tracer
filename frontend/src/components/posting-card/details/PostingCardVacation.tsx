@@ -8,14 +8,17 @@ type PostingCardVacationProps = {
 export function PostingCardVacation({
   vacationDays,
 }: PostingCardVacationProps) {
-  if (vacationDays === null) {
-    return null
-  }
-
   return (
     <div className="posting-card-vacation">
-      <strong>Vacation</strong>
-      <span>{vacationDays.value} days per year</span>
+      <span
+        className={
+          vacationDays === null
+            ? 'posting-card-details__empty-value'
+            : undefined
+        }
+      >
+        {vacationDays === null ? 'None' : `${vacationDays.value} days per year`}
+      </span>
     </div>
   )
 }

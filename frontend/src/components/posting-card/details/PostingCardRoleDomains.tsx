@@ -9,13 +9,11 @@ export function PostingCardRoleDomains({
   domains,
 }: PostingCardRoleDomainsProps) {
   if (domains.length === 0) {
-    return null
+    return <p className="posting-card-details__empty-value">None</p>
   }
 
   return (
     <div className="posting-card-role-domains">
-      <strong>Role domains</strong>
-
       <div className="posting-card-role-domains__list">
         {domains.map((domain, index) => (
           <span

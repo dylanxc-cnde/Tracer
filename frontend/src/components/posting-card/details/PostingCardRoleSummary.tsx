@@ -8,13 +8,15 @@ type PostingCardRoleSummaryProps = {
 export function PostingCardRoleSummary({
   summary,
 }: PostingCardRoleSummaryProps) {
-  if (summary === null) {
-    return null
-  }
-
   return (
     <div className="posting-card-role-summary">
-      <p>{summary.value}</p>
+      <p
+        className={
+          summary === null ? 'posting-card-details__empty-value' : undefined
+        }
+      >
+        {summary?.value ?? 'None'}
+      </p>
     </div>
   )
 }

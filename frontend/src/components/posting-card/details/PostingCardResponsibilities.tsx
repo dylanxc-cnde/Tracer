@@ -9,7 +9,7 @@ export function PostingCardResponsibilities({
   responsibilities,
 }: PostingCardResponsibilitiesProps) {
   if (responsibilities.length === 0) {
-    return null
+    return <p className="posting-card-details__empty-value">None</p>
   }
 
   return (

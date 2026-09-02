@@ -33,7 +33,7 @@ export function PostingCardCompensation({
   entries,
 }: PostingCardCompensationProps) {
   if (entries.length === 0) {
-    return null
+    return <p className="posting-card-details__empty-value">None</p>
   }
 
   return (

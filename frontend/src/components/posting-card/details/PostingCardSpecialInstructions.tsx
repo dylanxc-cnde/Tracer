@@ -9,7 +9,7 @@ export function PostingCardSpecialInstructions({
   specialInstructions,
 }: PostingCardSpecialInstructionsProps) {
   if (specialInstructions.length === 0) {
-    return null
+    return <p className="posting-card-details__empty-value">None</p>
   }
 
   return (

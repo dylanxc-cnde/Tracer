@@ -9,7 +9,7 @@ type PostingCardApplicationFactsProps = {
 
 type ApplicationFactValue = {
   label: string
-  value: string
+  value: string | null
   url: string | null
 }
 
@@ -20,56 +20,50 @@ type ApplicationFactProps = {
 function createApplicationFacts(
   applicationInstructions: ApplicationInstructions,
 ) {
-  const facts: ApplicationFactValue[] = []
-
-  if (
+  const channels =
     applicationInstructions.channels !== null &&
     applicationInstructions.channels.value.length > 0
-  ) {
-    facts.push({
+      ? applicationInstructions.channels.value.map(formatEnumValue).join(' · ')
+      : null
+  const applicationUrl =
+    applicationInstructions.application_url?.value ?? null
+
+  return [
+    {
       label: 'Channels',
-      value: applicationInstructions.channels.value
-        .map(formatEnumValue)
-        .join(' · '),
+      value: channels,
       url: null,
-    })
-  }
-
-  if (applicationInstructions.application_url !== null) {
-    const applicationUrl = applicationInstructions.application_url.value
-
-    facts.push({
+    },
+    {
       label: 'Application URL',
       value: applicationUrl,
-      url: getSafeHttpUrl(applicationUrl),
-    })
-  }
-
-  if (applicationInstructions.application_deadline !== null) {
-    facts.push({
+      url: applicationUrl === null ? null : getSafeHttpUrl(applicationUrl),
+    },
+    {
       label: 'Deadline',
-      value: applicationInstructions.application_deadline.value,
+      value: applicationInstructions.application_deadline?.value ?? null,
       url: null,
-    })
-  }
-
-  if (applicationInstructions.required_email_subject !== null) {
-    facts.push({
+    },
+    {
       label: 'Email subject',
-      value: applicationInstructions.required_email_subject.value,
+      value: applicationInstructions.required_email_subject?.value ?? null,
       url: null,
-    })
-  }
-
-  return facts
+    },
+  ] satisfies ApplicationFactValue[]
 }
 
 function ApplicationFact({ fact }: ApplicationFactProps) {
   return (
     <div className="posting-card-application-facts__field">
       <dt>{fact.label}</dt>
-      <dd>
-        {fact.url === null ? (
+      <dd
+        className={
+          fact.value === null ? 'posting-card-details__empty-value' : undefined
+        }
+      >
+        {fact.value === null ? (
+          'None'
+        ) : fact.url === null ? (
           fact.value
         ) : (
           <a
@@ -89,10 +83,6 @@ export function PostingCardApplicationFacts({
   applicationInstructions,
 }: PostingCardApplicationFactsProps) {
   const facts = createApplicationFacts(applicationInstructions)
-
-  if (facts.length === 0) {
-    return null
-  }
 
   return (
     <dl className="posting-card-application-facts">
