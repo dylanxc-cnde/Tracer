@@ -26,10 +26,11 @@ import { PostingCardCompensation } from './PostingCardCompensation'
 import { PostingCardBenefits } from './PostingCardBenefits'
 import { PostingCardVacation } from './PostingCardVacation'
 import { PostingCardApplicationFacts } from './PostingCardApplicationFacts'
+import { getSafeHttpUrl } from './PostingCardSanitizers'
 import {
   formatEnumValue,
   formatWeeklyHours,
-} from './postingCardFormatters'
+} from './PostingCardFormatters'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -51,24 +52,6 @@ type DisplayRequirement = Pick<Requirement, 'item_rule' | 'items'>
 type PostingSourceEvidenceProps = {
   source: PostingSource
   areSourcesVisible: boolean
-}
-
-function getSafeSourceUrl(sourceUrl: string | null) {
-  if (sourceUrl === null) {
-    return null
-  }
-
-  try {
-    const parsedUrl = new URL(sourceUrl)
-
-    if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
-      return parsedUrl.href
-    }
-  } catch {
-    return null
-  }
-
-  return null
 }
 
 function PostingSourceEvidence({
@@ -107,7 +90,7 @@ function PostingSourceEvidence({
 
           <ul>
             {source.source_urls.map((sourceUrl, index) => {
-              const safeSourceUrl = getSafeSourceUrl(sourceUrl)
+              const safeSourceUrl = getSafeHttpUrl(sourceUrl)
 
               return (
                 <li key={`${sourceUrl}-${index}`}>
@@ -339,11 +322,6 @@ export function PostingCardDetails({
     posting.identity.source_platform !== null ||
     posting.identity.published_on !== null ||
     posting.identity.posting_language !== null
-  const postingUrl = posting.identity.canonical_posting_url?.value ?? null
-  const safePostingUrl = getSafeSourceUrl(postingUrl)
-  const applicationUrl =
-    posting.application_instructions.application_url?.value ?? null
-  const safeApplicationUrl = getSafeSourceUrl(applicationUrl)
   return (
     <dialog
       ref={dialogRef}
@@ -407,7 +385,6 @@ export function PostingCardDetails({
         {hasPostingSourceDetails && isPostingInfoOpen && (
           <PostingCardPostingInfo
             identity={posting.identity}
-            safePostingUrl={safePostingUrl}
           />
         )}
 
@@ -527,7 +504,6 @@ export function PostingCardDetails({
 
             <PostingCardApplicationFacts
               applicationInstructions={posting.application_instructions}
-              safeApplicationUrl={safeApplicationUrl}
             />
 
             {posting.application_instructions.required_documents.length > 0 && (

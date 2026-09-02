@@ -1,6 +1,6 @@
 import './PostingCardWorkConditions.css'
 import type { WorkConditions } from '../../../postings/types/postingDetails'
-import { formatWeeklyHours } from './postingCardFormatters'
+import { formatWeeklyHours } from './PostingCardFormatters'
 
 type PostingCardWorkConditionsProps = {
   workConditions: WorkConditions

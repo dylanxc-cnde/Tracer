@@ -5,7 +5,7 @@ import {
   formatEnumValue,
   formatLocation,
   formatWeeklyHours,
-} from './postingCardFormatters'
+} from './PostingCardFormatters'
 
 type PostingCardQuickFact = {
   label: string

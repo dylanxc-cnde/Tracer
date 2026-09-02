@@ -3,7 +3,7 @@ import type { CompensationEntry } from '../../../postings/types/postingDetails'
 import {
   formatCompensationEntry,
   formatEnumValue,
-} from './postingCardFormatters'
+} from './PostingCardFormatters'
 
 type PostingCardCompensationProps = {
   entries: CompensationEntry[]

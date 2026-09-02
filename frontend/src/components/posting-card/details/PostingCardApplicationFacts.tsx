@@ -1,10 +1,10 @@
 import './PostingCardApplicationFacts.css'
 import type { ApplicationInstructions } from '../../../postings/types/postingDetails'
-import { formatEnumValue } from './postingCardFormatters'
+import { formatEnumValue } from './PostingCardFormatters'
+import { getSafeHttpUrl } from './PostingCardSanitizers'
 
 type PostingCardApplicationFactsProps = {
   applicationInstructions: ApplicationInstructions
-  safeApplicationUrl: string | null
 }
 
 type ApplicationFactValue = {
@@ -19,7 +19,6 @@ type ApplicationFactProps = {
 
 function createApplicationFacts(
   applicationInstructions: ApplicationInstructions,
-  safeApplicationUrl: string | null,
 ) {
   const facts: ApplicationFactValue[] = []
 
@@ -37,10 +36,12 @@ function createApplicationFacts(
   }
 
   if (applicationInstructions.application_url !== null) {
+    const applicationUrl = applicationInstructions.application_url.value
+
     facts.push({
       label: 'Application URL',
-      value: applicationInstructions.application_url.value,
-      url: safeApplicationUrl,
+      value: applicationUrl,
+      url: getSafeHttpUrl(applicationUrl),
     })
   }
 
@@ -86,12 +87,8 @@ function ApplicationFact({ fact }: ApplicationFactProps) {
 
 export function PostingCardApplicationFacts({
   applicationInstructions,
-  safeApplicationUrl,
 }: PostingCardApplicationFactsProps) {
-  const facts = createApplicationFacts(
-    applicationInstructions,
-    safeApplicationUrl,
-  )
+  const facts = createApplicationFacts(applicationInstructions)
 
   if (facts.length === 0) {
     return null

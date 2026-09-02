@@ -1,16 +1,16 @@
 import './PostingCardPostingInfo.css'
 import type { PostingIdentity } from '../../../postings/types/postingDetails'
+import { getSafeHttpUrl } from './PostingCardSanitizers'
 
 type PostingCardPostingInfoProps = {
   identity: PostingIdentity
-  safePostingUrl: string | null
 }
 
 export function PostingCardPostingInfo({
   identity,
-  safePostingUrl,
 }: PostingCardPostingInfoProps) {
   const postingUrl = identity.canonical_posting_url?.value ?? null
+  const safePostingUrl = getSafeHttpUrl(postingUrl)
 
   return (
     <div
