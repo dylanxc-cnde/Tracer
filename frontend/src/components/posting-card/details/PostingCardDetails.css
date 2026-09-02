@@ -6,7 +6,7 @@
 .posting-card-details {
   position: relative;
   box-sizing: border-box;
-  width: min(860px, calc(100vw - 32px));
+  width: min(960px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   margin: auto;
   padding: 0;
@@ -453,22 +453,6 @@
   font-weight: 650;
 }
 
-.posting-card-details__contact-list dt {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.posting-card-details__contact-list dd {
-  min-width: 0;
-  margin: 0;
-  overflow-wrap: anywhere;
-  line-height: 1.5;
-}
-
 .posting-card-details__benefits {
   margin-top: 20px;
 }
@@ -513,30 +497,12 @@
   padding: 16px;
 }
 
-.posting-card-details__contact-list {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-}
-
-.posting-card-details__contact-list > div {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  align-items: baseline;
-  gap: 16px;
-}
-
 .posting-card-details__created-at {
   margin: 0;
   padding-top: 16px;
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-secondary);
   font-size: 12px;
-}
-
-.posting-card-details__tag-group {
-  display: grid;
-  gap: 10px;
 }
 
 @media (max-width: 600px) {

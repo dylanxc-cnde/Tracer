@@ -28,6 +28,8 @@ import { PostingCardVacation } from './PostingCardVacation'
 import { PostingCardApplicationFacts } from './PostingCardApplicationFacts'
 import { PostingCardRequiredDocuments } from './PostingCardRequiredDocuments'
 import { PostingCardSpecialInstructions } from './PostingCardSpecialInstructions'
+import { PostingCardContact } from './PostingCardContact'
+import { PostingCardAboutCompany } from './PostingCardAboutCompany'
 import { getSafeHttpUrl } from './PostingCardSanitizers'
 import { formatEnumValue } from './PostingCardFormatters'
 
@@ -278,17 +280,6 @@ export function PostingCardDetails({
     (requirement) => requirement.importance === 'unknown',
   )
 
-  const contact = posting.contact
-  const hasContactDetails =
-    contact !== null &&
-    (contact.name !== null ||
-      contact.role !== null ||
-      contact.email !== null ||
-      contact.phone !== null)
-  const hasCompanyDetails =
-    posting.company.company_summary !== null ||
-    posting.company.industry_tags.length > 0 ||
-    posting.company.employee_range !== null
   const hasPostingSourceDetails =
     posting.identity.canonical_posting_url !== null ||
     posting.identity.source_platform !== null ||
@@ -513,90 +504,33 @@ export function PostingCardDetails({
           />
         </section>
 
-        {hasContactDetails && contact !== null && (
-          <details className="posting-card-details__disclosure">
-            <summary>Contact</summary>
+        <details className="posting-card-details__disclosure" open>
+          <summary>Contact</summary>
 
-            <div className="posting-card-details__disclosure-content">
-              <dl className="posting-card-details__contact-list">
-                {contact.name !== null && (
-                  <div>
-                    <dt>Name</dt>
-                    <dd>{contact.name}</dd>
-                  </div>
-                )}
+          <div className="posting-card-details__disclosure-content">
+            <PostingCardContact contact={posting.contact} />
 
-                {contact.role !== null && (
-                  <div>
-                    <dt>Role</dt>
-                    <dd>{contact.role}</dd>
-                  </div>
-                )}
-
-                {contact.email !== null && (
-                  <div>
-                    <dt>Email</dt>
-                    <dd>{contact.email}</dd>
-                  </div>
-                )}
-
-                {contact.phone !== null && (
-                  <div>
-                    <dt>Phone</dt>
-                    <dd>{contact.phone}</dd>
-                  </div>
-                )}
-              </dl>
-
+            {posting.contact !== null && (
               <PostingSourceEvidence
-                source={contact.source}
+                source={posting.contact.source}
                 areSourcesVisible={areSourcesVisible}
               />
-            </div>
-          </details>
-        )}
+            )}
+          </div>
+        </details>
 
-        {hasCompanyDetails && (
-          <details className="posting-card-details__disclosure">
-            <summary>About the company</summary>
+        <details className="posting-card-details__disclosure" open>
+          <summary>About the company</summary>
 
-            <div className="posting-card-details__disclosure-content">
-              {posting.company.company_summary !== null && (
-                <div>
-                  <p>{posting.company.company_summary.value}</p>
-                </div>
-              )}
+          <div className="posting-card-details__disclosure-content">
+            <PostingCardAboutCompany company={posting.company} />
 
-              {posting.company.industry_tags.length > 0 && (
-                <div className="posting-card-details__tag-group">
-                  <strong>Industries</strong>
-                  <div className="posting-card-details__pill-list">
-                    {posting.company.industry_tags.map((industry, index) => (
-                      <span
-                        className="posting-card-details__pill"
-                        key={`${industry.value}-${index}`}
-                      >
-                        {industry.value}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {posting.company.employee_range !== null && (
-                <p>
-                  <strong>Company size:</strong>{' '}
-                  {posting.company.employee_range.value}
-                </p>
-              )}
-
-              <PostingSourceEvidence
-                source={posting.company.source}
-                areSourcesVisible={areSourcesVisible}
-              />
-            </div>
-          </details>
-        )}
+            <PostingSourceEvidence
+              source={posting.company.source}
+              areSourcesVisible={areSourcesVisible}
+            />
+          </div>
+        </details>
 
         <PostingCardUserArea
           draft={editor.draft}

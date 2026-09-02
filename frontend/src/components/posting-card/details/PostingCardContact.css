@@ -1,0 +1,28 @@
+.posting-card-contact {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.posting-card-contact__field {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 16px;
+}
+
+.posting-card-contact dt {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.posting-card-contact dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
