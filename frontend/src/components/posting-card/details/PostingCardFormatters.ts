@@ -1,6 +1,7 @@
 import type {
   CompensationEntry,
   PostingLocation,
+  Requirement,
   WeeklyHours,
 } from '../../../postings/types/postingDetails'
 
@@ -67,4 +68,32 @@ export function formatCompensationEntry(entry: CompensationEntry) {
   }
 
   return `${entry.applicable_groups.join(', ')}: ${compensation}`
+}
+
+export function formatRequirementItemRuleLabel(
+  itemRule: Requirement['item_rule'],
+) {
+  if (itemRule === 'any_of') {
+    return 'Choose any one'
+  }
+
+  if (itemRule === 'all_of') {
+    return 'All required together'
+  }
+
+  return 'Combination unclear'
+}
+
+export function formatRequirementItemRuleConnector(
+  itemRule: Requirement['item_rule'],
+) {
+  if (itemRule === 'any_of') {
+    return 'OR'
+  }
+
+  if (itemRule === 'all_of') {
+    return 'AND'
+  }
+
+  return null
 }

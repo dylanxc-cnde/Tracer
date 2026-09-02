@@ -31,7 +31,11 @@ import { PostingCardSpecialInstructions } from './PostingCardSpecialInstructions
 import { PostingCardContact } from './PostingCardContact'
 import { PostingCardAboutCompany } from './PostingCardAboutCompany'
 import { getSafeHttpUrl } from './PostingCardSanitizers'
-import { formatEnumValue } from './PostingCardFormatters'
+import {
+  formatEnumValue,
+  formatRequirementItemRuleConnector,
+  formatRequirementItemRuleLabel,
+} from './PostingCardFormatters'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -116,30 +120,6 @@ function PostingSourceEvidence({
   )
 }
 
-function getItemRuleLabel(itemRule: Requirement['item_rule']) {
-  if (itemRule === 'any_of') {
-    return 'Choose any one'
-  }
-
-  if (itemRule === 'all_of') {
-    return 'All required together'
-  }
-
-  return 'Combination unclear'
-}
-
-function getItemConnector(itemRule: Requirement['item_rule']) {
-  if (itemRule === 'any_of') {
-    return 'OR'
-  }
-
-  if (itemRule === 'all_of') {
-    return 'AND'
-  }
-
-  return null
-}
-
 function mergeAllOfRequirements(
   requirements: Requirement[],
 ): DisplayRequirement[] {
@@ -178,8 +158,12 @@ function RequirementGroup({
 
       <div className="posting-card-details__requirement-list">
         {displayRequirements.map((requirement, requirementIndex) => {
-          const itemRuleLabel = getItemRuleLabel(requirement.item_rule)
-          const itemConnector = getItemConnector(requirement.item_rule)
+          const itemRuleLabel = formatRequirementItemRuleLabel(
+            requirement.item_rule,
+          )
+          const itemConnector = formatRequirementItemRuleConnector(
+            requirement.item_rule,
+          )
           const coreItems = requirement.items.filter(
             (item) => !item.is_example,
           )
