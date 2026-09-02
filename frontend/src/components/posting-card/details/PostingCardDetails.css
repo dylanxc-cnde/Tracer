@@ -454,7 +454,7 @@
 }
 
 .posting-card-details__contact-list dt {
-  margin-bottom: 6px;
+  margin: 0;
   color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 700;
@@ -463,7 +463,9 @@
 }
 
 .posting-card-details__contact-list dd {
+  min-width: 0;
   margin: 0;
+  overflow-wrap: anywhere;
   line-height: 1.5;
 }
 
@@ -513,9 +515,15 @@
 
 .posting-card-details__contact-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
+  gap: 12px;
   margin: 0;
+}
+
+.posting-card-details__contact-list > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 16px;
 }
 
 .posting-card-details__created-at {
