@@ -26,6 +26,8 @@ import { PostingCardCompensation } from './PostingCardCompensation'
 import { PostingCardBenefits } from './PostingCardBenefits'
 import { PostingCardVacation } from './PostingCardVacation'
 import { PostingCardApplicationFacts } from './PostingCardApplicationFacts'
+import { PostingCardRequiredDocuments } from './PostingCardRequiredDocuments'
+import { PostingCardSpecialInstructions } from './PostingCardSpecialInstructions'
 import { getSafeHttpUrl } from './PostingCardSanitizers'
 import {
   formatEnumValue,
@@ -506,36 +508,23 @@ export function PostingCardDetails({
               applicationInstructions={posting.application_instructions}
             />
 
-            {posting.application_instructions.required_documents.length > 0 && (
-              <div className="posting-card-details__application-list">
-                <h4>Required documents</h4>
-                <ul className="posting-card-details__content-list">
-                  {posting.application_instructions.required_documents.map(
-                    (document, index) => (
-                      <li key={`${document.value}-${index}`}>
-                        <span>{document.value}</span>
-                      </li>
-                    ),
-                  )}
-                </ul>
-              </div>
-            )}
+            <div className="posting-card-details__application-field">
+              <h4>Required documents</h4>
+              <PostingCardRequiredDocuments
+                requiredDocuments={
+                  posting.application_instructions.required_documents
+                }
+              />
+            </div>
 
-            {posting.application_instructions.special_instructions.length >
-              0 && (
-              <div className="posting-card-details__application-list">
-                <h4>Special instructions</h4>
-                <ul className="posting-card-details__content-list">
-                  {posting.application_instructions.special_instructions.map(
-                    (instruction, index) => (
-                      <li key={`${instruction.value}-${index}`}>
-                        <span>{instruction.value}</span>
-                      </li>
-                    ),
-                  )}
-                </ul>
-              </div>
-            )}
+            <div className="posting-card-details__application-field">
+              <h4>Special instructions</h4>
+              <PostingCardSpecialInstructions
+                specialInstructions={
+                  posting.application_instructions.special_instructions
+                }
+              />
+            </div>
 
             <PostingSourceEvidence
               source={posting.application_instructions.source}
