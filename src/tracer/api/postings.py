@@ -141,6 +141,17 @@ def create_postings_router(
 
         return card
 
+    @router.get("/posting-cards/{card_key}/original")
+    def read_original_posting_card(card_key: UUID) -> PostingCard:
+        card = posting_card_store.get_original_by_card_key(card_key)
+        if card is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Posting card not found",
+            )
+
+        return card
+
     @router.get("/posting-cards")
     def read_posting_cards() -> tuple[PostingCard, ...]:
         return posting_card_store.get_all()

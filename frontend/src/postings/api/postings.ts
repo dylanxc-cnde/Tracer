@@ -130,6 +130,27 @@ export async function listPostingCards(): Promise<PostingCard[]> {
     return (await response.json()) as PostingCard[]
 }
 
+export async function getOriginalPostingCard(
+    cardKey: string,
+): Promise<PostingCard> {
+    const response = await fetch(
+        `${API_BASE_URL}/posting-cards/${cardKey}/original`,
+        {
+            method: 'GET',
+        }
+    )
+
+    if (!response.ok) {
+        const errorBody = await response.text()
+
+        throw new Error(
+            `Failed to get original posting card (${response.status}): ${errorBody}`,
+        )
+    }
+
+    return (await response.json()) as PostingCard
+}
+
 export async function deletePostingCard(
     cardKey: string,
 ): Promise<void> {

@@ -235,6 +235,13 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
             stored_card_response.json()
         ) == updated_card
 
+        original_card_response = client.get(
+            f"/posting-cards/{card.card_key}/original"
+        )
+
+        assert original_card_response.status_code == 200
+        assert PostingCard.model_validate(original_card_response.json()) == card
+
     stored_import = PostingImportRequestStore(database_path).get(
         import_request.import_key
     )
@@ -257,6 +264,9 @@ def test_missing_import_and_card_return_not_found(tmp_path):
             f"/posting-imports/{missing_key}"
         )
         card_response = client.get(f"/posting-cards/{missing_key}")
+        original_card_response = client.get(
+            f"/posting-cards/{missing_key}/original"
+        )
         update_card_response = client.patch(
             f"/posting-cards/{missing_key}",
             json={
@@ -275,10 +285,22 @@ def test_missing_import_and_card_return_not_found(tmp_path):
     }
     assert card_response.status_code == 404
     assert card_response.json() == {"detail": "Posting card not found"}
+    assert original_card_response.status_code == 404
+    assert original_card_response.json() == {"detail": "Posting card not found"}
     assert update_card_response.status_code == 404
     assert update_card_response.json() == {
         "detail": "Posting card not found"
     }
+
+
+def test_http_rejects_invalid_original_card_key(tmp_path):
+    app = create_app(database_path=tmp_path / "tracer.db")
+
+    with TestClient(app) as client:
+        response = client.get("/posting-cards/not-a-uuid/original")
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["path", "card_key"]
 
 
 def test_http_deletes_posting_card(tmp_path):
@@ -298,10 +320,14 @@ def test_http_deletes_posting_card(tmp_path):
         read_response = client.get(
             f"/posting-cards/{card.card_key}"
         )
+        original_response = client.get(
+            f"/posting-cards/{card.card_key}/original"
+        )
 
     assert delete_response.status_code == 204
     assert delete_response.content == b""
     assert read_response.status_code == 404
+    assert original_response.status_code == 404
     assert store.get_by_card_key(card.card_key) is None
 
 
@@ -344,9 +370,14 @@ def test_http_deletes_import_without_deleting_posting_card(tmp_path):
         read_card_response = client.get(
             f"/posting-cards/{card.card_key}"
         )
+        original_card_response = client.get(
+            f"/posting-cards/{card.card_key}/original"
+        )
 
     assert delete_response.status_code == 204
     assert delete_response.content == b""
     assert read_import_response.status_code == 404
     assert read_card_response.status_code == 200
     assert PostingCard.model_validate(read_card_response.json()) == card
+    assert original_card_response.status_code == 200
+    assert PostingCard.model_validate(original_card_response.json()) == card
