@@ -28,6 +28,18 @@ function RequirementGroup({
     return null
   }
 
+  const allOfRequirements = requirements.filter(
+    (requirement) => requirement.item_rule === 'all_of',
+  )
+  const anyOfRequirements = requirements.filter(
+    (requirement) => requirement.item_rule === 'any_of',
+  )
+  const unknownRuleRequirements = requirements.filter(
+    (requirement) => requirement.item_rule === 'unknown',
+  )
+
+  const orderedRequirements = [...allOfRequirements, ...anyOfRequirements, ...unknownRuleRequirements]
+
   return (
     <section
       className={`posting-card-requirements__requirement-group posting-card-requirements__requirement-group--${importance}`}
@@ -35,7 +47,7 @@ function RequirementGroup({
       <h4>{title}</h4>
 
       <div className="posting-card-requirements__requirement-list">
-        {requirements.map((requirement, requirementIndex) => {
+        {orderedRequirements.map((requirement, requirementIndex) => {
           const itemRuleLabel = formatRequirementItemRuleLabel(
             requirement.item_rule,
           )
