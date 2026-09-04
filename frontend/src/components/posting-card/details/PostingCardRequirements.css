@@ -1,0 +1,114 @@
+.posting-card-requirements__requirement > p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.posting-card-requirements__requirement-group {
+  margin-top: 20px;
+  padding-left: 16px;
+  border-left: 4px solid var(--color-border-strong);
+}
+
+.posting-card-requirements__requirement-group--required {
+  border-left-color: var(--color-attention);
+}
+
+.posting-card-requirements__requirement-group--preferred {
+  border-left-color: var(--color-accent-warm);
+}
+
+.posting-card-requirements__requirement-group > h4 {
+  margin: 0 0 10px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.posting-card-requirements__requirement-list {
+  display: grid;
+  gap: 12px;
+}
+
+.posting-card-requirements__requirement {
+  padding: 14px;
+  border: 2px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background-color: var(--color-surface);
+}
+
+.posting-card-requirements__requirement--all-of {
+  border-color: var(--color-border-strong);
+  border-style: solid;
+}
+
+.posting-card-requirements__requirement--any-of {
+  border-color: var(--color-border-strong);
+  border-style: dashed;
+}
+
+.posting-card-requirements__requirement-items {
+  display: grid;
+  gap: 8px;
+}
+
+.posting-card-requirements__item-rule {
+  width: fit-content;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.posting-card-requirements__pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.posting-card-requirements__example-list {
+  padding-top: 2px;
+}
+
+.posting-card-requirements__pill-with-connector {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.posting-card-requirements__item-connector {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.posting-card-requirements__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-muted);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.posting-card-requirements__pill--example {
+  border-width: 2px;
+  border-color: var(--color-information);
+  border-style: dotted;
+  color: var(--color-text-tertiary);
+  background-color: rgba(185, 207, 213, 0.28);
+}
+
+.posting-card-requirements__example-prefix {
+  font-size: 11px;
+  font-weight: 700;
+}

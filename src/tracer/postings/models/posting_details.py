@@ -8,6 +8,7 @@ from pydantic import (
     ConfigDict,
     Field,
     WithJsonSchema,
+    field_validator,
 )
 
 
@@ -242,6 +243,42 @@ class PostingRequirements(_PostingDetailsModel):
 
     source: PostingSource
     groups: tuple[Requirement, ...]
+
+    @field_validator("groups", mode="after")
+    @classmethod
+    def merge_all_of_groups(
+        cls, groups: tuple[Requirement, ...]
+    ) -> tuple[Requirement, ...]:
+        """Merge all-of groups per importance, keeping other groups separate."""
+        merged_groups: list[Requirement] = []
+        all_of_indexes: dict[RequirementImportance, int] = {}
+
+        for group in groups:
+            if group.item_rule != RequirementItemRule.ALL_OF:
+                # Keep any-of and unknown groups unchanged.
+                merged_groups.append(group)
+
+            elif group.importance not in all_of_indexes:
+                # Keep the first all-of group and remember its position.
+                all_of_indexes[group.importance] = len(merged_groups)
+                merged_groups.append(group)
+
+            else:
+                # Add these items to the existing all-of group.
+                group_index = all_of_indexes[group.importance]
+                existing_group = merged_groups[group_index]
+                origin = existing_group.origin
+                if group.origin == FactOrigin.USER_DEFINED:
+                    origin = FactOrigin.USER_DEFINED
+
+                merged_groups[group_index] = Requirement(
+                    origin=origin,
+                    importance=group.importance,
+                    item_rule=RequirementItemRule.ALL_OF,
+                    items=existing_group.items + group.items,
+                )
+
+        return tuple(merged_groups)
 
 
 class CompensationEntry(_PostingDetailsModel):

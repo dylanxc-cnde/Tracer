@@ -9,9 +9,12 @@ from tracer.postings.models.posting_details import (
     FactOrigin,
     ParsedValue,
     PostingDetails,
+    PostingRequirements,
     PostingSource,
+    Requirement,
     RequirementCategory,
     RequirementImportance,
+    RequirementItem,
     RequirementItemRule,
     RoleFamily,
     WorkMode,
@@ -30,6 +33,27 @@ def value(parsed_value: object) -> dict[str, object]:
         "value": parsed_value,
         "origin": "source",
     }
+
+
+def make_requirement(
+    *names: str,
+    importance: RequirementImportance = RequirementImportance.REQUIRED,
+    item_rule: RequirementItemRule = RequirementItemRule.ALL_OF,
+    origin: FactOrigin = FactOrigin.SOURCE,
+) -> Requirement:
+    return Requirement(
+        origin=origin,
+        importance=importance,
+        item_rule=item_rule,
+        items=tuple(
+            RequirementItem(
+                name=name,
+                category=RequirementCategory.SKILL,
+                is_example=False,
+            )
+            for name in names
+        ),
+    )
 
 
 def make_posting_details() -> PostingDetails:
@@ -258,6 +282,7 @@ def test_requirement_groups_keep_rules_and_examples():
             "Power Query, Power Pivot und VBA sind wünschenswert.",
             "Kenntnisse in R, Python oder KNIME sind von Vorteil.",
             "Datenvisualisierung, zum Beispiel Power BI oder Tableau.",
+            urls=("https://example.com/jobs/123", "https://example.com/careers"),
         ),
         "groups": [
             {
@@ -312,18 +337,133 @@ def test_requirement_groups_keep_rules_and_examples():
     }
 
     posting = PostingDetails.model_validate(payload)
-    all_of, any_of, example = posting.requirements.groups
+    all_of, any_of = posting.requirements.groups
 
     assert all_of.item_rule is RequirementItemRule.ALL_OF
+    assert tuple(item.name for item in all_of.items) == (
+        "Power Query",
+        "Power Pivot",
+        "VBA",
+        "Datenvisualisierung",
+        "Power BI",
+        "Tableau",
+    )
+    assert all(not item.is_example for item in all_of.items[:4])
+    assert all(item.is_example for item in all_of.items[4:])
+    assert all_of.origin is FactOrigin.SOURCE
     assert any_of.item_rule is RequirementItemRule.ANY_OF
     assert tuple(item.name for item in any_of.items) == ("R", "Python", "KNIME")
-    assert example.item_rule is RequirementItemRule.ALL_OF
-    assert example.items[0].is_example is False
-    assert all(item.is_example for item in example.items[1:])
+    assert posting.requirements.source == PostingSource.model_validate(
+        payload["requirements"]["source"]
+    )
+    assert len(payload["requirements"]["groups"]) == 3
+    assert PostingDetails.model_validate_json(posting.model_dump_json()) == posting
 
     payload["requirements"]["groups"][0]["text"] = "Legacy text"
     with pytest.raises(ValidationError, match="text"):
         PostingDetails.model_validate(payload)
+
+
+def test_all_of_groups_merge_separately_for_each_importance():
+    importance_levels = tuple(RequirementImportance)
+    groups = tuple(
+        make_requirement(name, importance=importance)
+        for name in ("Python", "SQL")
+        for importance in importance_levels
+    )
+
+    requirements = PostingRequirements(source=source(), groups=groups)
+
+    assert tuple(group.importance for group in requirements.groups) == importance_levels
+    for group in requirements.groups:
+        assert group.item_rule is RequirementItemRule.ALL_OF
+        assert tuple(item.name for item in group.items) == ("Python", "SQL")
+
+
+@pytest.mark.parametrize("importance", tuple(RequirementImportance))
+@pytest.mark.parametrize(
+    "item_rule", (RequirementItemRule.ANY_OF, RequirementItemRule.UNKNOWN)
+)
+def test_other_requirement_groups_keep_their_boundaries_and_order(
+    importance, item_rule
+):
+    first_group = make_requirement(
+        "Python", "SQL", importance=importance, item_rule=item_rule
+    )
+    second_group = make_requirement(
+        "English", "German", importance=importance, item_rule=item_rule
+    )
+    first_all_of = make_requirement("Communication", importance=importance)
+    second_all_of = make_requirement("Excel", importance=importance)
+
+    requirements = PostingRequirements(
+        source=source(),
+        groups=(first_group, first_all_of, second_group, second_all_of),
+    )
+
+    assert len(requirements.groups) == 3
+    assert requirements.groups[0] == first_group
+    assert requirements.groups[2] == second_group
+    assert requirements.groups[1].items == first_all_of.items + second_all_of.items
+    assert requirements.groups[1].importance is importance
+    assert requirements.groups[1].item_rule is RequirementItemRule.ALL_OF
+
+
+@pytest.mark.parametrize("first_origin", tuple(FactOrigin))
+@pytest.mark.parametrize("second_origin", tuple(FactOrigin))
+def test_all_of_merging_preserves_existing_user_origin_and_duplicate_items(
+    first_origin, second_origin
+):
+    first_group = make_requirement("Python", origin=first_origin)
+    second_group = Requirement(
+        origin=second_origin,
+        importance=RequirementImportance.REQUIRED,
+        item_rule=RequirementItemRule.ALL_OF,
+        items=(
+            RequirementItem(
+                name="Python",
+                category=RequirementCategory.OTHER,
+                is_example=True,
+            ),
+        ),
+    )
+
+    requirements = PostingRequirements(
+        source=source(), groups=(first_group, first_group, second_group)
+    )
+
+    (merged_group,) = requirements.groups
+    assert merged_group.items == first_group.items * 2 + second_group.items
+    expected_origin = (
+        FactOrigin.USER_DEFINED
+        if FactOrigin.USER_DEFINED in (first_origin, second_origin)
+        else FactOrigin.SOURCE
+    )
+    assert merged_group.origin is expected_origin
+    assert first_group.origin is first_origin
+    assert len(first_group.items) == 1
+    assert second_group.origin is second_origin
+    assert len(second_group.items) == 1
+
+
+@pytest.mark.parametrize(
+    "groups",
+    (
+        (),
+        (make_requirement("Python"),),
+        (
+            make_requirement("Python", "SQL", item_rule=RequirementItemRule.ANY_OF),
+            make_requirement("R", "SQL", item_rule=RequirementItemRule.UNKNOWN),
+        ),
+    ),
+)
+def test_already_normalized_requirements_stay_unchanged(groups):
+    requirements = PostingRequirements(source=source(), groups=groups)
+
+    assert requirements.groups == groups
+    assert PostingRequirements.model_validate_json(
+        requirements.model_dump_json()
+    ) == requirements
 
 
 def test_compensation_entries_keep_applicable_groups_structured():

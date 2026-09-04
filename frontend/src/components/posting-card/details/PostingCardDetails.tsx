@@ -4,10 +4,6 @@ import type {
   PostingCard,
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
-import type {
-  Requirement,
-  RequirementImportance,
-} from '../../../postings/types/postingDetails'
 import {
   PostingCardUserArea,
 } from './PostingCardUserArea'
@@ -20,6 +16,7 @@ import { PostingCardPostingInfo } from './PostingCardPostingInfo'
 import { PostingCardRoleSummary } from './PostingCardRoleSummary'
 import { PostingCardResponsibilities } from './PostingCardResponsibilities'
 import { PostingCardRoleDomains } from './PostingCardRoleDomains'
+import { PostingCardRequirements } from './PostingCardRequirements'
 import { PostingCardWorkConditions } from './PostingCardWorkConditions'
 import { PostingCardCompensation } from './PostingCardCompensation'
 import { PostingCardBenefits } from './PostingCardBenefits'
@@ -30,11 +27,6 @@ import { PostingCardSpecialInstructions } from './PostingCardSpecialInstructions
 import { PostingCardContact } from './PostingCardContact'
 import { PostingCardAboutCompany } from './PostingCardAboutCompany'
 import { PostingCardSourceEvidence } from './PostingCardSourceEvidence'
-import {
-  formatEnumValue,
-  formatRequirementItemRuleConnector,
-  formatRequirementItemRuleLabel,
-} from './PostingCardFormatters'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -43,128 +35,6 @@ type PostingCardDetailsProps = {
     cardKey: string,
     request: UpdatePostingCardRequest,
   ) => Promise<PostingCard>
-}
-
-type RequirementGroupProps = {
-  title: string
-  importance: RequirementImportance
-  requirements: Requirement[]
-}
-
-type DisplayRequirement = Pick<Requirement, 'item_rule' | 'items'>
-
-function mergeAllOfRequirements(
-  requirements: Requirement[],
-): DisplayRequirement[] {
-  const allOfItems = requirements
-    .filter((requirement) => requirement.item_rule === 'all_of')
-    .flatMap((requirement) => requirement.items)
-  
-  const otherRequirements = requirements.filter(
-    (requirement) => requirement.item_rule !== 'all_of',
-  )
-
-  return [
-    ...(allOfItems.length > 0
-      ? [{ item_rule: 'all_of' as const, items: allOfItems }]
-      : []),
-    ...otherRequirements,
-  ]
-}
-
-function RequirementGroup({
-  title,
-  importance,
-  requirements,
-}: RequirementGroupProps) {
-  if (requirements.length === 0) {
-    return null
-  }
-
-  const displayRequirements = mergeAllOfRequirements(requirements)
-
-  return (
-    <section
-      className={`posting-card-details__requirement-group posting-card-details__requirement-group--${importance}`}
-    >
-      <h4>{title}</h4>
-
-      <div className="posting-card-details__requirement-list">
-        {displayRequirements.map((requirement, requirementIndex) => {
-          const itemRuleLabel = formatRequirementItemRuleLabel(
-            requirement.item_rule,
-          )
-          const itemConnector = formatRequirementItemRuleConnector(
-            requirement.item_rule,
-          )
-          const coreItems = requirement.items.filter(
-            (item) => !item.is_example,
-          )
-          const exampleItems = requirement.items.filter(
-            (item) => item.is_example,
-          )
-
-          return (
-            <article
-              className={`posting-card-details__requirement posting-card-details__requirement--${requirement.item_rule.replace('_', '-')}`}
-              key={`${requirement.item_rule}-${requirementIndex}`}
-            >
-              {requirement.items.length > 0 && (
-                <div className="posting-card-details__requirement-items">
-                  {itemRuleLabel !== null && (
-                    <span className="posting-card-details__item-rule">
-                      {itemRuleLabel}
-                    </span>
-                  )}
-
-                  {coreItems.length > 0 && (
-                    <div className="posting-card-details__pill-list">
-                      {coreItems.map((item, itemIndex) => (
-                        <span
-                          className="posting-card-details__pill-with-connector"
-                          key={`${item.name}-${itemIndex}`}
-                        >
-                          {itemIndex > 0 && itemConnector !== null && (
-                            <span className="posting-card-details__item-connector">
-                              {itemConnector}
-                            </span>
-                          )}
-
-                          <span
-                            className="posting-card-details__pill"
-                            title={formatEnumValue(item.category)}
-                          >
-                            {item.name}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {exampleItems.length > 0 && (
-                    <div className="posting-card-details__pill-list posting-card-details__example-list">
-                      {exampleItems.map((item, itemIndex) => (
-                        <span
-                          className="posting-card-details__pill posting-card-details__pill--example"
-                          title={formatEnumValue(item.category)}
-                          key={`${item.name}-${itemIndex}`}
-                        >
-                          <span className="posting-card-details__example-prefix">
-                            e.g.
-                          </span>
-                          {item.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </article>
-          )
-        })}
-      </div>
-    </section>
-  )
 }
 
 export function PostingCardDetails({
@@ -186,16 +56,6 @@ export function PostingCardDetails({
       dialog.focus({ preventScroll: true })
     }
   }, [])
-
-  const requiredRequirements = posting.requirements.groups.filter(
-    (requirement) => requirement.importance === 'required',
-  )
-  const preferredRequirements = posting.requirements.groups.filter(
-    (requirement) => requirement.importance === 'preferred',
-  )
-  const unknownRequirements = posting.requirements.groups.filter(
-    (requirement) => requirement.importance === 'unknown',
-  )
 
   const hasPostingSourceDetails =
     posting.identity.canonical_posting_url !== null ||
@@ -321,21 +181,7 @@ export function PostingCardDetails({
           <section className="posting-card-details__section">
             <h3>What they’re looking for</h3>
 
-            <RequirementGroup
-              title="Required"
-              importance="required"
-              requirements={requiredRequirements}
-            />
-            <RequirementGroup
-              title="Nice to have"
-              importance="preferred"
-              requirements={preferredRequirements}
-            />
-            <RequirementGroup
-              title="Unclear"
-              importance="unknown"
-              requirements={unknownRequirements}
-            />
+            <PostingCardRequirements groups={posting.requirements.groups} />
 
             <PostingCardSourceEvidence
               source={posting.requirements.source}
