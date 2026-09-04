@@ -13,6 +13,7 @@ _CREATE_POSTING_CARD_TABLE = """
         created_at     TEXT NOT NULL,
         company_name   TEXT,
         position_title TEXT,
+        original_payload_json TEXT NOT NULL,
         payload_json   TEXT NOT NULL
     )
 """
@@ -30,13 +31,20 @@ _INSERT_POSTING_CARD = """
         created_at,
         company_name,
         position_title,
+        original_payload_json,
         payload_json
     )
-    VALUES(?, ?, ?, ?, ?, ?, ?)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?)
 """
 
 _SELECT_POSTING_CARD_BY_CARD_KEY = """
     SELECT payload_json
+    FROM posting_cards
+    WHERE card_key = ?
+"""
+
+_SELECT_ORIGINAL_POSTING_CARD_BY_CARD_KEY = """
+    SELECT original_payload_json
     FROM posting_cards
     WHERE card_key = ?
 """
@@ -102,13 +110,14 @@ class PostingCardStore:
             connection.close()
 
     def add(self, card: PostingCard) -> None:
-        """Store one confirmed posting card.
+        """Store the initial and current versions of one confirmed card.
 
         Args:
             card: The posting card to store.
         """
         company_name = card.posting.identity.company_name
         position_title = card.posting.identity.position_title
+        payload_json = card.model_dump_json()
         connection = sqlite3.connect(self._database_path)
 
         try:
@@ -121,7 +130,8 @@ class PostingCardStore:
                     card.created_at.isoformat(),
                     company_name.value if company_name is not None else None,
                     position_title.value if position_title is not None else None,
-                    card.model_dump_json(),
+                    payload_json,
+                    payload_json,
                 ),
             )
             connection.commit()
@@ -145,6 +155,33 @@ class PostingCardStore:
         try:
             row = connection.execute(
                 _SELECT_POSTING_CARD_BY_CARD_KEY,
+                (str(card_key),),
+            ).fetchone()
+        finally:
+            connection.close()
+
+        if row is None:
+            return None
+
+        return PostingCard.model_validate_json(row[0])
+
+    def get_original_by_card_key(
+        self,
+        card_key: UUID,
+    ) -> PostingCard | None:
+        """Get the initial version of a stored card.
+
+        Args:
+            card_key: The posting card to find.
+
+        Returns:
+            The initial card, or None if it does not exist.
+        """
+        connection = sqlite3.connect(self._database_path)
+
+        try:
+            row = connection.execute(
+                _SELECT_ORIGINAL_POSTING_CARD_BY_CARD_KEY,
                 (str(card_key),),
             ).fetchone()
         finally:
@@ -247,7 +284,7 @@ class PostingCardStore:
         return deleted
 
     def update(self, new_card: PostingCard) -> bool:
-        """Replace one stored posting card.
+        """Replace the current card while preserving its initial version.
 
         Args:
             new_card: The validated posting card to store.
