@@ -51,27 +51,6 @@ type RequirementGroupProps = {
   requirements: Requirement[]
 }
 
-type DisplayRequirement = Pick<Requirement, 'item_rule' | 'items'>
-
-function mergeAllOfRequirements(
-  requirements: Requirement[],
-): DisplayRequirement[] {
-  const allOfItems = requirements
-    .filter((requirement) => requirement.item_rule === 'all_of')
-    .flatMap((requirement) => requirement.items)
-  
-  const otherRequirements = requirements.filter(
-    (requirement) => requirement.item_rule !== 'all_of',
-  )
-
-  return [
-    ...(allOfItems.length > 0
-      ? [{ item_rule: 'all_of' as const, items: allOfItems }]
-      : []),
-    ...otherRequirements,
-  ]
-}
-
 function RequirementGroup({
   title,
   importance,
@@ -81,8 +60,6 @@ function RequirementGroup({
     return null
   }
 
-  const displayRequirements = mergeAllOfRequirements(requirements)
-
   return (
     <section
       className={`posting-card-details__requirement-group posting-card-details__requirement-group--${importance}`}
@@ -90,7 +67,7 @@ function RequirementGroup({
       <h4>{title}</h4>
 
       <div className="posting-card-details__requirement-list">
-        {displayRequirements.map((requirement, requirementIndex) => {
+        {requirements.map((requirement, requirementIndex) => {
           const itemRuleLabel = formatRequirementItemRuleLabel(
             requirement.item_rule,
           )
