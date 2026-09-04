@@ -107,6 +107,9 @@ supporting company passages and pages once in CompanyInfo.source.
 
 Parse each source requirement in this order:
 
+Use steps 1 through 8 to interpret the source clauses, then apply step 9 to
+the full requirements collection for each posting before returning it.
+
 1. Segment the source statement into independently meaningful clauses. Keep a
    clause together only when its concepts share the same importance and the
    same logical relationship. Split clauses when a modifier, conjunction,
@@ -127,12 +130,13 @@ Parse each source requirement in this order:
    unknown only when the importance remains genuinely unclear after resolving
    the structure and modifier scope. Do not treat missing modal words alone as
    evidence that a qualification is preferred.
-4. Build Requirement objects so every object has exactly one importance and
-   one logical relationship. When a required core capability and a preferred
-   specialization share one source statement, place them in separate objects
-   and assign each its own importance. Do not create a parse ambiguity merely
-   because splitting is required. Requirement has no free-text field; preserve
-   the relevant original passages once in PostingRequirements.source instead.
+4. Build provisional Requirement objects so every object has exactly one
+   importance and one logical relationship. When a required core capability
+   and a preferred specialization share one source statement, place them in
+   separate objects and assign each its own importance. Do not create a parse
+   ambiguity merely because splitting is required. Requirement has no
+   free-text field; preserve the relevant original passages once in
+   PostingRequirements.source instead.
 5. Build matchable items only from concepts explicitly supported by the source
    clause. Each core item must represent one capability, credential,
    experience, language, license or other condition that can be matched
@@ -154,7 +158,12 @@ Parse each source requirement in this order:
    core item to satisfy the same requirement. Lists and conjunctions do not
    prove any_of by themselves. any_of requires at least two non-example core
    items. Use unknown only when multiple core items exist but their relationship
-   remains genuinely unclear after segmentation.
+   remains genuinely unclear after segmentation. importance and item_rule are
+   independent: unknown importance does not imply an unknown relationship,
+   and an unknown relationship does not imply unknown importance. Required,
+   preferred and unknown importance can each contain all_of, any_of or unknown
+   relationships. all_of describes the combination of items; it does not make
+   preferred items mandatory or resolve unknown importance.
 7. Classify illustration items separately from alternatives. Explicit
    illustration markers, including "for example", "such as", "zum Beispiel",
    "z. B." and an illustrative use of "wie", introduce non-exhaustive examples
@@ -164,10 +173,34 @@ Parse each source requirement in this order:
    items do not determine item_rule, and an "or" inside an illustrative list
    does not turn that list into any_of. Preference wording controls importance;
    it does not by itself mark an item as an example.
-8. Run a consistency check before returning the Requirement. Its importance
+8. Run a consistency check on each provisional Requirement. Its importance
    must apply to the full logical group, its item_rule must describe only its
-   non-example core items, and every item must be supported by the same clause.
-   Split the object again whenever one of these conditions is not met.
+   non-example core items, and every item must be supported by the source text.
+   Split the object again if it mixes different importance levels or logical
+   relationships. Source sentence boundaries alone do not require separate
+   final groups.
+9. Normalize PostingRequirements.groups across the whole posting, not across
+   separate candidate postings:
+   - For each importance value (required, preferred and unknown), return at
+     most one non-empty all_of group. Merge all provisional all_of groups with
+     that importance, even when they come from different clauses, sentences,
+     bullets or item categories. Keep the items as separate pills, preserving
+     each item's name, category and is_example flag; do not combine their names
+     into one long item or remove items merely because their names are similar.
+     Do not create an all_of group when there are no corresponding items, and
+     never merge groups with different importance values.
+   - Keep each any_of alternative set in its own group, even when other any_of
+     groups share its importance or item categories. Combining independent
+     choice sets changes what satisfies the requirement. Do not move their
+     alternatives into the shared all_of group. Each any_of group must still
+     contain at least two non-example core items.
+   - Keep each group whose item_rule is unknown separate from other groups.
+     Shared importance, category or uncertainty is not evidence of a shared
+     relationship. Do not collapse unknown relationships into one catch-all
+     group or turn them into all_of or any_of merely to simplify the output.
+   This normalization changes group boundaries only. Preserve the section-level
+   PostingRequirements.source with its exact excerpts and source_urls; do not
+   concatenate excerpts or create new per-group or per-item source mappings.
 
 Use WorkMode.other only when the source clearly describes a work arrangement
 outside the available enum values. Never use other as a fallback for
