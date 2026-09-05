@@ -5,6 +5,7 @@ import type { PostingCardUserDraft } from './usePostingCardEditor'
 type PostingCardUserAreaProps = {
   draft: PostingCardUserDraft
   isEditing: boolean
+  isSavingCardChanges: boolean
   onAliasChange: (postingAlias: string) => void
   onTagsChange: (tags: string[]) => void
   onNotesChange: (userNotes: string) => void
@@ -13,6 +14,7 @@ type PostingCardUserAreaProps = {
 export function PostingCardUserArea({
   draft,
   isEditing,
+  isSavingCardChanges,
   onAliasChange,
   onTagsChange,
   onNotesChange,
@@ -57,6 +59,7 @@ export function PostingCardUserArea({
             id="posting-card-alias"
             type="text"
             value={draft.postingAlias}
+            disabled={isSavingCardChanges}
             placeholder="Add your own name for this posting"
             onChange={(event) => onAliasChange(event.target.value)}
           />
@@ -78,6 +81,7 @@ export function PostingCardUserArea({
                   className="posting-card-user-area__tag posting-card-user-area__tag--removable"
                   type="button"
                   aria-label={`Remove tag ${tag}`}
+                  disabled={isSavingCardChanges}
                   onClick={() => handleRemoveTag(index)}
                   key={`${tag}-${index}`}
                 >
@@ -106,11 +110,15 @@ export function PostingCardUserArea({
             <input
               type="text"
               value={pendingTag}
+              disabled={isSavingCardChanges}
               aria-label="New tag"
               placeholder="Add a tag"
               onChange={(event) => setPendingTag(event.target.value)}
             />
-            <button type="submit" disabled={pendingTag.trim().length === 0}>
+            <button
+              type="submit"
+              disabled={isSavingCardChanges || pendingTag.trim().length === 0}
+            >
               Add
             </button>
           </form>
@@ -123,6 +131,7 @@ export function PostingCardUserArea({
           <textarea
             id="posting-card-notes"
             value={draft.userNotes}
+            disabled={isSavingCardChanges}
             rows={5}
             placeholder="Add notes for this posting"
             onChange={(event) => onNotesChange(event.target.value)}

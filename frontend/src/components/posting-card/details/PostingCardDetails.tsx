@@ -301,6 +301,7 @@ export function PostingCardDetails({
         <PostingCardUserArea
           draft={editor.draft}
           isEditing={editor.isEditing}
+          isSavingCardChanges={editor.isSavingCardChanges}
           onAliasChange={editor.updateDraftAlias}
           onTagsChange={editor.updateDraftTags}
           onNotesChange={editor.updateDraftNotes}
