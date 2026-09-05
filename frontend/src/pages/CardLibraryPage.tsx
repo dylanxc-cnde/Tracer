@@ -4,6 +4,7 @@ import {
   deletePostingCard,
   listPostingCards,
   updatePostingCard,
+  getOriginalPostingCard,
 } from '../postings/api/postings'
 import { usePostingImportSession } from '../postings/context/usePostingImportSession'
 import type {
@@ -20,6 +21,7 @@ export function CardLibraryPage() {
   const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
+  const [isShowingOriginal, setIsShowingOriginal] = useState(false)
 
   async function handleLoadCards() {
     setIsLoadingCards(true)
@@ -69,6 +71,7 @@ export function CardLibraryPage() {
   }
 
   function handleOpenCard(card: PostingCard) {
+    setIsShowingOriginal(false)
     setOpenedCard(card)
   }
 
@@ -92,6 +95,22 @@ export function CardLibraryPage() {
     return updatedCard
   }
 
+  async function handleShowOriginalCard(cardKey: string) {
+    setError(null)
+
+    try {
+      const originalCard = await getOriginalPostingCard(cardKey)
+      setIsShowingOriginal(true)
+      setOpenedCard(originalCard)
+    } catch (caughtError: unknown) {
+      if (caughtError instanceof Error) {
+        setError(caughtError.message)
+      } else {
+        setError("Something went wrong while loading the original card.")
+      }
+    }
+  }
+
   return (
     <>
       {error && <p role="alert">{error}</p>}
@@ -110,11 +129,13 @@ export function CardLibraryPage() {
         deletingCardKey={deletingCardKey}
         onDelete={handleDeleteCard}
         onOpen={handleOpenCard}
+        onShowOriginal={handleShowOriginalCard}
       />
 
       {openedCard !== null && (
         <PostingCardDetails
           card={openedCard}
+          isReadOnly={isShowingOriginal}
           onClose={handleCloseCard}
           onUpdate={handleUpdateCard}
         />

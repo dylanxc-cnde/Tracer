@@ -138,8 +138,12 @@ def test_store_creates_posting_cards_table_and_import_index(tmp_path):
         ("created_at", "TEXT"),
         ("company_name", "TEXT"),
         ("position_title", "TEXT"),
+        ("original_payload_json", "TEXT"),
         ("payload_json", "TEXT"),
     ]
+    assert next(
+        column[3] for column in columns if column[1] == "original_payload_json"
+    ) == 1
     assert "idx_posting_cards_import_key" in {
         index[1] for index in indexes
     }
@@ -164,6 +168,7 @@ def test_store_adds_posting_card(tmp_path):
                 created_at,
                 company_name,
                 position_title,
+                original_payload_json,
                 payload_json
             FROM posting_cards
             WHERE card_key = ?
@@ -180,6 +185,7 @@ def test_store_adds_posting_card(tmp_path):
         card.created_at.isoformat(),
         "Thermondo GmbH",
         "Working Student Robotics",
+        card.model_dump_json(),
         card.model_dump_json(),
     )
 
@@ -221,6 +227,20 @@ def test_store_returns_none_for_missing_card_key(tmp_path):
     store = PostingCardStore(tmp_path / "tracer.db")
 
     assert store.get_by_card_key(MISSING_CARD_KEY) is None
+
+
+def test_store_gets_original_card_by_card_key(tmp_path):
+    store = PostingCardStore(tmp_path / "tracer.db")
+    card = make_card()
+    store.add(card)
+
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+def test_store_returns_none_for_missing_original_card(tmp_path):
+    store = PostingCardStore(tmp_path / "tracer.db")
+
+    assert store.get_original_by_card_key(MISSING_CARD_KEY) is None
 
 
 def test_store_gets_all_cards_by_import_key(tmp_path):
@@ -291,7 +311,9 @@ def test_store_deletes_posting_card_by_card_key(tmp_path):
 
     assert deleted
     assert store.get_by_card_key(card.card_key) is None
+    assert store.get_original_by_card_key(card.card_key) is None
     assert store.get_by_card_key(other_card.card_key) == other_card
+    assert store.get_original_by_card_key(other_card.card_key) == other_card
 
 
 def test_store_returns_false_when_deleting_missing_card(tmp_path):
@@ -317,6 +339,48 @@ def test_store_replaces_posting_card(tmp_path):
 
     assert updated
     assert store.get_by_card_key(card.card_key) == updated_card
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+def test_store_preserves_original_payload_across_updates_and_reopening(tmp_path):
+    database_path = tmp_path / "tracer.db"
+    store = PostingCardStore(database_path)
+    card = make_card()
+    store.add(card)
+
+    for title in ("Working Student Data", "Working Student Automation"):
+        payload = card.model_dump()
+        payload["posting"]["identity"]["position_title"] = {
+            "value": title,
+            "origin": "user_defined",
+        }
+        updated_card = PostingCard.model_validate(payload)
+
+        assert store.update(updated_card)
+        store = PostingCardStore(database_path)
+        assert store.get_by_card_key(card.card_key) == updated_card
+        assert store.get_all() == (updated_card,)
+        assert store.get_by_import_key(card.import_key) == (updated_card,)
+        assert store.get_original_by_card_key(card.card_key) == card
+
+        connection = sqlite3.connect(database_path)
+        try:
+            row = connection.execute(
+                """
+                SELECT original_payload_json, payload_json, position_title
+                FROM posting_cards
+                WHERE card_key = ?
+                """,
+                (str(card.card_key),),
+            ).fetchone()
+        finally:
+            connection.close()
+
+        assert row == (
+            card.model_dump_json(),
+            updated_card.model_dump_json(),
+            title,
+        )
 
 
 def test_store_returns_false_when_updating_missing_card(tmp_path):

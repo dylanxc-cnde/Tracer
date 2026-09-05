@@ -5,10 +5,11 @@ type PostingCardSummaryProps = {
     isDeleting: boolean
     onDelete: (cardKey: string) => void
     onOpen: (card: PostingCard) => void
+    onShowOriginal?: (cardKey: string) => void
 }
 
 export function PostingCardSummary(
-    {card, isDeleting, onDelete, onOpen,} : PostingCardSummaryProps
+    {card, isDeleting, onDelete, onOpen, onShowOriginal} : PostingCardSummaryProps
 ) {
     const posting = card.posting
     const title = card.posting_alias ??
@@ -52,6 +53,16 @@ export function PostingCardSummary(
             >
                 View details
             </button>
+            {onShowOriginal && (
+              <button
+                className="button--primary posting-card-summary__action"
+                type="button"
+                onClick={() => onShowOriginal(card.card_key)}
+                disabled={isDeleting}
+              >
+                Show original
+              </button>
+            )}
         </article>
     )
 }

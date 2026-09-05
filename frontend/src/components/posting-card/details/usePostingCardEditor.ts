@@ -47,6 +47,7 @@ function createPostingCardUpdateRequest(
 export function usePostingCardEditor(
   card: PostingCard,
   updateCard: PostingCardUpdateCallback,
+  isReadOnly: boolean,
 ) {
   const [isEditing, setIsEditing] = useState(false)
   const [isSavingCardChanges, setIsSavingCardChanges] = useState(false)
@@ -68,6 +69,9 @@ export function usePostingCardEditor(
     updateRequest.tags.some((tag, index) => tag !== card.tags[index])
 
   function startEditing() {
+    if (isReadOnly) {
+      return
+    }
     setDraft(createCardUserDraft(card))
     setSaveError(null)
     setIsEditing(true)
@@ -84,6 +88,9 @@ export function usePostingCardEditor(
   }
 
   async function saveCardChanges() {
+    if (isReadOnly) {
+      return
+    }
     setIsSavingCardChanges(true)
     setSaveError(null)
 

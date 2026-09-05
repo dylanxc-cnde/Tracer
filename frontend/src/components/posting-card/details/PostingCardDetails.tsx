@@ -30,6 +30,7 @@ import { PostingCardSourceEvidence } from './PostingCardSourceEvidence'
 
 type PostingCardDetailsProps = {
   card: PostingCard
+  isReadOnly?: boolean
   onClose: () => void
   onUpdate: (
     cardKey: string,
@@ -39,13 +40,14 @@ type PostingCardDetailsProps = {
 
 export function PostingCardDetails({
   card,
+  isReadOnly = false,
   onClose,
   onUpdate,
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [areSourcesVisible, setAreSourcesVisible] = useState(false)
   const [isPostingInfoOpen, setIsPostingInfoOpen] = useState(false)
-  const editor = usePostingCardEditor(card, onUpdate)
+  const editor = usePostingCardEditor(card, onUpdate, isReadOnly)
   const posting = card.posting
 
   useEffect(() => {
@@ -86,6 +88,7 @@ export function PostingCardDetails({
         onClose={() => dialogRef.current?.close()}
         onEdit={editor.startEditing}
         onSave={editor.saveCardChanges}
+        isReadOnly={isReadOnly}
       />
 
       {editor.saveError !== null && (
@@ -298,6 +301,7 @@ export function PostingCardDetails({
         <PostingCardUserArea
           draft={editor.draft}
           isEditing={editor.isEditing}
+          isSavingCardChanges={editor.isSavingCardChanges}
           onAliasChange={editor.updateDraftAlias}
           onTagsChange={editor.updateDraftTags}
           onNotesChange={editor.updateDraftNotes}
