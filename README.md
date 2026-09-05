@@ -4,9 +4,13 @@
 
 **Turn messy job pages into structured records you can actually review.**
 
-Tracer is a small side project for internships, working-student roles, HiWi
-jobs, and thesis openings in Germany. I am building it while learning more
-about Python, LLM APIs, data modeling, React, TypeScript, and desktop apps.
+Tracer is a job-search workspace for internships, working-student roles, HiWi
+jobs, and thesis openings in Germany. Paste a posting, check what the AI picked
+out, and keep it in a local Card library—with the source text close by and
+space for your own notes.
+
+The idea is simple: spend less time digging through job pages and more time
+figuring out which roles are worth a closer look.
 
 ```text
 job URL or pasted text
@@ -14,14 +18,15 @@ job URL or pasted text
 -> evidence, unknowns, and ambiguities
 -> user selects a posting
 -> confirmed Posting Card in SQLite
+-> reopen, edit user fields, or view the original saved card
 ```
 
 ## Current Card UI
 
-The current Card view turns a posting into reviewable sections instead of one
-long block of job-page text. These screenshots use a fictional posting and do
-not contain real employer or applicant data. Select an image to open it at full
-size.
+Here's a look at the Card view: the job posting, broken into sections you can
+scan and check. These screenshots use a fictional posting, with no real
+employer or applicant data. A few newer controls, including Show original,
+aren't pictured yet. Click an image for a closer look.
 
 | Overview and quick facts | Structured requirements |
 | --- | --- |
@@ -43,16 +48,27 @@ size.
   information, source excerpts, and creation metadata;
 - a global Card edit mode that saves a user-owned alias, string tags, and notes
   back to SQLite while preserving posting facts and sources;
+- an initial Card snapshot alongside the current saved version, with a
+  read-only Show original action in Card Library;
+- disabled user-field inputs and tag controls while saving, with the draft
+  retained if saving fails;
 - a responsive three-page application shell with class-based component styles;
 - selectable posting candidates with loading, error, and confirmation states;
 - section-level source excerpts and URLs for reviewing extracted facts;
 - multiple posting candidates without mixing in recommended jobs;
-- compact requirement pills with distinct `all_of`, `any_of`, and example
-  presentation;
+- compact requirement pills grouped by importance and displayed in
+  `all_of -> any_of -> unknown` order, with examples on a separate row;
 - explicit ambiguities when a value cannot be classified safely.
 
-Model output is always a proposal. Missing information stays unknown, and the
-user reviews the result before it becomes a confirmed card.
+The AI gives you a starting point, not the final word. Missing information
+stays unknown, and you review and select a posting before saving it as a Card.
+
+Card storage keeps two full JSON payloads in the same row: the initial saved
+Card and the current version. Updates replace only the current version. The
+initial snapshot is not a web-page archive or a history of every edit, and
+deleting a Card removes both versions. Only alias, tags, and notes are editable
+today; structured posting facts remain read-only. For older records backfilled
+into this layout, the original snapshot starts at migration time, not before.
 
 ## Run the checks
 
@@ -70,6 +86,10 @@ npm run lint
 npm run build
 ```
 
+CI runs Python tests, frontend lint, and the TypeScript/Vite build on pushes
+and pull requests. Frontend component and API behavior tests are not yet set
+up; a passing build does not cover browser interactions.
+
 ## Run the local app
 
 Start FastAPI from the repository root:
@@ -82,7 +102,7 @@ Then start the frontend in another terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -90,7 +110,12 @@ Open `http://localhost:5173`. Paste a posting, analyze it, select one candidate,
 and confirm it to create a saved Posting Card. Open
 `http://127.0.0.1:8000/docs` to inspect the API directly.
 
-The current HTTP flow is:
+In Card Library, select Load card library, then View details to review or edit
+the current Card. Show original opens its initial snapshot without edit
+controls. Import History has its own Load button. Automatic page-entry refresh
+and preservation of Library/History page state are still pending.
+
+The posting routes are:
 
 ```text
 POST /posting-imports
@@ -101,6 +126,7 @@ POST /posting-imports/{import_key}/parse-results
 POST /posting-cards
 GET  /posting-cards
 GET  /posting-cards/{card_key}
+GET  /posting-cards/{card_key}/original
 PATCH /posting-cards/{card_key}
 DELETE /posting-cards/{card_key}
 ```
@@ -108,6 +134,10 @@ DELETE /posting-cards/{card_key}
 The local database is created at `.local/tracer.sqlite3`. Calling Analyze
 requires an OpenAI API key and uses paid API credits. If the key is already
 exported in the shell, the `--env-file .env.local` option is not needed.
+
+An existing database from an older schema is not automatically migrated by
+app startup. Back it up before any manual migration; the project does not yet
+provide a supported upgrade or recovery workflow.
 
 ## Try the parser
 
@@ -129,9 +159,12 @@ the repository.
 
 ## Next
 
-- grow Card Details one field shape and one business section at a time;
-- extract a section component only when its display and editing behavior has
-  been implemented, reviewed, and reopened successfully from SQLite;
+- extend the existing Card Details section components one field shape and one
+  business section at a time; display extraction and requirement ordering are
+  already in place;
+- define each section's editable contract, then connect its draft, validation,
+  save, and reopen flow; keep any further component moves separate from behavior
+  changes so each step stays reviewable;
 - keep headers and Quick Facts as read-only projections while editing their
   underlying structured fields;
 - build quiet inline editing surfaces and section-level add controls without
@@ -143,6 +176,11 @@ the repository.
 - show the relationship between an Import and the Cards created from it;
 - keep validation, not-found, concurrent-update, and storage failures visible
   to the frontend rather than hiding them behind a generic success state.
+
+The editing UI is still an early version. Page refresh behavior and overlapping
+request handling are deferred until the relevant interactions are refined;
+automatic refresh alone will not prevent an old response from replacing newer
+UI state.
 
 Deleting a Card does not delete its original Import. Deleting an Import does
 not delete saved Cards either: a Card keeps its `import_key` as historical

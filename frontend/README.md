@@ -1,17 +1,16 @@
 # Tracer frontend
 
-This is the small React interface for Tracer. I am building it in the browser
-first, then reusing the same UI when the project gets a desktop wrapper.
+This is where you paste postings, look through the results, and manage your
+Card library. It's built with React, TypeScript, and Vite. The UI runs in the
+browser today, with plans to reuse it in a desktop app later.
 
-The frontend handles input, loading states, candidate review, selection, and
-confirmation.
-Python still handles AI calls, validation, SQLite, and card creation.
+The frontend handles input, loading states, candidate review, selection,
+confirmation, and Card editing. Python handles AI calls, validation, SQLite,
+and Card creation and updates.
 
 ## What works now
 
-- React, TypeScript, Vite, and Oxlint are set up;
-- job posting text can be entered;
-- the current character count updates while typing;
+- a posting input with a live character count;
 - TypeScript contracts cover posting imports, parsed results, and cards;
 - Analyze creates an import and asks FastAPI to parse it;
 - parsed candidates are shown as selectable cards;
@@ -23,17 +22,29 @@ Python still handles AI calls, validation, SQLite, and card creation.
   requirements, compensation, source excerpts, and company details;
 - the global Card edit mode updates alias, string tags, and notes through one
   draft and Save action;
+- saving temporarily disables those inputs and tag controls; a failed save
+  keeps the draft available for correction or retry;
+- Show original in Card Library fetches the initial saved Card and opens it
+  in the same Details component without edit controls;
+- Requirements have their own display component: importance sections contain
+  `all_of`, then separate `any_of`, then separate `unknown` groups, with examples
+  below the core pills;
 - saved Cards can be permanently deleted after confirmation;
 - Import History loads saved import requests and supports the same explicit
   deletion flow;
 - the three main pages share a responsive sidebar, semantic colors, named
   component classes, and primary/danger button states;
-- loading, API errors, parse status, candidate count, and the saved `card_key`
+- loading, API errors, parse status, candidate count, and saved Card summaries
   are shown in the page.
 
-The current interface is intentionally small. Card and Import records can be
-loaded and deleted, saved Cards can be reviewed in detail, and the user-owned
-Card area can be updated. Structured posting facts are still read-only.
+You can already bring a posting in, save it, come back to it, and add your own
+alias, tags, and notes. Editing the structured posting facts comes next; those
+are still read-only.
+
+The original Card is its initial saved snapshot, not the latest version or a
+full edit history. It uses the same `PostingCard` response type. The Show
+original action is currently wired only in Card Library, not on the Import
+page's newly created Card summary.
 
 ## Source layout
 
@@ -45,11 +56,17 @@ src/components/import-history/           Import History components
 src/components/card-library/             Card Library components
 src/components/posting-card/             shared Card components
 src/components/posting-card/details/     Card Details and its editor hook
+src/postings/context/                    shared Import session and domain actions
 src/postings/types/                      TypeScript API JSON contracts
 src/postings/api/postings.ts             HTTP functions for posting routes
 ```
 
 React components use these functions instead of writing HTTP requests directly.
+
+The Import session stays in its Provider across page switches. Library and
+History lists and open dialogs remain page-owned: those pages currently unmount
+when hidden, and their lists must be loaded again. Each Details instance owns
+its own editor draft; sharing a Hook definition does not share its state.
 
 ## Run it
 
@@ -57,7 +74,7 @@ Use Node.js 24 or another version supported by Vite.
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -72,6 +89,10 @@ npm run lint     # check the source with Oxlint
 npm run preview  # preview the production build locally
 ```
 
+CI already runs `npm ci`, `npm run lint`, and `npm run build` on pushes and
+pull requests, using Node.js 22. There is no frontend test runner or component/
+API behavior suite yet; adding those tests is deferred, not part of this step.
+
 ## Backend
 
 FastAPI runs separately. From the repository root, start it in another terminal:
@@ -80,21 +101,30 @@ FastAPI runs separately. From the repository root, start it in another terminal:
 uv run --env-file .env.local fastapi dev src/tracer/api/app.py
 ```
 
-Open `http://127.0.0.1:8000/docs` to try the API directly. The browser uses this
-sequence:
+Open `http://127.0.0.1:8000/docs` to try the API directly. Import and confirmation
+use this sequence:
 
 ```text
 POST /posting-imports
 -> POST /posting-imports/{import_key}/parse-results
 -> user selects one candidate
 -> POST /posting-cards
--> GET /posting-cards
--> PATCH /posting-cards/{card_key}
--> DELETE /posting-cards/{card_key}
-
-GET /posting-imports
--> DELETE /posting-imports/{import_key}
 ```
+
+Saved-record actions are independent, not one mandatory sequence:
+
+```text
+Load cards       GET    /posting-cards
+Show original    GET    /posting-cards/{card_key}/original
+Save user fields PATCH  /posting-cards/{card_key}
+Delete card      DELETE /posting-cards/{card_key}
+Load imports     GET    /posting-imports
+Delete import    DELETE /posting-imports/{import_key}
+```
+
+View details currently uses the Card already loaded in the list or returned by
+creation. Show original makes a separate request. A successful PATCH returns
+the updated Card, which the page uses to update its UI state without another GET.
 
 FastAPI currently allows the local Vite origins `http://localhost:5173` and
 `http://127.0.0.1:5173` through CORS.
@@ -102,8 +132,9 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
 ## Next steps
 
 - extend Card editing one field shape and one business section at a time;
-- extract each section only when its display and editing behavior is stable,
-  rather than splitting the entire Details component in advance;
+- build on the existing section components; do not repeat the completed
+  Requirements extraction or ordering work, and keep further structural moves
+  separate from new editing behavior;
 - prototype an inline text editor whose reading and editing geometry stays
   visually stable, then reuse that proven pattern;
 - keep Quick Facts and header summaries read-only and derive them from the
@@ -114,16 +145,20 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
   quiet;
 - leave Requirements until the simpler scalar, repeated-text, pill, enum, date,
   and compensation editors have established the shared patterns;
-- add the wider Details layout and section navigation rail only after section
-  boundaries and stable section IDs exist;
+- keep the existing 960px maximum Details width; refine it and add the section
+  navigation rail only when its interactions and stable section IDs are defined;
 - show which saved Cards came from each Import;
-- add validation and storage error states without losing the unsaved form;
-- add frontend component and API tests;
+- extend the current save/error flow to structured fields without losing the
+  unsaved draft;
+- revisit page-entry refresh, page-state retention, overlapping requests, and
+  frontend component/API tests when refining those interactions; these are
+  deferred rather than immediate prerequisites;
 - add the first Profile and matching screens after the Card workspace works;
 - try desktop packaging after the browser workflow is useful on its own.
 
-OpenAI keys and real application data stay in Python and never go into frontend
-source code or `VITE_` environment variables.
+OpenAI keys stay on the Python side and never go into frontend source code or
+`VITE_` environment variables. The UI receives posting data through the API;
+real application records must not be committed as source or test fixtures.
 
 Deleting an Import does not delete a saved Card. The Card keeps the old
 `import_key`, so frontend code must treat the related Import as optional.
