@@ -9,6 +9,7 @@ type PostingCardDetailsTopbarProps = {
   onClose: () => void
   onEdit: () => void
   onSave: () => void
+  isReadOnly: boolean
 }
 
 export function PostingCardDetailsTopbar({
@@ -22,6 +23,7 @@ export function PostingCardDetailsTopbar({
   onClose,
   onEdit,
   onSave,
+  isReadOnly,
 }: PostingCardDetailsTopbarProps) {
   return (
     <div className="posting-card-details__topbar">
@@ -37,7 +39,7 @@ export function PostingCardDetailsTopbar({
       </div>
 
       <div className="posting-card-details__topbar-actions">
-        <button
+        {!isReadOnly && (<button
           className="posting-card-details__edit-toggle"
           type="button"
           aria-label={isEditing ? 'Cancel editing' : 'Edit card'}
@@ -47,8 +49,9 @@ export function PostingCardDetailsTopbar({
         >
           <span aria-hidden="true">{isEditing ? '×' : '✎'}</span>
         </button>
+        )}
 
-        {isEditing ? (
+        {!isReadOnly && isEditing ? (
           <button
             className="button--primary posting-card-details__primary-action"
             type="button"

@@ -6,10 +6,11 @@ type CardLibraryProps = {
   deletingCardKey: string | null
   onDelete: (cardKey: string) => void
   onOpen: (card: PostingCard) => void
+  onShowOriginal: (cardKey: string) => void
 }
 
 export function CardLibrary(
-    {cards, deletingCardKey, onDelete, onOpen,} : CardLibraryProps
+    {cards, deletingCardKey, onDelete, onOpen, onShowOriginal} : CardLibraryProps
 ) {
     return (
         <article className="card-library">
@@ -21,6 +22,7 @@ export function CardLibrary(
                     isDeleting={deletingCardKey === card.card_key}
                     onDelete={onDelete}
                     onOpen={onOpen}
+                    onShowOriginal={onShowOriginal}
                 />
             ))}
         </article>
