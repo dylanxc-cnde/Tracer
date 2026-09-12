@@ -97,7 +97,9 @@ export function PostingCardDetails({
         </p>
       )}
 
-      <header className="posting-card-details__header">
+      <header
+        className={`posting-card-details__header${editor.isEditing && !isReadOnly ? ' posting-card-details__header--editing' : ''}`}
+      >
         <div className="posting-card-details__metadata-row">
           <p className="posting-card-details__company">
             {posting.identity.company_name?.value ?? 'Unknown Company'}

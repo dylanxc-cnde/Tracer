@@ -96,7 +96,7 @@ export function PostingCardQuickFacts({
   return (
     <dl className="posting-card-quick-facts">
       {facts.map((fact) => (
-        <div key={fact.label}>
+        <div className="posting-card-quick-facts__fact" key={fact.label}>
           <dt>{fact.label}</dt>
           <dd>{fact.value}</dd>
         </div>
