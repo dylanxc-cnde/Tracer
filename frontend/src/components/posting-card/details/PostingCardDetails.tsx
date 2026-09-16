@@ -157,6 +157,10 @@ export function PostingCardDetails({
 
             <PostingCardRoleSummary
               summary={posting.role_content.role_summary}
+              draft={editor.draft.roleSummary}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onSummaryChange={editor.updateDraftRoleSummary}
             />
           </div>
 
@@ -179,6 +183,11 @@ export function PostingCardDetails({
           <PostingCardSourceEvidence
             source={posting.role_content.source}
             areSourcesVisible={areSourcesVisible}
+            userDefinedNotice={
+              posting.role_content.role_summary?.origin === 'user_defined'
+                ? 'Role summary is user-defined. Original sources are preserved.'
+                : undefined
+            }
           />
         </section>
 

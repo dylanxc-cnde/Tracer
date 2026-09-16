@@ -6,6 +6,7 @@ import type {
 
 // Type Definition: CardDraft
 export type PostingCardUserDraft = {
+  roleSummary: string
   postingAlias: string
   tags: string[]
   userNotes: string
@@ -19,6 +20,7 @@ type PostingCardUpdateCallback = (
 
 function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
   return {
+    roleSummary: card.posting.role_content.role_summary?.value ?? '',
     postingAlias: card.posting_alias ?? '',
     tags: [...card.tags],
     userNotes: card.user_notes ?? '',
@@ -37,6 +39,7 @@ function createPostingCardUpdateRequest(
   draft: PostingCardUserDraft,
 ): UpdatePostingCardRequest {
   return {
+    role_summary: normalizeOptionalText(draft.roleSummary),
     posting_alias: normalizeOptionalText(draft.postingAlias),
     user_notes: normalizeOptionalText(draft.userNotes),
     tags: draft.tags,
@@ -52,9 +55,7 @@ export function usePostingCardEditor(
   const [isEditing, setIsEditing] = useState(false)
   const [isSavingCardChanges, setIsSavingCardChanges] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [draft, setDraft] = useState<PostingCardUserDraft>(() =>
-    createCardUserDraft(card),
-  )
+  const [draft, setDraft] = useState<PostingCardUserDraft>(() => createCardUserDraft(card))
   const updateRequest = createPostingCardUpdateRequest(draft)
   const originalTitle = card.posting.identity.position_title?.value ?? null
   const displayedAlias = isEditing
@@ -63,6 +64,8 @@ export function usePostingCardEditor(
   const displayedTitle =
     displayedAlias ?? originalTitle ?? 'Unknown Position'
   const hasChanges =
+    updateRequest.role_summary !==
+      (card.posting.role_content.role_summary?.value ?? null) ||
     updateRequest.posting_alias !== card.posting_alias ||
     updateRequest.user_notes !== card.user_notes ||
     updateRequest.tags.length !== card.tags.length ||
@@ -109,6 +112,10 @@ export function usePostingCardEditor(
     }
   }
 
+  function updateDraftRoleSummary(roleSummary: string) {
+    setDraft((currentDraft) => ({ ...currentDraft, roleSummary }))
+  }
+
   function updateDraftAlias(postingAlias: string) {
     setDraft((currentDraft) => ({ ...currentDraft, postingAlias }))
   }
@@ -135,6 +142,7 @@ export function usePostingCardEditor(
       displayedAlias !== originalTitle,
     cancelEditing,
     saveCardChanges,
+    updateDraftRoleSummary,
     updateDraftAlias,
     updateDraftTags,
     updateDraftNotes,

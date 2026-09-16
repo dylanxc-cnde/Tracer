@@ -1,11 +1,16 @@
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from ..models.posting_card import PostingCard
+from ..models.posting_details import FactOrigin
 from ..stores.posting_card_store import PostingCardStore
+
+if TYPE_CHECKING:
+    from tracer.api.models import UpdatePostingCardRequest
 
 
 class UpdatePostingCardService:
-    """Update the user-owned fields of stored posting cards.
+    """Update the editable content of stored posting cards.
 
     Args:
         store: The posting card store to use.
@@ -17,17 +22,13 @@ class UpdatePostingCardService:
     def update_user_content(
         self,
         card_key: UUID,
-        posting_alias: str | None,
-        user_notes: str | None,
-        tags: tuple[str, ...],
+        request: "UpdatePostingCardRequest",
     ) -> PostingCard | None:
-        """Replace the user-owned fields of one posting card.
+        """Update allowed fields while preserving sources and card metadata.
 
         Args:
             card_key: The posting card to update.
-            posting_alias: The user's display name for the posting.
-            user_notes: Notes written by the user.
-            tags: Tags chosen by the user.
+            request: The editable content submitted by the user.
 
         Returns:
             The updated card, or None if it does not exist.
@@ -36,14 +37,37 @@ class UpdatePostingCardService:
         if card is None:
             return None
 
-        updated_card = PostingCard.model_validate(
-            {
-                **card.model_dump(),
-                "posting_alias": posting_alias,
-                "user_notes": user_notes,
-                "tags": tags,
-            }
+        original_card = self._posting_card_store.get_original_by_card_key(card_key)
+        if original_card is None:
+            return None
+
+        payload = card.model_dump()
+        saved_summary = card.posting.role_content.role_summary
+        saved_summary_value = (
+            saved_summary.value if saved_summary is not None else None
         )
+
+        if request.role_summary != saved_summary_value:
+            if request.role_summary is None:
+                payload["posting"]["role_content"]["role_summary"] = None
+            else:
+                original_summary = original_card.posting.role_content.role_summary
+                origin = FactOrigin.USER_DEFINED
+                if (
+                    original_summary is not None
+                    and request.role_summary == original_summary.value
+                ):
+                    origin = original_summary.origin
+
+                payload["posting"]["role_content"]["role_summary"] = {
+                    "value": request.role_summary,
+                    "origin": origin,
+                }
+
+        payload["posting_alias"] = request.posting_alias
+        payload["user_notes"] = request.user_notes
+        payload["tags"] = request.tags
+        updated_card = PostingCard.model_validate(payload)
 
         if not self._posting_card_store.update(updated_card):
             return None

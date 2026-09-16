@@ -163,9 +163,7 @@ def create_postings_router(
     ) -> PostingCard:
         card = update_posting_card_service.update_user_content(
             card_key=card_key,
-            posting_alias=request.posting_alias,
-            user_notes=request.user_notes,
-            tags=request.tags,
+            request=request,
         )
         if card is None:
             raise HTTPException(

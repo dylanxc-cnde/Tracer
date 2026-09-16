@@ -18,10 +18,11 @@ class CreatePostingCardRequest(BaseModel):
 
 
 class UpdatePostingCardRequest(BaseModel):
-    """User-owned posting card fields replaced by one update."""
+    """Editable posting card content submitted in one update."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    role_summary: str | None
     posting_alias: str | None
     user_notes: str | None
     tags: tuple[str, ...]

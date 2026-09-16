@@ -59,3 +59,11 @@
   color: var(--color-action-primary);
   font-weight: 650;
 }
+
+.posting-card-source-evidence__modification-notice {
+  margin: 8px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
