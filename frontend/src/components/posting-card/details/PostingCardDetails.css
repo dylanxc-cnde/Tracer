@@ -291,6 +291,7 @@
 }
 
 .posting-card-details__add-responsibility,
+.posting-card-details__add-role-domain,
 .posting-card-details__add-benefit {
   position: absolute;
   top: 0;

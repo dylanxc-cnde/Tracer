@@ -193,10 +193,30 @@ export function PostingCardDetails({
           </div>
 
           <div className="posting-card-details__field">
-            <h4>Role domains</h4>
+            <div className="posting-card-details__field-heading">
+              <h4>Role domains</h4>
+
+              {editor.isEditing && (
+                <button
+                  className="posting-card-details__add-role-domain button--primary"
+                  type="button"
+                  aria-label="Add role domain"
+                  title="Add role domain"
+                  disabled={editor.isSavingCardChanges}
+                  onClick={editor.addDraftRoleDomain}
+                >
+                  +
+                </button>
+              )}
+            </div>
 
             <PostingCardRoleDomains
               domains={posting.role_content.domains}
+              draft={editor.draft.roleDomains}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onDomainChange={editor.updateDraftRoleDomain}
+              onDomainDelete={editor.deleteDraftRoleDomain}
             />
           </div>
 

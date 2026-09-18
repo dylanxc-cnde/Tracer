@@ -13,6 +13,7 @@ export type TextItemDraft = {
 export type PostingCardUserDraft = {
   roleSummary: string
   responsibilities: TextItemDraft[]
+  roleDomains: TextItemDraft[]
   benefits: TextItemDraft[]
   vacationDays: string
   postingAlias: string
@@ -35,6 +36,10 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
         value: responsibility.value,
       }),
     ),
+    roleDomains: card.posting.role_content.domains.map((domain) => ({
+      id: crypto.randomUUID(),
+      value: domain.value,
+    })),
     benefits: card.posting.compensation.benefits.map((benefit) => ({
       id: crypto.randomUUID(),
       value: benefit.value,
@@ -72,6 +77,7 @@ function createPostingCardUpdateRequest(
   return {
     role_summary: normalizeOptionalText(draft.roleSummary),
     responsibilities: normalizeTextItems(draft.responsibilities),
+    role_domains: normalizeTextItems(draft.roleDomains),
     benefits: normalizeTextItems(draft.benefits),
     vacation_days: normalizeOptionalNumber(draft.vacationDays),
     posting_alias: normalizeOptionalText(draft.postingAlias),
@@ -105,6 +111,10 @@ export function usePostingCardEditor(
     updateRequest.responsibilities.some(
       (value, index) =>
         value !== card.posting.role_content.responsibilities[index]?.value,
+    ) ||
+    updateRequest.role_domains.length !== card.posting.role_content.domains.length ||
+    updateRequest.role_domains.some(
+      (value, index) => value !== card.posting.role_content.domains[index]?.value,
     ) ||
     updateRequest.benefits.length !== card.posting.compensation.benefits.length ||
     updateRequest.benefits.some(
@@ -204,6 +214,34 @@ export function usePostingCardEditor(
     }))
   }
 
+  function addDraftRoleDomain() {
+    const domain: TextItemDraft = {
+      id: crypto.randomUUID(),
+      value: '',
+    }
+
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      roleDomains: [...currentDraft.roleDomains, domain],
+    }))
+  }
+
+  function updateDraftRoleDomain(id: string, value: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      roleDomains: currentDraft.roleDomains.map((domain) =>
+        domain.id === id ? { ...domain, value } : domain,
+      ),
+    }))
+  }
+
+  function deleteDraftRoleDomain(id: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      roleDomains: currentDraft.roleDomains.filter((domain) => domain.id !== id),
+    }))
+  }
+
   function addDraftBenefit() {
     const benefit: TextItemDraft = {
       id: crypto.randomUUID(),
@@ -266,6 +304,9 @@ export function usePostingCardEditor(
     addDraftResponsibility,
     updateDraftResponsibility,
     deleteDraftResponsibility,
+    addDraftRoleDomain,
+    updateDraftRoleDomain,
+    deleteDraftRoleDomain,
     addDraftBenefit,
     updateDraftBenefit,
     deleteDraftBenefit,

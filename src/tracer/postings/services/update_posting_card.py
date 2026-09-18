@@ -87,6 +87,24 @@ class UpdatePostingCardService:
                 updated_responsibilities
             )
 
+        saved_domains = tuple(
+            domain.value for domain in card.posting.role_content.domains
+        )
+        if request.role_domains != saved_domains:
+            updated_domains = []
+            original_domains = original_card.posting.role_content.domains
+
+            for value in request.role_domains:
+                origin = FactOrigin.USER_DEFINED
+                for original_domain in original_domains:
+                    if value == original_domain.value:
+                        origin = original_domain.origin
+                        break
+
+                updated_domains.append({"value": value, "origin": origin})
+
+            payload["posting"]["role_content"]["domains"] = updated_domains
+
         saved_benefits = tuple(
             benefit.value for benefit in card.posting.compensation.benefits
         )
