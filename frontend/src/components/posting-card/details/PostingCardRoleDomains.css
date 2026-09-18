@@ -112,27 +112,7 @@
 }
 
 .posting-card-role-domains__delete-confirmation {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  width: min(100%, 340px);
-  padding: 12px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
-  background-color: var(--color-surface);
-  box-shadow: var(--shadow);
-  font-size: 14px;
-}
-
-.posting-card-role-domains__delete-confirmation > span {
-  flex-basis: 100%;
-  overflow-wrap: anywhere;
+  width: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {

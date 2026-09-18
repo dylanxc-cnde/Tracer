@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './PostingCardBenefits.css'
+import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
 import type { Compensation } from '../../../postings/types/postingDetails'
 import type { TextItemDraft } from './usePostingCardEditor'
 
@@ -74,27 +75,13 @@ export function PostingCardBenefits({
             </div>
 
             {pendingDeleteId === benefit.id && (
-              <div
-                className="posting-card-benefits__delete-confirmation"
-                role="group"
-                aria-label={`Delete benefit ${index + 1}?`}
-              >
-                <span>Delete this benefit?</span>
-                <button
-                  type="button"
-                  disabled={isSavingCardChanges}
-                  onClick={() => setPendingDeleteId(null)}
-                >
-                  Keep
-                </button>
-                <button
-                  className="button--danger"
-                  type="button"
-                  disabled={isSavingCardChanges}
-                  onClick={() => handleDeleteBenefit(benefit.id)}
-                >
-                  Delete
-                </button>
+              <div className="posting-card-benefits__delete-confirmation">
+                <PostingCardDeleteConfirmation
+                  message="Delete this benefit?"
+                  isDisabled={isSavingCardChanges}
+                  onCancel={() => setPendingDeleteId(null)}
+                  onConfirm={() => handleDeleteBenefit(benefit.id)}
+                />
               </div>
             )}
           </li>

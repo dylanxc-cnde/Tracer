@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './PostingCardResponsibilities.css'
+import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
 import type { RoleDescription } from '../../../postings/types/postingDetails'
 import type { TextItemDraft } from './usePostingCardEditor'
 
@@ -74,27 +75,13 @@ export function PostingCardResponsibilities({
             </div>
 
             {pendingDeleteId === responsibility.id && (
-              <div
-                className="posting-card-responsibilities__delete-confirmation"
-                role="group"
-                aria-label={`Delete responsibility ${index + 1}?`}
-              >
-                <span>Delete this responsibility?</span>
-                <button
-                  type="button"
-                  disabled={isSavingCardChanges}
-                  onClick={() => setPendingDeleteId(null)}
-                >
-                  Keep
-                </button>
-                <button
-                  className="button--danger"
-                  type="button"
-                  disabled={isSavingCardChanges}
-                  onClick={() => handleDeleteResponsibility(responsibility.id)}
-                >
-                  Delete
-                </button>
+              <div className="posting-card-responsibilities__delete-confirmation">
+                <PostingCardDeleteConfirmation
+                  message="Delete this responsibility?"
+                  isDisabled={isSavingCardChanges}
+                  onCancel={() => setPendingDeleteId(null)}
+                  onConfirm={() => handleDeleteResponsibility(responsibility.id)}
+                />
               </div>
             )}
           </li>

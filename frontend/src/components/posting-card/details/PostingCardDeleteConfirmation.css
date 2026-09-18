@@ -1,7 +1,10 @@
 .posting-card-delete-confirmation {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  width: min(100%, 340px);
+  width: 100%;
   padding: 12px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 12px;
@@ -13,13 +16,16 @@
 }
 
 .posting-card-delete-confirmation__message {
+  flex: 1 1 240px;
+  min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
 }
 
 .posting-card-delete-confirmation__actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-shrink: 0;
   justify-content: flex-end;
   gap: 12px;
+  margin-left: auto;
 }

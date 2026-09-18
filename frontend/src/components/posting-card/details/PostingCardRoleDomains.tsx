@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './PostingCardRoleDomains.css'
+import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
 import type { RoleDescription } from '../../../postings/types/postingDetails'
 import type { TextItemDraft } from './usePostingCardEditor'
 
@@ -77,27 +78,13 @@ export function PostingCardRoleDomains({
         </div>
 
         {pendingDeleteDomain !== undefined && (
-          <div
-            className="posting-card-role-domains__delete-confirmation"
-            role="group"
-            aria-label="Delete role domain?"
-          >
-            <span>Delete “{pendingDeleteDomain.value || 'New domain'}”?</span>
-            <button
-              type="button"
-              disabled={isSavingCardChanges}
-              onClick={() => setPendingDeleteId(null)}
-            >
-              Keep
-            </button>
-            <button
-              className="button--danger"
-              type="button"
-              disabled={isSavingCardChanges}
-              onClick={() => handleDeleteDomain(pendingDeleteDomain.id)}
-            >
-              Delete
-            </button>
+          <div className="posting-card-role-domains__delete-confirmation">
+            <PostingCardDeleteConfirmation
+              message={`Delete “${pendingDeleteDomain.value || 'New domain'}”?`}
+              isDisabled={isSavingCardChanges}
+              onCancel={() => setPendingDeleteId(null)}
+              onConfirm={() => handleDeleteDomain(pendingDeleteDomain.id)}
+            />
           </div>
         )}
       </div>
