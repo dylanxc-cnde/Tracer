@@ -87,6 +87,24 @@ class UpdatePostingCardService:
                 updated_responsibilities
             )
 
+        saved_benefits = tuple(
+            benefit.value for benefit in card.posting.compensation.benefits
+        )
+        if request.benefits != saved_benefits:
+            updated_benefits = []
+            original_benefits = original_card.posting.compensation.benefits
+
+            for value in request.benefits:
+                origin = FactOrigin.USER_DEFINED
+                for original_benefit in original_benefits:
+                    if value == original_benefit.value:
+                        origin = original_benefit.origin
+                        break
+
+                updated_benefits.append({"value": value, "origin": origin})
+
+            payload["posting"]["compensation"]["benefits"] = updated_benefits
+
         payload["posting_alias"] = request.posting_alias
         payload["user_notes"] = request.user_notes
         payload["tags"] = request.tags

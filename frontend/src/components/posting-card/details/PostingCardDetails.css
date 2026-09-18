@@ -290,7 +290,8 @@
   font-size: 15px;
 }
 
-.posting-card-details__add-responsibility {
+.posting-card-details__add-responsibility,
+.posting-card-details__add-benefit {
   position: absolute;
   top: 0;
   right: 0;
@@ -333,11 +334,6 @@
 }
 
 .posting-card-details__application-field > h4 {
-  margin: 0;
-  font-size: 15px;
-}
-
-.posting-card-details__benefits > h4 {
   margin: 0;
   font-size: 15px;
 }

@@ -13,6 +13,7 @@ export type TextItemDraft = {
 export type PostingCardUserDraft = {
   roleSummary: string
   responsibilities: TextItemDraft[]
+  benefits: TextItemDraft[]
   postingAlias: string
   tags: string[]
   userNotes: string
@@ -33,6 +34,10 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
         value: responsibility.value,
       }),
     ),
+    benefits: card.posting.compensation.benefits.map((benefit) => ({
+      id: crypto.randomUUID(),
+      value: benefit.value,
+    })),
     postingAlias: card.posting_alias ?? '',
     tags: [...card.tags],
     userNotes: card.user_notes ?? '',
@@ -59,6 +64,7 @@ function createPostingCardUpdateRequest(
   return {
     role_summary: normalizeOptionalText(draft.roleSummary),
     responsibilities: normalizeTextItems(draft.responsibilities),
+    benefits: normalizeTextItems(draft.benefits),
     posting_alias: normalizeOptionalText(draft.postingAlias),
     user_notes: normalizeOptionalText(draft.userNotes),
     tags: draft.tags,
@@ -90,6 +96,10 @@ export function usePostingCardEditor(
     updateRequest.responsibilities.some(
       (value, index) =>
         value !== card.posting.role_content.responsibilities[index]?.value,
+    ) ||
+    updateRequest.benefits.length !== card.posting.compensation.benefits.length ||
+    updateRequest.benefits.some(
+      (value, index) => value !== card.posting.compensation.benefits[index]?.value,
     ) ||
     updateRequest.posting_alias !== card.posting_alias ||
     updateRequest.user_notes !== card.user_notes ||
@@ -173,6 +183,34 @@ export function usePostingCardEditor(
     }))
   }
 
+  function addDraftBenefit() {
+    const benefit: TextItemDraft = {
+      id: crypto.randomUUID(),
+      value: '',
+    }
+
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      benefits: [...currentDraft.benefits, benefit],
+    }))
+  }
+
+  function updateDraftBenefit(id: string, value: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      benefits: currentDraft.benefits.map((benefit) =>
+        benefit.id === id ? { ...benefit, value } : benefit,
+      ),
+    }))
+  }
+
+  function deleteDraftBenefit(id: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      benefits: currentDraft.benefits.filter((benefit) => benefit.id !== id),
+    }))
+  }
+
   function updateDraftAlias(postingAlias: string) {
     setDraft((currentDraft) => ({ ...currentDraft, postingAlias }))
   }
@@ -203,6 +241,9 @@ export function usePostingCardEditor(
     addDraftResponsibility,
     updateDraftResponsibility,
     deleteDraftResponsibility,
+    addDraftBenefit,
+    updateDraftBenefit,
+    deleteDraftBenefit,
     updateDraftAlias,
     updateDraftTags,
     updateDraftNotes,

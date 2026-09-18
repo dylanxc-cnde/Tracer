@@ -211,6 +211,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
             json={
                 "role_summary": None,
                 "responsibilities": [],
+                "benefits": [],
                 "posting_alias": "Velora analytics",
                 "user_notes": "Prepare questions for the team.",
                 "tags": ["priority", "analytics"],
@@ -292,6 +293,7 @@ def test_http_updates_role_summary_and_preserves_card_context(
     update_request = {
         "role_summary": new_value,
         "responsibilities": ["Build reports"],
+        "benefits": [],
         "posting_alias": "My analytics role",
         "user_notes": "Keep these notes.",
         "tags": ["priority"],
@@ -338,6 +340,10 @@ def test_http_updates_role_summary_and_preserves_card_context(
         {"responsibilities": "Not a list"},
         {"responsibilities": [42]},
         {"responsibilities": [{"value": "Cannot supply origin", "origin": "source"}]},
+        {"benefits": None},
+        {"benefits": "Not a list"},
+        {"benefits": [42]},
+        {"benefits": [{"value": "Cannot supply origin", "origin": "source"}]},
         {"posting": {}},
         {"card_key": "Cannot change the card key"},
     ],
@@ -353,6 +359,7 @@ def test_http_rejects_invalid_card_update_without_changing_storage(
     update_request = {
         "role_summary": "User summary",
         "responsibilities": [],
+        "benefits": [],
         "posting_alias": None,
         "user_notes": None,
         "tags": [],
@@ -383,6 +390,7 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
             json={
                 "role_summary": "User summary",
                 "responsibilities": [],
+                "benefits": [],
                 "posting_alias": "My role",
                 "user_notes": "Saved notes",
                 "tags": ["priority"],
@@ -393,6 +401,7 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
             json={
                 "role_summary": "User summary",
                 "responsibilities": [],
+                "benefits": [],
                 "posting_alias": "My renamed role",
                 "user_notes": "Saved notes",
                 "tags": ["priority"],
@@ -443,6 +452,7 @@ def test_http_restores_original_summary_and_origin(
     update_request = {
         "role_summary": intermediate_value,
         "responsibilities": [],
+        "benefits": [],
         "posting_alias": "My role",
         "user_notes": "Keep my notes.",
         "tags": ["priority"],
@@ -529,6 +539,7 @@ def test_http_updates_and_restores_responsibilities(
     update_request = {
         "role_summary": "Original summary",
         "responsibilities": new_values,
+        "benefits": [],
         "posting_alias": "My analytics role",
         "user_notes": "Keep my notes.",
         "tags": ["priority"],
@@ -575,6 +586,152 @@ def test_http_updates_and_restores_responsibilities(
     assert reopened_store.get_original_by_card_key(card.card_key) == card
 
 
+@pytest.mark.parametrize(
+    ("new_values", "expected_origins"),
+    [
+        (["Transport pass", "Training budget"], ["source", "user_defined"]),
+        (
+            ["Transport pass", "Training budget", "Free meals"],
+            ["source", "user_defined", "user_defined"],
+        ),
+        (["Bike leasing", "Training budget"], ["user_defined", "user_defined"]),
+        (["Training budget"], ["user_defined"]),
+        ([], []),
+        (["Training budget", "Transport pass"], ["user_defined", "source"]),
+        (["Transport pass", "Transport pass"], ["source", "source"]),
+    ],
+)
+def test_http_updates_and_restores_benefits(tmp_path, new_values, expected_origins):
+    database_path = tmp_path / "tracer.db"
+    posting_payload = make_posting_details().model_dump(mode="json")
+    posting_payload["role_content"]["responsibilities"] = [
+        {"value": "Build reports", "origin": "source"}
+    ]
+    posting_payload["compensation"]["source"] = {
+        "excerpts": ["We offer a transport pass and a training budget."],
+        "source_urls": ["https://example.com/jobs/analytics"],
+    }
+    posting_payload["compensation"]["benefits"] = [
+        {"value": "Transport pass", "origin": "source"},
+        {"value": "Training budget", "origin": "user_defined"},
+    ]
+    posting_payload["compensation"]["entries"] = [
+        {
+            "origin": "source",
+            "compensation_type": "base_salary",
+            "minimum_amount": 17,
+            "maximum_amount": 20,
+            "currency": "EUR",
+            "period": "hour",
+            "pay_basis": "gross",
+            "applicable_groups": [],
+            "payment_conditions": None,
+        }
+    ]
+    posting_payload["compensation"]["vacation_days"] = {
+        "value": 30,
+        "origin": "source",
+    }
+    card = PostingCard(
+        import_key=uuid4(),
+        posting=PostingDetails.model_validate(posting_payload),
+    )
+    store = PostingCardStore(database_path)
+    store.add(card)
+    app = create_app(database_path=database_path)
+    update_request = {
+        "role_summary": None,
+        "responsibilities": ["Build reports"],
+        "benefits": new_values,
+        "posting_alias": "My analytics role",
+        "user_notes": "Keep my notes.",
+        "tags": ["priority"],
+    }
+
+    with TestClient(app) as client:
+        response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        assert response.status_code == 200
+        expected_payload = card.model_dump(mode="json")
+        expected_payload["posting"]["compensation"]["benefits"] = [
+            {"value": value, "origin": origin}
+            for value, origin in zip(new_values, expected_origins, strict=True)
+        ]
+        expected_payload["posting_alias"] = update_request["posting_alias"]
+        expected_payload["user_notes"] = update_request["user_notes"]
+        expected_payload["tags"] = update_request["tags"]
+        assert response.json() == expected_payload
+        assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
+        assert client.get("/posting-cards").json() == [expected_payload]
+
+        update_request["posting_alias"] = "Renamed after saving benefits"
+        repeated_response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        expected_payload["posting_alias"] = update_request["posting_alias"]
+        assert repeated_response.status_code == 200
+        assert repeated_response.json() == expected_payload
+
+        update_request["benefits"] = ["Transport pass", "Training budget"]
+        restored_response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        assert restored_response.status_code == 200
+        expected_payload["posting"]["compensation"]["benefits"] = (
+            posting_payload["compensation"]["benefits"]
+        )
+        assert restored_response.json() == expected_payload
+        assert client.get(
+            f"/posting-cards/{card.card_key}/original"
+        ).json() == card.model_dump(mode="json")
+
+    reopened_store = PostingCardStore(database_path)
+    assert reopened_store.get_by_card_key(card.card_key) == (
+        PostingCard.model_validate(expected_payload)
+    )
+    assert reopened_store.get_original_by_card_key(card.card_key) == card
+
+
+def test_http_requires_benefits_and_can_add_to_empty_list(tmp_path):
+    database_path = tmp_path / "tracer.db"
+    card = PostingCard(import_key=uuid4(), posting=make_posting_details())
+    store = PostingCardStore(database_path)
+    store.add(card)
+    app = create_app(database_path=database_path)
+    update_request = {
+        "role_summary": None,
+        "responsibilities": [],
+        "posting_alias": None,
+        "user_notes": None,
+        "tags": [],
+    }
+
+    with TestClient(app) as client:
+        missing_field_response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        assert missing_field_response.status_code == 422
+        assert store.get_by_card_key(card.card_key) == card
+
+        update_request["benefits"] = ["Training budget"]
+        response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        assert response.status_code == 200
+        expected_payload = card.model_dump(mode="json")
+        expected_payload["posting"]["compensation"]["benefits"] = [
+            {"value": "Training budget", "origin": "user_defined"}
+        ]
+        assert response.json() == expected_payload
+
+    reopened_store = PostingCardStore(database_path)
+    assert reopened_store.get_by_card_key(card.card_key) == (
+        PostingCard.model_validate(expected_payload)
+    )
+    assert reopened_store.get_original_by_card_key(card.card_key) == card
+
+
 def test_missing_import_and_card_return_not_found(tmp_path):
     missing_key = uuid4()
     app = create_app(
@@ -599,6 +756,7 @@ def test_missing_import_and_card_return_not_found(tmp_path):
             json={
                 "role_summary": None,
                 "responsibilities": [],
+                "benefits": [],
                 "posting_alias": None,
                 "user_notes": None,
                 "tags": [],

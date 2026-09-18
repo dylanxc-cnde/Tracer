@@ -249,10 +249,30 @@ export function PostingCardDetails({
           </div>
 
           <div className="posting-card-details__benefits">
-            <h4>Benefits</h4>
+            <div className="posting-card-details__field-heading">
+              <h4>Benefits</h4>
+
+              {editor.isEditing && (
+                <button
+                  className="posting-card-details__add-benefit button--primary"
+                  type="button"
+                  aria-label="Add benefit"
+                  title="Add benefit"
+                  disabled={editor.isSavingCardChanges}
+                  onClick={editor.addDraftBenefit}
+                >
+                  +
+                </button>
+              )}
+            </div>
 
             <PostingCardBenefits
               benefits={posting.compensation.benefits}
+              draft={editor.draft.benefits}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onBenefitChange={editor.updateDraftBenefit}
+              onBenefitDelete={editor.deleteDraftBenefit}
             />
           </div>
 
