@@ -281,6 +281,10 @@ export function PostingCardDetails({
 
             <PostingCardVacation
               vacationDays={posting.compensation.vacation_days}
+              draft={editor.draft.vacationDays}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onVacationDaysChange={editor.updateDraftVacationDays}
             />
           </div>
 

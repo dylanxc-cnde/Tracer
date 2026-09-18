@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from tracer.postings import PostingDetails
 
@@ -25,6 +25,7 @@ class UpdatePostingCardRequest(BaseModel):
     role_summary: str | None
     responsibilities: tuple[str, ...]
     benefits: tuple[str, ...]
+    vacation_days: int | None = Field(..., ge=0, strict=True)
     posting_alias: str | None
     user_notes: str | None
     tags: tuple[str, ...]

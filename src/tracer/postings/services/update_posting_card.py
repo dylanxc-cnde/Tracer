@@ -105,6 +105,27 @@ class UpdatePostingCardService:
 
             payload["posting"]["compensation"]["benefits"] = updated_benefits
 
+        saved_vacation = card.posting.compensation.vacation_days
+        saved_vacation_value = (
+            saved_vacation.value if saved_vacation is not None else None
+        )
+        if request.vacation_days != saved_vacation_value:
+            if request.vacation_days is None:
+                payload["posting"]["compensation"]["vacation_days"] = None
+            else:
+                original_vacation = original_card.posting.compensation.vacation_days
+                origin = FactOrigin.USER_DEFINED
+                if (
+                    original_vacation is not None
+                    and request.vacation_days == original_vacation.value
+                ):
+                    origin = original_vacation.origin
+
+                payload["posting"]["compensation"]["vacation_days"] = {
+                    "value": request.vacation_days,
+                    "origin": origin,
+                }
+
         payload["posting_alias"] = request.posting_alias
         payload["user_notes"] = request.user_notes
         payload["tags"] = request.tags

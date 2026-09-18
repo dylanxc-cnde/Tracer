@@ -23,6 +23,7 @@ export type UpdatePostingCardRequest = {
   role_summary: string | null
   responsibilities: string[]
   benefits: string[]
+  vacation_days: number | null
   posting_alias: string | null
   user_notes: string | null
   tags: string[]

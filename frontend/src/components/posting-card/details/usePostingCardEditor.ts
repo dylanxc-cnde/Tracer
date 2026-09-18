@@ -14,6 +14,7 @@ export type PostingCardUserDraft = {
   roleSummary: string
   responsibilities: TextItemDraft[]
   benefits: TextItemDraft[]
+  vacationDays: string
   postingAlias: string
   tags: string[]
   userNotes: string
@@ -38,6 +39,7 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
       id: crypto.randomUUID(),
       value: benefit.value,
     })),
+    vacationDays: card.posting.compensation.vacation_days?.value.toString() ?? '',
     postingAlias: card.posting_alias ?? '',
     tags: [...card.tags],
     userNotes: card.user_notes ?? '',
@@ -49,6 +51,12 @@ function normalizeOptionalText(value: string) {
   const normalizedValue = value.trim()
 
   return normalizedValue.length > 0 ? normalizedValue : null
+}
+
+function normalizeOptionalNumber(value: string): number | null {
+  const normalizedValue = value.trim()
+
+  return normalizedValue.length > 0 ? Number(normalizedValue) : null
 }
 
 function normalizeTextItems(items: TextItemDraft[]): string[] {
@@ -65,6 +73,7 @@ function createPostingCardUpdateRequest(
     role_summary: normalizeOptionalText(draft.roleSummary),
     responsibilities: normalizeTextItems(draft.responsibilities),
     benefits: normalizeTextItems(draft.benefits),
+    vacation_days: normalizeOptionalNumber(draft.vacationDays),
     posting_alias: normalizeOptionalText(draft.postingAlias),
     user_notes: normalizeOptionalText(draft.userNotes),
     tags: draft.tags,
@@ -101,6 +110,8 @@ export function usePostingCardEditor(
     updateRequest.benefits.some(
       (value, index) => value !== card.posting.compensation.benefits[index]?.value,
     ) ||
+    updateRequest.vacation_days !==
+      (card.posting.compensation.vacation_days?.value ?? null) ||
     updateRequest.posting_alias !== card.posting_alias ||
     updateRequest.user_notes !== card.user_notes ||
     updateRequest.tags.length !== card.tags.length ||
@@ -129,6 +140,16 @@ export function usePostingCardEditor(
     if (isReadOnly) {
       return
     }
+
+    const vacationDays = updateRequest.vacation_days
+    if (
+      vacationDays !== null &&
+      (!Number.isSafeInteger(vacationDays) || vacationDays < 0)
+    ) {
+      setSaveError('Vacation days must be a non-negative whole number, or empty.')
+      return
+    }
+
     setIsSavingCardChanges(true)
     setSaveError(null)
 
@@ -211,6 +232,10 @@ export function usePostingCardEditor(
     }))
   }
 
+  function updateDraftVacationDays(vacationDays: string) {
+    setDraft((currentDraft) => ({ ...currentDraft, vacationDays }))
+  }
+
   function updateDraftAlias(postingAlias: string) {
     setDraft((currentDraft) => ({ ...currentDraft, postingAlias }))
   }
@@ -244,6 +269,7 @@ export function usePostingCardEditor(
     addDraftBenefit,
     updateDraftBenefit,
     deleteDraftBenefit,
+    updateDraftVacationDays,
     updateDraftAlias,
     updateDraftTags,
     updateDraftNotes,
