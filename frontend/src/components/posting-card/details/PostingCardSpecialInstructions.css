@@ -1,11 +1,122 @@
 .posting-card-special-instructions {
   display: grid;
   gap: 12px;
-  margin: 16px 0 0;
-  padding-left: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .posting-card-special-instructions > li {
-  padding-left: 4px;
   line-height: 1.55;
+}
+
+.posting-card-special-instructions__row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 8px;
+}
+
+.posting-card-special-instructions__text {
+  position: relative;
+  min-width: 0;
+}
+
+.posting-card-special-instructions__value,
+.posting-card-special-instructions__input {
+  display: block;
+  min-height: 1.55em;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: 1.55;
+  letter-spacing: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-special-instructions__value--sizing {
+  visibility: hidden;
+}
+
+/* Keep empty text and a trailing newline at their natural line height. */
+.posting-card-special-instructions__value::after {
+  content: '\200b';
+}
+
+.posting-card-special-instructions__bullet {
+  display: grid;
+  place-items: center;
+  height: 1.55em;
+}
+
+.posting-card-special-instructions__input {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
+  overflow: hidden;
+  resize: none;
+  transition: background-color 320ms ease;
+}
+
+.posting-card-special-instructions__input:hover:not(:disabled),
+.posting-card-special-instructions__input:focus-visible {
+  background-color: rgba(52, 53, 53, 0.04);
+}
+
+.posting-card-special-instructions__input:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 4px;
+}
+
+.posting-card-special-instructions__input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.posting-card-special-instructions__input:disabled {
+  color: var(--color-text-secondary);
+  cursor: wait;
+}
+
+.posting-card-special-instructions__delete-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 1.55em;
+  min-height: 0;
+  padding: 0;
+  border-color: transparent;
+  border-radius: 6px;
+  background-color: transparent;
+  font: inherit;
+}
+
+.posting-card-special-instructions__delete-button > span {
+  font-size: 24px;
+  line-height: 1;
+  transform: translateY(-2px);
+}
+
+.posting-card-special-instructions__delete-button:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+}
+
+.posting-card-special-instructions__delete-confirmation {
+  margin-top: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posting-card-special-instructions__input {
+    transition: none;
+  }
 }

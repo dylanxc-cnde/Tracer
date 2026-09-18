@@ -27,6 +27,8 @@ class UpdatePostingCardRequest(BaseModel):
     role_domains: tuple[str, ...]
     benefits: tuple[str, ...]
     vacation_days: int | None = Field(..., ge=0, strict=True)
+    required_documents: tuple[str, ...]
+    special_instructions: tuple[str, ...]
     posting_alias: str | None
     user_notes: str | None
     tags: tuple[str, ...]

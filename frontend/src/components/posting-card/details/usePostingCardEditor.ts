@@ -16,6 +16,8 @@ export type PostingCardUserDraft = {
   roleDomains: TextItemDraft[]
   benefits: TextItemDraft[]
   vacationDays: string
+  requiredDocuments: TextItemDraft[]
+  specialInstructions: TextItemDraft[]
   postingAlias: string
   tags: string[]
   userNotes: string
@@ -45,6 +47,18 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
       value: benefit.value,
     })),
     vacationDays: card.posting.compensation.vacation_days?.value.toString() ?? '',
+    requiredDocuments: card.posting.application_instructions.required_documents.map(
+      (document) => ({
+        id: crypto.randomUUID(),
+        value: document.value,
+      }),
+    ),
+    specialInstructions: card.posting.application_instructions.special_instructions.map(
+      (instruction) => ({
+        id: crypto.randomUUID(),
+        value: instruction.value,
+      }),
+    ),
     postingAlias: card.posting_alias ?? '',
     tags: [...card.tags],
     userNotes: card.user_notes ?? '',
@@ -80,6 +94,8 @@ function createPostingCardUpdateRequest(
     role_domains: normalizeTextItems(draft.roleDomains),
     benefits: normalizeTextItems(draft.benefits),
     vacation_days: normalizeOptionalNumber(draft.vacationDays),
+    required_documents: normalizeTextItems(draft.requiredDocuments),
+    special_instructions: normalizeTextItems(draft.specialInstructions),
     posting_alias: normalizeOptionalText(draft.postingAlias),
     user_notes: normalizeOptionalText(draft.userNotes),
     tags: draft.tags,
@@ -122,6 +138,18 @@ export function usePostingCardEditor(
     ) ||
     updateRequest.vacation_days !==
       (card.posting.compensation.vacation_days?.value ?? null) ||
+    updateRequest.required_documents.length !==
+      card.posting.application_instructions.required_documents.length ||
+    updateRequest.required_documents.some(
+      (value, index) =>
+        value !== card.posting.application_instructions.required_documents[index]?.value,
+    ) ||
+    updateRequest.special_instructions.length !==
+      card.posting.application_instructions.special_instructions.length ||
+    updateRequest.special_instructions.some(
+      (value, index) =>
+        value !== card.posting.application_instructions.special_instructions[index]?.value,
+    ) ||
     updateRequest.posting_alias !== card.posting_alias ||
     updateRequest.user_notes !== card.user_notes ||
     updateRequest.tags.length !== card.tags.length ||
@@ -274,6 +302,66 @@ export function usePostingCardEditor(
     setDraft((currentDraft) => ({ ...currentDraft, vacationDays }))
   }
 
+  function addDraftRequiredDocument() {
+    const document: TextItemDraft = {
+      id: crypto.randomUUID(),
+      value: '',
+    }
+
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      requiredDocuments: [...currentDraft.requiredDocuments, document],
+    }))
+  }
+
+  function updateDraftRequiredDocument(id: string, value: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      requiredDocuments: currentDraft.requiredDocuments.map((document) =>
+        document.id === id ? { ...document, value } : document,
+      ),
+    }))
+  }
+
+  function deleteDraftRequiredDocument(id: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      requiredDocuments: currentDraft.requiredDocuments.filter(
+        (document) => document.id !== id,
+      ),
+    }))
+  }
+
+  function addDraftSpecialInstruction() {
+    const instruction: TextItemDraft = {
+      id: crypto.randomUUID(),
+      value: '',
+    }
+
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      specialInstructions: [...currentDraft.specialInstructions, instruction],
+    }))
+  }
+
+  function updateDraftSpecialInstruction(id: string, value: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      specialInstructions: currentDraft.specialInstructions.map((instruction) =>
+        instruction.id === id ? { ...instruction, value } : instruction,
+      ),
+    }))
+  }
+
+  function deleteDraftSpecialInstruction(id: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      specialInstructions: currentDraft.specialInstructions.filter(
+        (instruction) => instruction.id !== id,
+      ),
+    }))
+  }
+
   function updateDraftAlias(postingAlias: string) {
     setDraft((currentDraft) => ({ ...currentDraft, postingAlias }))
   }
@@ -311,6 +399,12 @@ export function usePostingCardEditor(
     updateDraftBenefit,
     deleteDraftBenefit,
     updateDraftVacationDays,
+    addDraftRequiredDocument,
+    updateDraftRequiredDocument,
+    deleteDraftRequiredDocument,
+    addDraftSpecialInstruction,
+    updateDraftSpecialInstruction,
+    deleteDraftSpecialInstruction,
     updateDraftAlias,
     updateDraftTags,
     updateDraftNotes,

@@ -322,20 +322,62 @@ export function PostingCardDetails({
           />
 
           <div className="posting-card-details__application-field">
-            <h4>Required documents</h4>
+            <div className="posting-card-details__field-heading">
+              <h4>Required documents</h4>
+
+              {editor.isEditing && (
+                <button
+                  className="posting-card-details__add-required-document button--primary"
+                  type="button"
+                  aria-label="Add required document"
+                  title="Add required document"
+                  disabled={editor.isSavingCardChanges}
+                  onClick={editor.addDraftRequiredDocument}
+                >
+                  +
+                </button>
+              )}
+            </div>
+
             <PostingCardRequiredDocuments
               requiredDocuments={
                 posting.application_instructions.required_documents
               }
+              draft={editor.draft.requiredDocuments}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onRequiredDocumentChange={editor.updateDraftRequiredDocument}
+              onRequiredDocumentDelete={editor.deleteDraftRequiredDocument}
             />
           </div>
 
           <div className="posting-card-details__application-field">
-            <h4>Special instructions</h4>
+            <div className="posting-card-details__field-heading">
+              <h4>Special instructions</h4>
+
+              {editor.isEditing && (
+                <button
+                  className="posting-card-details__add-special-instruction button--primary"
+                  type="button"
+                  aria-label="Add special instruction"
+                  title="Add special instruction"
+                  disabled={editor.isSavingCardChanges}
+                  onClick={editor.addDraftSpecialInstruction}
+                >
+                  +
+                </button>
+              )}
+            </div>
+
             <PostingCardSpecialInstructions
               specialInstructions={
                 posting.application_instructions.special_instructions
               }
+              draft={editor.draft.specialInstructions}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onSpecialInstructionChange={editor.updateDraftSpecialInstruction}
+              onSpecialInstructionDelete={editor.deleteDraftSpecialInstruction}
             />
           </div>
 

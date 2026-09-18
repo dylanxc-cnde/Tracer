@@ -25,6 +25,8 @@ export type UpdatePostingCardRequest = {
   role_domains: string[]
   benefits: string[]
   vacation_days: number | null
+  required_documents: string[]
+  special_instructions: string[]
   posting_alias: string | null
   user_notes: string | null
   tags: string[]

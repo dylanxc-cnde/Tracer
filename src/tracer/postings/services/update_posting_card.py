@@ -144,6 +144,52 @@ class UpdatePostingCardService:
                     "origin": origin,
                 }
 
+        saved_documents = tuple(
+            document.value
+            for document in card.posting.application_instructions.required_documents
+        )
+        if request.required_documents != saved_documents:
+            updated_documents = []
+            original_documents = (
+                original_card.posting.application_instructions.required_documents
+            )
+
+            for value in request.required_documents:
+                origin = FactOrigin.USER_DEFINED
+                for original_document in original_documents:
+                    if value == original_document.value:
+                        origin = original_document.origin
+                        break
+
+                updated_documents.append({"value": value, "origin": origin})
+
+            payload["posting"]["application_instructions"]["required_documents"] = (
+                updated_documents
+            )
+
+        saved_instructions = tuple(
+            instruction.value
+            for instruction in card.posting.application_instructions.special_instructions
+        )
+        if request.special_instructions != saved_instructions:
+            updated_instructions = []
+            original_instructions = (
+                original_card.posting.application_instructions.special_instructions
+            )
+
+            for value in request.special_instructions:
+                origin = FactOrigin.USER_DEFINED
+                for original_instruction in original_instructions:
+                    if value == original_instruction.value:
+                        origin = original_instruction.origin
+                        break
+
+                updated_instructions.append({"value": value, "origin": origin})
+
+            payload["posting"]["application_instructions"]["special_instructions"] = (
+                updated_instructions
+            )
+
         payload["posting_alias"] = request.posting_alias
         payload["user_notes"] = request.user_notes
         payload["tags"] = request.tags

@@ -292,7 +292,9 @@
 
 .posting-card-details__add-responsibility,
 .posting-card-details__add-role-domain,
-.posting-card-details__add-benefit {
+.posting-card-details__add-benefit,
+.posting-card-details__add-required-document,
+.posting-card-details__add-special-instruction {
   position: absolute;
   top: 0;
   right: 0;
@@ -332,11 +334,6 @@
 
 .posting-card-details__application-field {
   margin-top: 20px;
-}
-
-.posting-card-details__application-field > h4 {
-  margin: 0;
-  font-size: 15px;
 }
 
 .posting-card-details__disclosure {

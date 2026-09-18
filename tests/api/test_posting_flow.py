@@ -214,6 +214,8 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
                 "role_domains": [],
                 "benefits": [],
                 "vacation_days": None,
+                "required_documents": [],
+                "special_instructions": [],
                 "posting_alias": "Velora analytics",
                 "user_notes": "Prepare questions for the team.",
                 "tags": ["priority", "analytics"],
@@ -298,6 +300,8 @@ def test_http_updates_role_summary_and_preserves_card_context(
         "role_domains": ["Data analytics"],
         "benefits": [],
         "vacation_days": None,
+        "required_documents": [],
+        "special_instructions": [],
         "posting_alias": "My analytics role",
         "user_notes": "Keep these notes.",
         "tags": ["priority"],
@@ -359,6 +363,14 @@ def test_http_updates_role_summary_and_preserves_card_context(
         {"vacation_days": "Not a number"},
         {"vacation_days": [30]},
         {"vacation_days": {"value": 30, "origin": "source"}},
+        {"required_documents": None},
+        {"required_documents": "Not a list"},
+        {"required_documents": [42]},
+        {"required_documents": [{"value": "Cannot supply origin", "origin": "source"}]},
+        {"special_instructions": None},
+        {"special_instructions": "Not a list"},
+        {"special_instructions": [42]},
+        {"special_instructions": [{"value": "Cannot supply origin", "origin": "source"}]},
         {"posting": {}},
         {"card_key": "Cannot change the card key"},
     ],
@@ -377,6 +389,8 @@ def test_http_rejects_invalid_card_update_without_changing_storage(
         "role_domains": [],
         "benefits": [],
         "vacation_days": None,
+        "required_documents": [],
+        "special_instructions": [],
         "posting_alias": None,
         "user_notes": None,
         "tags": [],
@@ -410,6 +424,8 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
                 "role_domains": [],
                 "benefits": [],
                 "vacation_days": None,
+                "required_documents": [],
+                "special_instructions": [],
                 "posting_alias": "My role",
                 "user_notes": "Saved notes",
                 "tags": ["priority"],
@@ -423,6 +439,8 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
                 "role_domains": [],
                 "benefits": [],
                 "vacation_days": None,
+                "required_documents": [],
+                "special_instructions": [],
                 "posting_alias": "My renamed role",
                 "user_notes": "Saved notes",
                 "tags": ["priority"],
@@ -476,6 +494,8 @@ def test_http_restores_original_summary_and_origin(
         "role_domains": [],
         "benefits": [],
         "vacation_days": None,
+        "required_documents": [],
+        "special_instructions": [],
         "posting_alias": "My role",
         "user_notes": "Keep my notes.",
         "tags": ["priority"],
@@ -565,6 +585,8 @@ def test_http_updates_and_restores_responsibilities(
         "role_domains": ["Data analytics"],
         "benefits": [],
         "vacation_days": None,
+        "required_documents": [],
+        "special_instructions": [],
         "posting_alias": "My analytics role",
         "user_notes": "Keep my notes.",
         "tags": ["priority"],
@@ -656,6 +678,8 @@ def test_http_updates_and_restores_role_domains(
         "role_domains": new_values,
         "benefits": [],
         "vacation_days": None,
+        "required_documents": [],
+        "special_instructions": [],
         "posting_alias": "My analytics role",
         "user_notes": "Keep my notes.",
         "tags": ["priority"],
@@ -717,6 +741,8 @@ def test_http_requires_role_domains_and_can_add_to_empty_list(tmp_path):
         "responsibilities": [],
         "benefits": [],
         "vacation_days": None,
+        "required_documents": [],
+        "special_instructions": [],
         "posting_alias": None,
         "user_notes": None,
         "tags": [],
@@ -811,6 +837,8 @@ def test_http_updates_and_restores_benefits(tmp_path, new_values, expected_origi
         "role_domains": [],
         "benefits": new_values,
         "vacation_days": 30,
+        "required_documents": [],
+        "special_instructions": [],
         "posting_alias": "My analytics role",
         "user_notes": "Keep my notes.",
         "tags": ["priority"],
@@ -872,6 +900,8 @@ def test_http_requires_benefits_and_can_add_to_empty_list(tmp_path):
         "responsibilities": [],
         "role_domains": [],
         "vacation_days": None,
+        "required_documents": [],
+        "special_instructions": [],
         "posting_alias": None,
         "user_notes": None,
         "tags": [],
@@ -946,6 +976,8 @@ def test_http_updates_and_restores_vacation_days(
         "role_domains": [],
         "benefits": ["Transport pass"],
         "vacation_days": new_value,
+        "required_documents": [],
+        "special_instructions": [],
         "posting_alias": None,
         "user_notes": None,
         "tags": [],
@@ -1009,6 +1041,8 @@ def test_http_requires_vacation_days_in_card_update(tmp_path):
                 "responsibilities": [],
                 "role_domains": [],
                 "benefits": [],
+                "required_documents": [],
+                "special_instructions": [],
                 "posting_alias": None,
                 "user_notes": None,
                 "tags": [],
@@ -1023,6 +1057,171 @@ def test_http_requires_vacation_days_in_card_update(tmp_path):
     )
     assert store.get_by_card_key(card.card_key) == card
     assert store.get_original_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize("field_name", ["required_documents", "special_instructions"])
+@pytest.mark.parametrize(
+    ("new_values", "expected_origins"),
+    [
+        (["Original item", "Custom item"], ["source", "user_defined"]),
+        (
+            ["Original item", "Custom item", "New item"],
+            ["source", "user_defined", "user_defined"],
+        ),
+        (["Edited item", "Custom item"], ["user_defined", "user_defined"]),
+        (["Custom item"], ["user_defined"]),
+        ([], []),
+        (["Custom item", "Original item"], ["user_defined", "source"]),
+        (["Original item", "Original item"], ["source", "source"]),
+    ],
+)
+def test_http_updates_and_restores_application_lists(
+    tmp_path, field_name, new_values, expected_origins
+):
+    database_path = tmp_path / "tracer.db"
+    posting_payload = make_posting_details().model_dump(mode="json")
+    application = posting_payload["application_instructions"]
+    application["source"] = {
+        "excerpts": ["Original application instructions."],
+        "source_urls": ["https://example.com/jobs/analytics"],
+    }
+    application["application_url"] = {
+        "value": "https://example.com/apply",
+        "origin": "source",
+    }
+    application["required_documents"] = [{"value": "CV", "origin": "source"}]
+    application["special_instructions"] = [
+        {"value": "Submit PDF files", "origin": "source"}
+    ]
+    application[field_name] = [
+        {"value": "Original item", "origin": "source"},
+        {"value": "Custom item", "origin": "user_defined"},
+    ]
+    posting_payload["role_content"]["responsibilities"] = [
+        {"value": "Build reports", "origin": "source"}
+    ]
+    card = PostingCard(
+        import_key=uuid4(),
+        posting=PostingDetails.model_validate(posting_payload),
+    )
+    store = PostingCardStore(database_path)
+    store.add(card)
+    app = create_app(database_path=database_path)
+    update_request = {
+        "role_summary": None,
+        "responsibilities": ["Build reports"],
+        "role_domains": [],
+        "benefits": [],
+        "vacation_days": None,
+        "required_documents": [
+            document["value"] for document in application["required_documents"]
+        ],
+        "special_instructions": [
+            instruction["value"] for instruction in application["special_instructions"]
+        ],
+        "posting_alias": "My analytics role",
+        "user_notes": "Keep my notes.",
+        "tags": ["priority"],
+    }
+    update_request[field_name] = new_values
+
+    with TestClient(app) as client:
+        response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        assert response.status_code == 200
+        expected_payload = card.model_dump(mode="json")
+        expected_payload["posting"]["application_instructions"][field_name] = [
+            {"value": value, "origin": origin}
+            for value, origin in zip(new_values, expected_origins, strict=True)
+        ]
+        expected_payload["posting_alias"] = update_request["posting_alias"]
+        expected_payload["user_notes"] = update_request["user_notes"]
+        expected_payload["tags"] = update_request["tags"]
+        assert response.json() == expected_payload
+        assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
+        assert client.get("/posting-cards").json() == [expected_payload]
+
+        update_request["posting_alias"] = "Renamed after saving application fields"
+        repeated_response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        expected_payload["posting_alias"] = update_request["posting_alias"]
+        assert repeated_response.status_code == 200
+        assert repeated_response.json() == expected_payload
+
+        update_request[field_name] = ["Original item", "Custom item"]
+        restored_response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        expected_payload["posting"]["application_instructions"][field_name] = (
+            application[field_name]
+        )
+        assert restored_response.status_code == 200
+        assert restored_response.json() == expected_payload
+        assert client.get(
+            f"/posting-cards/{card.card_key}/original"
+        ).json() == card.model_dump(mode="json")
+
+    reopened_store = PostingCardStore(database_path)
+    assert reopened_store.get_by_card_key(card.card_key) == (
+        PostingCard.model_validate(expected_payload)
+    )
+    assert reopened_store.get_original_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize("missing_field", ["required_documents", "special_instructions"])
+def test_http_requires_application_lists_and_can_add_both(tmp_path, missing_field):
+    database_path = tmp_path / "tracer.db"
+    card = PostingCard(import_key=uuid4(), posting=make_posting_details())
+    store = PostingCardStore(database_path)
+    store.add(card)
+    app = create_app(database_path=database_path)
+    update_request = {
+        "role_summary": None,
+        "responsibilities": [],
+        "role_domains": [],
+        "benefits": [],
+        "vacation_days": None,
+        "required_documents": [],
+        "special_instructions": [],
+        "posting_alias": None,
+        "user_notes": None,
+        "tags": [],
+    }
+    del update_request[missing_field]
+
+    with TestClient(app) as client:
+        missing_response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        assert missing_response.status_code == 422
+        assert any(
+            error["loc"] == ["body", missing_field] and error["type"] == "missing"
+            for error in missing_response.json()["detail"]
+        )
+        assert store.get_by_card_key(card.card_key) == card
+
+        update_request["required_documents"] = ["CV"]
+        update_request["special_instructions"] = ["Submit PDF files"]
+        response = client.patch(
+            f"/posting-cards/{card.card_key}", json=update_request
+        )
+        assert response.status_code == 200
+        expected_payload = card.model_dump(mode="json")
+        expected_payload["posting"]["application_instructions"]["required_documents"] = [
+            {"value": "CV", "origin": "user_defined"}
+        ]
+        expected_payload["posting"]["application_instructions"]["special_instructions"] = [
+            {"value": "Submit PDF files", "origin": "user_defined"}
+        ]
+        assert response.json() == expected_payload
+
+    reopened_store = PostingCardStore(database_path)
+    assert reopened_store.get_by_card_key(card.card_key) == (
+        PostingCard.model_validate(expected_payload)
+    )
+    assert reopened_store.get_original_by_card_key(card.card_key) == card
 
 
 def test_missing_import_and_card_return_not_found(tmp_path):
@@ -1052,6 +1251,8 @@ def test_missing_import_and_card_return_not_found(tmp_path):
                 "role_domains": [],
                 "benefits": [],
                 "vacation_days": None,
+                "required_documents": [],
+                "special_instructions": [],
                 "posting_alias": None,
                 "user_notes": None,
                 "tags": [],
