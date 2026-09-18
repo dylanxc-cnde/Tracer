@@ -23,6 +23,7 @@ class UpdatePostingCardRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     role_summary: str | None
+    responsibilities: tuple[str, ...]
     posting_alias: str | None
     user_notes: str | None
     tags: tuple[str, ...]

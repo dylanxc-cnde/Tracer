@@ -165,10 +165,30 @@ export function PostingCardDetails({
           </div>
 
           <div className="posting-card-details__field">
-            <h4>Responsibilities</h4>
+            <div className="posting-card-details__field-heading">
+              <h4>Responsibilities</h4>
+
+              {editor.isEditing && (
+                <button
+                  className="posting-card-details__add-responsibility button--primary"
+                  type="button"
+                  aria-label="Add responsibility"
+                  title="Add responsibility"
+                  disabled={editor.isSavingCardChanges}
+                  onClick={editor.addDraftResponsibility}
+                >
+                  +
+                </button>
+              )}
+            </div>
 
             <PostingCardResponsibilities
               responsibilities={posting.role_content.responsibilities}
+              draft={editor.draft.responsibilities}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onResponsibilityChange={editor.updateDraftResponsibility}
+              onResponsibilityDelete={editor.deleteDraftResponsibility}
             />
           </div>
 

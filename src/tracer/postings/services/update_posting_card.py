@@ -64,6 +64,29 @@ class UpdatePostingCardService:
                     "origin": origin,
                 }
 
+        saved_responsibilities = tuple(
+            responsibility.value
+            for responsibility in card.posting.role_content.responsibilities
+        )
+        if request.responsibilities != saved_responsibilities:
+            updated_responsibilities = []
+            original_responsibilities = (
+                original_card.posting.role_content.responsibilities
+            )
+
+            for value in request.responsibilities:
+                origin = FactOrigin.USER_DEFINED
+                for original_responsibility in original_responsibilities:
+                    if value == original_responsibility.value:
+                        origin = original_responsibility.origin
+                        break
+
+                updated_responsibilities.append({"value": value, "origin": origin})
+
+            payload["posting"]["role_content"]["responsibilities"] = (
+                updated_responsibilities
+            )
+
         payload["posting_alias"] = request.posting_alias
         payload["user_notes"] = request.user_notes
         payload["tags"] = request.tags

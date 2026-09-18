@@ -4,9 +4,15 @@ import type {
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
 
+export type TextItemDraft = {
+  id: string
+  value: string
+}
+
 // Type Definition: CardDraft
 export type PostingCardUserDraft = {
   roleSummary: string
+  responsibilities: TextItemDraft[]
   postingAlias: string
   tags: string[]
   userNotes: string
@@ -21,6 +27,12 @@ type PostingCardUpdateCallback = (
 function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
   return {
     roleSummary: card.posting.role_content.role_summary?.value ?? '',
+    responsibilities: card.posting.role_content.responsibilities.map(
+      (responsibility) => ({
+        id: crypto.randomUUID(),
+        value: responsibility.value,
+      }),
+    ),
     postingAlias: card.posting_alias ?? '',
     tags: [...card.tags],
     userNotes: card.user_notes ?? '',
@@ -34,12 +46,19 @@ function normalizeOptionalText(value: string) {
   return normalizedValue.length > 0 ? normalizedValue : null
 }
 
+function normalizeTextItems(items: TextItemDraft[]): string[] {
+  return items
+    .map((item) => item.value.trim())
+    .filter((value) => value.length > 0)
+}
+
 // Create Update Card Request using one draft.
 function createPostingCardUpdateRequest(
   draft: PostingCardUserDraft,
 ): UpdatePostingCardRequest {
   return {
     role_summary: normalizeOptionalText(draft.roleSummary),
+    responsibilities: normalizeTextItems(draft.responsibilities),
     posting_alias: normalizeOptionalText(draft.postingAlias),
     user_notes: normalizeOptionalText(draft.userNotes),
     tags: draft.tags,
@@ -66,6 +85,12 @@ export function usePostingCardEditor(
   const hasChanges =
     updateRequest.role_summary !==
       (card.posting.role_content.role_summary?.value ?? null) ||
+    updateRequest.responsibilities.length !==
+      card.posting.role_content.responsibilities.length ||
+    updateRequest.responsibilities.some(
+      (value, index) =>
+        value !== card.posting.role_content.responsibilities[index]?.value,
+    ) ||
     updateRequest.posting_alias !== card.posting_alias ||
     updateRequest.user_notes !== card.user_notes ||
     updateRequest.tags.length !== card.tags.length ||
@@ -116,6 +141,38 @@ export function usePostingCardEditor(
     setDraft((currentDraft) => ({ ...currentDraft, roleSummary }))
   }
 
+  function addDraftResponsibility() {
+    const responsibility: TextItemDraft = {
+      id: crypto.randomUUID(),
+      value: '',
+    }
+
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      responsibilities: [...currentDraft.responsibilities, responsibility],
+    }))
+  }
+
+  function updateDraftResponsibility(id: string, value: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      responsibilities: currentDraft.responsibilities.map((responsibility) =>
+        responsibility.id === id
+          ? { ...responsibility, value }
+          : responsibility,
+      ),
+    }))
+  }
+
+  function deleteDraftResponsibility(id: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      responsibilities: currentDraft.responsibilities.filter(
+        (responsibility) => responsibility.id !== id,
+      ),
+    }))
+  }
+
   function updateDraftAlias(postingAlias: string) {
     setDraft((currentDraft) => ({ ...currentDraft, postingAlias }))
   }
@@ -143,6 +200,9 @@ export function usePostingCardEditor(
     cancelEditing,
     saveCardChanges,
     updateDraftRoleSummary,
+    addDraftResponsibility,
+    updateDraftResponsibility,
+    deleteDraftResponsibility,
     updateDraftAlias,
     updateDraftTags,
     updateDraftNotes,

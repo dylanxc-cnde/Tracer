@@ -21,6 +21,7 @@ export type PostingCard = {
 
 export type UpdatePostingCardRequest = {
   role_summary: string | null
+  responsibilities: string[]
   posting_alias: string | null
   user_notes: string | null
   tags: string[]
