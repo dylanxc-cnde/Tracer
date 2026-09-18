@@ -105,6 +105,10 @@
   line-height: 1;
 }
 
+.posting-card-role-domains__delete-button > span {
+  transform: translateY(-2px);
+}
+
 .posting-card-role-domains__delete-button:hover:not(:disabled) {
   border-color: var(--color-danger);
   color: var(--color-danger);

@@ -102,6 +102,7 @@
 .posting-card-benefits__delete-button > span {
   font-size: 24px;
   line-height: 1;
+  transform: translateY(-2px);
 }
 
 .posting-card-benefits__delete-button:hover:not(:disabled) {
