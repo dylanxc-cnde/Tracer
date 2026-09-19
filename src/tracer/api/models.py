@@ -30,6 +30,7 @@ class UpdatePostingCardRequest(BaseModel):
     required_documents: tuple[str, ...]
     special_instructions: tuple[str, ...]
     company_summary: str | None
+    industry_tags: tuple[str, ...]
     employee_range: str | None
     posting_alias: str | None
     user_notes: str | None

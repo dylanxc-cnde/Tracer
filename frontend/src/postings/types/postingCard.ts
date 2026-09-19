@@ -28,6 +28,7 @@ export type UpdatePostingCardRequest = {
   required_documents: string[]
   special_instructions: string[]
   company_summary: string | null
+  industry_tags: string[]
   employee_range: string | null
   posting_alias: string | null
   user_notes: string | null

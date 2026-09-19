@@ -469,10 +469,14 @@ export function PostingCardDetails({
             <PostingCardAboutCompany
               company={posting.company}
               companySummaryDraft={editor.draft.companySummary}
+              industryTagsDraft={editor.draft.industryTags}
               employeeRangeDraft={editor.draft.employeeRange}
               isEditing={editor.isEditing}
               isSavingCardChanges={editor.isSavingCardChanges}
               onCompanySummaryChange={editor.updateDraftCompanySummary}
+              onIndustryAdd={editor.addDraftIndustry}
+              onIndustryChange={editor.updateDraftIndustry}
+              onIndustryDelete={editor.deleteDraftIndustry}
               onEmployeeRangeChange={editor.updateDraftEmployeeRange}
             />
 

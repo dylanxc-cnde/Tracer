@@ -19,6 +19,7 @@ export type PostingCardUserDraft = {
   requiredDocuments: TextItemDraft[]
   specialInstructions: TextItemDraft[]
   companySummary: string
+  industryTags: TextItemDraft[]
   employeeRange: string
   postingAlias: string
   tags: string[]
@@ -62,6 +63,10 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
       }),
     ),
     companySummary: card.posting.company.company_summary?.value ?? '',
+    industryTags: card.posting.company.industry_tags.map((industry) => ({
+      id: crypto.randomUUID(),
+      value: industry.value,
+    })),
     employeeRange: card.posting.company.employee_range?.value ?? '',
     postingAlias: card.posting_alias ?? '',
     tags: [...card.tags],
@@ -101,6 +106,7 @@ function createPostingCardUpdateRequest(
     required_documents: normalizeTextItems(draft.requiredDocuments),
     special_instructions: normalizeTextItems(draft.specialInstructions),
     company_summary: normalizeOptionalText(draft.companySummary),
+    industry_tags: normalizeTextItems(draft.industryTags),
     employee_range: normalizeOptionalText(draft.employeeRange),
     posting_alias: normalizeOptionalText(draft.postingAlias),
     user_notes: normalizeOptionalText(draft.userNotes),
@@ -158,6 +164,10 @@ export function usePostingCardEditor(
     ) ||
     updateRequest.company_summary !==
       (card.posting.company.company_summary?.value ?? null) ||
+    updateRequest.industry_tags.length !== card.posting.company.industry_tags.length ||
+    updateRequest.industry_tags.some(
+      (value, index) => value !== card.posting.company.industry_tags[index]?.value,
+    ) ||
     updateRequest.employee_range !==
       (card.posting.company.employee_range?.value ?? null) ||
     updateRequest.posting_alias !== card.posting_alias ||
@@ -376,6 +386,34 @@ export function usePostingCardEditor(
     setDraft((currentDraft) => ({ ...currentDraft, companySummary }))
   }
 
+  function addDraftIndustry() {
+    const industry: TextItemDraft = {
+      id: crypto.randomUUID(),
+      value: '',
+    }
+
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      industryTags: [...currentDraft.industryTags, industry],
+    }))
+  }
+
+  function updateDraftIndustry(id: string, value: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      industryTags: currentDraft.industryTags.map((industry) =>
+        industry.id === id ? { ...industry, value } : industry,
+      ),
+    }))
+  }
+
+  function deleteDraftIndustry(id: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      industryTags: currentDraft.industryTags.filter((industry) => industry.id !== id),
+    }))
+  }
+
   function updateDraftEmployeeRange(employeeRange: string) {
     setDraft((currentDraft) => ({ ...currentDraft, employeeRange }))
   }
@@ -424,6 +462,9 @@ export function usePostingCardEditor(
     updateDraftSpecialInstruction,
     deleteDraftSpecialInstruction,
     updateDraftCompanySummary,
+    addDraftIndustry,
+    updateDraftIndustry,
+    deleteDraftIndustry,
     updateDraftEmployeeRange,
     updateDraftAlias,
     updateDraftTags,

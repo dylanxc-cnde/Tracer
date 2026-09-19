@@ -211,6 +211,24 @@ class UpdatePostingCardService:
                     "origin": origin,
                 }
 
+        saved_industries = tuple(
+            industry.value for industry in card.posting.company.industry_tags
+        )
+        if request.industry_tags != saved_industries:
+            updated_industries = []
+            original_industries = original_card.posting.company.industry_tags
+
+            for value in request.industry_tags:
+                origin = FactOrigin.USER_DEFINED
+                for original_industry in original_industries:
+                    if value == original_industry.value:
+                        origin = original_industry.origin
+                        break
+
+                updated_industries.append({"value": value, "origin": origin})
+
+            payload["posting"]["company"]["industry_tags"] = updated_industries
+
         saved_employee_range = card.posting.company.employee_range
         saved_employee_range_value = (
             saved_employee_range.value if saved_employee_range is not None else None
