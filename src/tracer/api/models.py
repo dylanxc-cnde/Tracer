@@ -29,6 +29,10 @@ class UpdatePostingCardRequest(BaseModel):
     vacation_days: int | None = Field(..., ge=0, strict=True)
     required_documents: tuple[str, ...]
     special_instructions: tuple[str, ...]
+    contact_name: str | None
+    contact_role: str | None
+    contact_email: str | None
+    contact_phone: str | None
     company_summary: str | None
     industry_tags: tuple[str, ...]
     employee_range: str | None

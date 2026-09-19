@@ -460,7 +460,19 @@ export function PostingCardDetails({
           <summary>Contact</summary>
 
           <div className="posting-card-details__disclosure-content">
-            <PostingCardContact contact={posting.contact} />
+            <PostingCardContact
+              contact={posting.contact}
+              nameDraft={editor.draft.contactName}
+              roleDraft={editor.draft.contactRole}
+              emailDraft={editor.draft.contactEmail}
+              phoneDraft={editor.draft.contactPhone}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onNameChange={editor.updateDraftContactName}
+              onRoleChange={editor.updateDraftContactRole}
+              onEmailChange={editor.updateDraftContactEmail}
+              onPhoneChange={editor.updateDraftContactPhone}
+            />
 
             {posting.contact !== null && (
               <PostingCardSourceEvidence

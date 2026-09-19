@@ -190,6 +190,45 @@ class UpdatePostingCardService:
                 updated_instructions
             )
 
+        saved_contact = card.posting.contact
+        contact_values = {
+            "name": request.contact_name,
+            "role": request.contact_role,
+            "email": request.contact_email,
+            "phone": request.contact_phone,
+        }
+        saved_contact_values = {
+            field: getattr(saved_contact, field, None) for field in contact_values
+        }
+        if contact_values != saved_contact_values:
+            original_contact = original_card.posting.contact
+            has_contact_values = any(
+                value is not None for value in contact_values.values()
+            )
+
+            if not has_contact_values and original_contact is None:
+                payload["posting"]["contact"] = None
+            else:
+                # Keep the source even when every contact value is cleared.
+                source = {"excerpts": (), "source_urls": ()}
+                if saved_contact is not None:
+                    source = saved_contact.source.model_dump()
+                elif original_contact is not None:
+                    source = original_contact.source.model_dump()
+
+                origin = FactOrigin.USER_DEFINED
+                if original_contact is not None and all(
+                    value == getattr(original_contact, field)
+                    for field, value in contact_values.items()
+                ):
+                    origin = original_contact.origin
+
+                payload["posting"]["contact"] = {
+                    "source": source,
+                    **contact_values,
+                    "origin": origin,
+                }
+
         saved_company_summary = card.posting.company.company_summary
         saved_company_summary_value = (
             saved_company_summary.value if saved_company_summary is not None else None

@@ -19,6 +19,10 @@ export type PostingCardUserDraft = {
   vacationDays: string
   requiredDocuments: TextItemDraft[]
   specialInstructions: TextItemDraft[]
+  contactName: string
+  contactRole: string
+  contactEmail: string
+  contactPhone: string
   companySummary: string
   industryTags: TextItemDraft[]
   employeeRange: string
@@ -63,6 +67,10 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
         value: instruction.value,
       }),
     ),
+    contactName: card.posting.contact?.name ?? '',
+    contactRole: card.posting.contact?.role ?? '',
+    contactEmail: card.posting.contact?.email ?? '',
+    contactPhone: card.posting.contact?.phone ?? '',
     companySummary: card.posting.company.company_summary?.value ?? '',
     industryTags: card.posting.company.industry_tags.map((industry) => ({
       id: crypto.randomUUID(),
@@ -109,6 +117,10 @@ function createPostingCardUpdateRequest(
     vacation_days: normalizeOptionalNumber(draft.vacationDays),
     required_documents: normalizeTextItems(draft.requiredDocuments),
     special_instructions: normalizeTextItems(draft.specialInstructions),
+    contact_name: normalizeOptionalText(draft.contactName),
+    contact_role: normalizeOptionalText(draft.contactRole),
+    contact_email: normalizeOptionalText(draft.contactEmail),
+    contact_phone: normalizeOptionalText(draft.contactPhone),
     company_summary: normalizeOptionalText(draft.companySummary),
     industry_tags: normalizeTextItems(draft.industryTags),
     employee_range: normalizeOptionalText(draft.employeeRange),
@@ -166,6 +178,10 @@ export function usePostingCardEditor(
       (value, index) =>
         value !== card.posting.application_instructions.special_instructions[index]?.value,
     ) ||
+    updateRequest.contact_name !== (card.posting.contact?.name ?? null) ||
+    updateRequest.contact_role !== (card.posting.contact?.role ?? null) ||
+    updateRequest.contact_email !== (card.posting.contact?.email ?? null) ||
+    updateRequest.contact_phone !== (card.posting.contact?.phone ?? null) ||
     updateRequest.company_summary !==
       (card.posting.company.company_summary?.value ?? null) ||
     updateRequest.industry_tags.length !== card.posting.company.industry_tags.length ||
@@ -405,6 +421,22 @@ export function usePostingCardEditor(
     }))
   }
 
+  function updateDraftContactName(contactName: string) {
+    setDraft((currentDraft) => ({ ...currentDraft, contactName }))
+  }
+
+  function updateDraftContactRole(contactRole: string) {
+    setDraft((currentDraft) => ({ ...currentDraft, contactRole }))
+  }
+
+  function updateDraftContactEmail(contactEmail: string) {
+    setDraft((currentDraft) => ({ ...currentDraft, contactEmail }))
+  }
+
+  function updateDraftContactPhone(contactPhone: string) {
+    setDraft((currentDraft) => ({ ...currentDraft, contactPhone }))
+  }
+
   function updateDraftCompanySummary(companySummary: string) {
     setDraft((currentDraft) => ({ ...currentDraft, companySummary }))
   }
@@ -509,6 +541,10 @@ export function usePostingCardEditor(
     addDraftSpecialInstruction,
     updateDraftSpecialInstruction,
     deleteDraftSpecialInstruction,
+    updateDraftContactName,
+    updateDraftContactRole,
+    updateDraftContactEmail,
+    updateDraftContactPhone,
     updateDraftCompanySummary,
     addDraftIndustry,
     updateDraftIndustry,

@@ -27,6 +27,10 @@ export type UpdatePostingCardRequest = {
   vacation_days: number | null
   required_documents: string[]
   special_instructions: string[]
+  contact_name: string | null
+  contact_role: string | null
+  contact_email: string | null
+  contact_phone: string | null
   company_summary: string | null
   industry_tags: string[]
   employee_range: string | null
