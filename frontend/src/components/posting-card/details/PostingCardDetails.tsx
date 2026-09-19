@@ -29,6 +29,7 @@ import { PostingCardSpecialInstructions } from './PostingCardSpecialInstructions
 import { PostingCardContact } from './PostingCardContact'
 import { PostingCardAboutCompany } from './PostingCardAboutCompany'
 import { PostingCardSourceEvidence } from './PostingCardSourceEvidence'
+import { PostingCardSaveError } from './PostingCardSaveError'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -91,6 +92,11 @@ export function PostingCardDetails({
     }
   }, [areSourcesVisible, card.card_key, isReadOnly])
 
+  function handleDismissSaveError() {
+    editor.dismissSaveError()
+    dialogRef.current?.focus({ preventScroll: true })
+  }
+
   function isSectionModified(section: keyof PostingDetails): boolean {
     if (
       isReadOnly ||
@@ -117,7 +123,10 @@ export function PostingCardDetails({
       tabIndex={-1}
       onClose={onClose}
       onCancel={(event) => {
-        if (editor.isEditing) {
+        if (editor.saveError !== null) {
+          event.preventDefault()
+          handleDismissSaveError()
+        } else if (editor.isEditing) {
           event.preventDefault()
           editor.cancelEditing()
         }
@@ -138,9 +147,10 @@ export function PostingCardDetails({
       />
 
       {editor.saveError !== null && (
-        <p className="posting-card-details__edit-error" role="alert">
-          {editor.saveError}
-        </p>
+        <PostingCardSaveError
+          message={editor.saveError}
+          onDismiss={handleDismissSaveError}
+        />
       )}
 
       <header

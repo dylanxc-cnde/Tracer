@@ -198,6 +198,10 @@ export function usePostingCardEditor(
     setIsEditing(false)
   }
 
+  function dismissSaveError() {
+    setSaveError(null)
+  }
+
   async function saveCardChanges() {
     if (isReadOnly) {
       return
@@ -486,6 +490,7 @@ export function usePostingCardEditor(
       originalTitle !== null &&
       displayedAlias !== originalTitle,
     cancelEditing,
+    dismissSaveError,
     saveCardChanges,
     updateDraftRoleSummary,
     addDraftResponsibility,

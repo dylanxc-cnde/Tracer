@@ -232,15 +232,6 @@
   cursor: not-allowed;
 }
 
-.posting-card-details__edit-error {
-  margin: 0;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--color-danger);
-  color: var(--color-danger-pressed);
-  background-color: var(--color-danger-soft);
-  font-size: 14px;
-}
-
 .posting-card-details__primary-action:focus-visible,
 .posting-card-details__edit-toggle:focus-visible,
 .posting-card-details__original-title > summary:focus-visible,
