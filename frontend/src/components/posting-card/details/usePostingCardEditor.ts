@@ -22,7 +22,7 @@ export type PostingCardUserDraft = {
   industryTags: TextItemDraft[]
   employeeRange: string
   postingAlias: string
-  tags: string[]
+  tags: TextItemDraft[]
   userNotes: string
 }
 
@@ -69,7 +69,10 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
     })),
     employeeRange: card.posting.company.employee_range?.value ?? '',
     postingAlias: card.posting_alias ?? '',
-    tags: [...card.tags],
+    tags: card.tags.map((tag) => ({
+      id: crypto.randomUUID(),
+      value: tag,
+    })),
     userNotes: card.user_notes ?? '',
   }
 }
@@ -110,7 +113,7 @@ function createPostingCardUpdateRequest(
     employee_range: normalizeOptionalText(draft.employeeRange),
     posting_alias: normalizeOptionalText(draft.postingAlias),
     user_notes: normalizeOptionalText(draft.userNotes),
-    tags: draft.tags,
+    tags: normalizeTextItems(draft.tags),
   }
 }
 
@@ -205,6 +208,12 @@ export function usePostingCardEditor(
       (!Number.isSafeInteger(vacationDays) || vacationDays < 0)
     ) {
       setSaveError('Vacation days must be a non-negative whole number, or empty.')
+      return
+    }
+
+    const uniqueTags = new Set(updateRequest.tags.map((tag) => tag.toLowerCase()))
+    if (uniqueTags.size !== updateRequest.tags.length) {
+      setSaveError('Tags must be unique, ignoring uppercase and lowercase.')
       return
     }
 
@@ -422,8 +431,32 @@ export function usePostingCardEditor(
     setDraft((currentDraft) => ({ ...currentDraft, postingAlias }))
   }
 
-  function updateDraftTags(tags: string[]) {
-    setDraft((currentDraft) => ({ ...currentDraft, tags }))
+  function addDraftTag() {
+    const tag: TextItemDraft = {
+      id: crypto.randomUUID(),
+      value: '',
+    }
+
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      tags: [...currentDraft.tags, tag],
+    }))
+  }
+
+  function updateDraftTag(id: string, value: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      tags: currentDraft.tags.map((tag) =>
+        tag.id === id ? { ...tag, value } : tag,
+      ),
+    }))
+  }
+
+  function deleteDraftTag(id: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      tags: currentDraft.tags.filter((tag) => tag.id !== id),
+    }))
   }
 
   function updateDraftNotes(userNotes: string) {
@@ -467,7 +500,9 @@ export function usePostingCardEditor(
     deleteDraftIndustry,
     updateDraftEmployeeRange,
     updateDraftAlias,
-    updateDraftTags,
+    addDraftTag,
+    updateDraftTag,
+    deleteDraftTag,
     updateDraftNotes,
     startEditing,
   }

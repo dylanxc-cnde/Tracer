@@ -16,21 +16,40 @@
 
 .posting-card-user-area__field {
   display: grid;
+  min-width: 0;
   gap: 8px;
 }
 
 .posting-card-user-area__field > label,
 .posting-card-user-area__label {
-  color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
 }
 
-.posting-card-user-area__field > p {
+.posting-card-user-area__text {
+  position: relative;
+  min-width: 0;
+}
+
+.posting-card-user-area__value,
+.posting-card-user-area__input {
+  display: block;
+  min-height: 1.6em;
   margin: 0;
+  padding: 0;
+  line-height: 1.6;
+  letter-spacing: inherit;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-user-area__value--sizing {
+  visibility: hidden;
+}
+
+/* Match the text height in both modes, including an empty value or trailing newline. */
+.posting-card-user-area__value::after {
+  content: '\200b';
 }
 
 .posting-card-user-area .is-empty {
@@ -38,96 +57,184 @@
   font-style: italic;
 }
 
-.posting-card-user-area input,
-.posting-card-user-area textarea {
-  box-sizing: border-box;
+.posting-card-user-area__input {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 10px;
-  color: var(--color-text-primary);
-  background-color: var(--color-surface);
+  height: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
   font: inherit;
+  line-height: 1.6;
+  overflow: hidden;
+  resize: none;
+  transition: background-color 320ms ease;
 }
 
-.posting-card-user-area input {
-  min-height: 42px;
-  padding: 9px 11px;
+.posting-card-user-area__input:hover:not(:disabled),
+.posting-card-user-area__input:focus-visible,
+.posting-card-user-area__tag-input:hover:not(:disabled),
+.posting-card-user-area__tag-input:focus-visible {
+  background-color: rgba(52, 53, 53, 0.04);
 }
 
-.posting-card-user-area textarea {
-  min-height: 120px;
-  padding: 11px;
-  line-height: 1.5;
-  resize: vertical;
+.posting-card-user-area__input:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 4px;
 }
 
-.posting-card-user-area input:focus-visible,
-.posting-card-user-area textarea:focus-visible,
-.posting-card-user-area button:focus-visible {
-  outline: 3px solid var(--color-action-primary);
-  outline-offset: 2px;
+.posting-card-user-area__input::placeholder,
+.posting-card-user-area__tag-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.posting-card-user-area__input:disabled,
+.posting-card-user-area__tag-input:disabled {
+  color: var(--color-text-secondary);
+  cursor: wait;
+}
+
+.posting-card-user-area__field--tags {
+  gap: 12px;
+}
+
+.posting-card-user-area__tag-heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding-right: 48px;
+}
+
+.posting-card-user-area__add-tag {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .posting-card-user-area__tags {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+
+.posting-card-user-area__field--tags > p {
+  margin: 0;
+  line-height: 1.6;
 }
 
 .posting-card-user-area__tag {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  width: fit-content;
-  padding: 6px 10px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 6px 32px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
   color: var(--color-text-primary);
-  background-color: var(--color-surface);
-  font: inherit;
+  background-color: var(--color-surface-muted);
   font-size: 13px;
+  font-weight: 650;
   line-height: 1.2;
 }
 
-.posting-card-user-area__tag--removable {
-  border-color: var(--color-border-strong);
-  cursor: pointer;
+.posting-card-user-area__tag-text {
+  position: relative;
+  min-width: 0;
 }
 
-.posting-card-user-area__tag--removable:hover {
-  border-color: var(--color-attention);
-}
-
-.posting-card-user-area__tag-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  max-width: 420px;
-}
-
-.posting-card-user-area__tag-form button {
-  min-width: 68px;
-  padding: 8px 12px;
-  border: 1px solid var(--color-action-primary);
-  border-radius: 10px;
-  color: var(--color-surface);
-  background-color: var(--color-action-primary);
+.posting-card-user-area__tag-value,
+.posting-card-user-area__tag-input {
+  display: block;
+  margin: 0;
+  padding: 0;
   font: inherit;
-  font-weight: 650;
-  cursor: pointer;
+  line-height: inherit;
+  letter-spacing: inherit;
+  white-space: pre;
 }
 
-.posting-card-user-area__tag-form button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.posting-card-user-area__tag-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.posting-card-user-area__tag-value--sizing {
+  visibility: hidden;
+}
+
+.posting-card-user-area__tag-input {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
+  transition: background-color 320ms ease;
+}
+
+.posting-card-user-area__tag-input:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 3px;
+}
+
+.posting-card-user-area__delete-tag-button {
+  position: absolute;
+  inset-block: 0;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  margin-block: auto;
+  padding: 0;
+  border-color: transparent;
+  border-radius: 50%;
+  background-color: transparent;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.posting-card-user-area__delete-tag-button > span {
+  transform: translateY(-2px);
+}
+
+.posting-card-user-area__delete-tag-button:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+}
+
+.posting-card-user-area__delete-confirmation {
+  width: 100%;
 }
 
 @media (max-width: 600px) {
   .posting-card-user-area {
     padding: 16px;
   }
+}
 
-  .posting-card-user-area__tag-form {
-    grid-template-columns: 1fr;
+@media (prefers-reduced-motion: reduce) {
+  .posting-card-user-area__input,
+  .posting-card-user-area__tag-input {
+    transition: none;
   }
 }

@@ -493,7 +493,9 @@ export function PostingCardDetails({
           isEditing={editor.isEditing}
           isSavingCardChanges={editor.isSavingCardChanges}
           onAliasChange={editor.updateDraftAlias}
-          onTagsChange={editor.updateDraftTags}
+          onTagAdd={editor.addDraftTag}
+          onTagChange={editor.updateDraftTag}
+          onTagDelete={editor.deleteDraftTag}
           onNotesChange={editor.updateDraftNotes}
         />
 
