@@ -3,6 +3,7 @@ import type {
   PostingCard,
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
+import { hasDuplicateTags } from './PostingCardValidators'
 
 export type TextItemDraft = {
   id: string
@@ -202,6 +203,11 @@ export function usePostingCardEditor(
       return
     }
 
+    if (hasDuplicateTags(updateRequest.role_domains)) {
+      setSaveError('Role domains must be unique, ignoring uppercase and lowercase.')
+      return
+    }
+
     const vacationDays = updateRequest.vacation_days
     if (
       vacationDays !== null &&
@@ -211,8 +217,12 @@ export function usePostingCardEditor(
       return
     }
 
-    const uniqueTags = new Set(updateRequest.tags.map((tag) => tag.toLowerCase()))
-    if (uniqueTags.size !== updateRequest.tags.length) {
+    if (hasDuplicateTags(updateRequest.industry_tags)) {
+      setSaveError('Industries must be unique, ignoring uppercase and lowercase.')
+      return
+    }
+
+    if (hasDuplicateTags(updateRequest.tags)) {
       setSaveError('Tags must be unique, ignoring uppercase and lowercase.')
       return
     }
