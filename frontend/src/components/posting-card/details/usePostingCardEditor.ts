@@ -18,6 +18,8 @@ export type PostingCardUserDraft = {
   vacationDays: string
   requiredDocuments: TextItemDraft[]
   specialInstructions: TextItemDraft[]
+  companySummary: string
+  employeeRange: string
   postingAlias: string
   tags: string[]
   userNotes: string
@@ -59,6 +61,8 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
         value: instruction.value,
       }),
     ),
+    companySummary: card.posting.company.company_summary?.value ?? '',
+    employeeRange: card.posting.company.employee_range?.value ?? '',
     postingAlias: card.posting_alias ?? '',
     tags: [...card.tags],
     userNotes: card.user_notes ?? '',
@@ -96,6 +100,8 @@ function createPostingCardUpdateRequest(
     vacation_days: normalizeOptionalNumber(draft.vacationDays),
     required_documents: normalizeTextItems(draft.requiredDocuments),
     special_instructions: normalizeTextItems(draft.specialInstructions),
+    company_summary: normalizeOptionalText(draft.companySummary),
+    employee_range: normalizeOptionalText(draft.employeeRange),
     posting_alias: normalizeOptionalText(draft.postingAlias),
     user_notes: normalizeOptionalText(draft.userNotes),
     tags: draft.tags,
@@ -150,6 +156,10 @@ export function usePostingCardEditor(
       (value, index) =>
         value !== card.posting.application_instructions.special_instructions[index]?.value,
     ) ||
+    updateRequest.company_summary !==
+      (card.posting.company.company_summary?.value ?? null) ||
+    updateRequest.employee_range !==
+      (card.posting.company.employee_range?.value ?? null) ||
     updateRequest.posting_alias !== card.posting_alias ||
     updateRequest.user_notes !== card.user_notes ||
     updateRequest.tags.length !== card.tags.length ||
@@ -362,6 +372,14 @@ export function usePostingCardEditor(
     }))
   }
 
+  function updateDraftCompanySummary(companySummary: string) {
+    setDraft((currentDraft) => ({ ...currentDraft, companySummary }))
+  }
+
+  function updateDraftEmployeeRange(employeeRange: string) {
+    setDraft((currentDraft) => ({ ...currentDraft, employeeRange }))
+  }
+
   function updateDraftAlias(postingAlias: string) {
     setDraft((currentDraft) => ({ ...currentDraft, postingAlias }))
   }
@@ -405,6 +423,8 @@ export function usePostingCardEditor(
     addDraftSpecialInstruction,
     updateDraftSpecialInstruction,
     deleteDraftSpecialInstruction,
+    updateDraftCompanySummary,
+    updateDraftEmployeeRange,
     updateDraftAlias,
     updateDraftTags,
     updateDraftNotes,

@@ -317,6 +317,12 @@
   line-height: 1.6;
 }
 
+.posting-card-details__source-comparison-notice {
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
 .posting-card-details__source-user-defined {
   width: fit-content;
   margin: 10px 0 0;

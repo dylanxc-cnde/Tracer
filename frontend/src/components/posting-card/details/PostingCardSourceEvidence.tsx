@@ -5,21 +5,21 @@ import { getSafeHttpUrl } from './PostingCardSanitizers'
 type PostingCardSourceEvidenceProps = {
   source: PostingSource
   areSourcesVisible: boolean
-  userDefinedNotice?: string
+  isModified: boolean
 }
 
 export function PostingCardSourceEvidence({
   source,
   areSourcesVisible,
-  userDefinedNotice,
+  isModified,
 }: PostingCardSourceEvidenceProps) {
   if (!areSourcesVisible) {
     return null
   }
 
-  const modificationNotice = userDefinedNotice ? (
+  const modificationNotice = isModified ? (
     <p className="posting-card-source-evidence__modification-notice">
-      {userDefinedNotice}
+      Modified by user.
     </p>
   ) : null
 

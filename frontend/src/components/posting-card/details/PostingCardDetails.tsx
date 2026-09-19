@@ -4,6 +4,8 @@ import type {
   PostingCard,
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
+import type { PostingDetails } from '../../../postings/types/postingDetails'
+import { getOriginalPostingCard } from '../../../postings/api/postings'
 import {
   PostingCardUserArea,
 } from './PostingCardUserArea'
@@ -47,6 +49,10 @@ export function PostingCardDetails({
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [areSourcesVisible, setAreSourcesVisible] = useState(false)
   const [isPostingInfoOpen, setIsPostingInfoOpen] = useState(false)
+  const [sourceComparison, setSourceComparison] = useState<{
+    cardKey: string
+    originalCard: PostingCard | null
+  } | null>(null)
   const editor = usePostingCardEditor(card, onUpdate, isReadOnly)
   const posting = card.posting
 
@@ -58,6 +64,46 @@ export function PostingCardDetails({
       dialog.focus({ preventScroll: true })
     }
   }, [])
+
+  useEffect(() => {
+    if (!areSourcesVisible || isReadOnly) {
+      return
+    }
+
+    // Read the saved baseline only for source inspection; never replace the card or draft.
+    let isCurrentRequest = true
+
+    getOriginalPostingCard(card.card_key).then(
+      (originalCard) => {
+        if (isCurrentRequest) {
+          setSourceComparison({ cardKey: card.card_key, originalCard })
+        }
+      },
+      () => {
+        if (isCurrentRequest) {
+          setSourceComparison({ cardKey: card.card_key, originalCard: null })
+        }
+      },
+    )
+
+    return () => {
+      isCurrentRequest = false
+    }
+  }, [areSourcesVisible, card.card_key, isReadOnly])
+
+  function isSectionModified(section: keyof PostingDetails): boolean {
+    if (
+      isReadOnly ||
+      sourceComparison?.cardKey !== card.card_key ||
+      sourceComparison.originalCard === null
+    ) {
+      return false
+    }
+
+    // Compare whole saved sections so removal and empty values count as changes too.
+    return JSON.stringify(posting[section]) !==
+      JSON.stringify(sourceComparison.originalCard.posting[section])
+  }
 
   const hasPostingSourceDetails =
     posting.identity.canonical_posting_url !== null ||
@@ -136,6 +182,7 @@ export function PostingCardDetails({
         <PostingCardSourceEvidence
           source={posting.identity.source}
           areSourcesVisible={areSourcesVisible}
+          isModified={isSectionModified('identity')}
         />
 
         <label className="posting-card-details__source-toggle">
@@ -146,6 +193,18 @@ export function PostingCardDetails({
           />
           <span>Show sources</span>
         </label>
+
+        {areSourcesVisible && !isReadOnly && (
+          sourceComparison?.cardKey !== card.card_key ? (
+            <p className="posting-card-details__source-comparison-notice" role="status">
+              Checking changes against the original…
+            </p>
+          ) : sourceComparison.originalCard === null ? (
+            <p className="posting-card-details__source-comparison-notice" role="status">
+              Could not compare with the original. Hide and show sources to retry.
+            </p>
+          ) : null
+        )}
       </header>
 
       <div className="posting-card-details__content">
@@ -223,11 +282,7 @@ export function PostingCardDetails({
           <PostingCardSourceEvidence
             source={posting.role_content.source}
             areSourcesVisible={areSourcesVisible}
-            userDefinedNotice={
-              posting.role_content.role_summary?.origin === 'user_defined'
-                ? 'Role summary is user-defined. Original sources are preserved.'
-                : undefined
-            }
+            isModified={isSectionModified('role_content')}
           />
         </section>
 
@@ -240,6 +295,7 @@ export function PostingCardDetails({
             <PostingCardSourceEvidence
               source={posting.requirements.source}
               areSourcesVisible={areSourcesVisible}
+              isModified={isSectionModified('requirements')}
             />
           </section>
         )}
@@ -254,6 +310,7 @@ export function PostingCardDetails({
           <PostingCardSourceEvidence
             source={posting.work_conditions.source}
             areSourcesVisible={areSourcesVisible}
+            isModified={isSectionModified('work_conditions')}
           />
         </section>
 
@@ -311,6 +368,7 @@ export function PostingCardDetails({
           <PostingCardSourceEvidence
             source={posting.compensation.source}
             areSourcesVisible={areSourcesVisible}
+            isModified={isSectionModified('compensation')}
           />
         </section>
 
@@ -384,6 +442,7 @@ export function PostingCardDetails({
           <PostingCardSourceEvidence
             source={posting.application_instructions.source}
             areSourcesVisible={areSourcesVisible}
+            isModified={isSectionModified('application_instructions')}
           />
         </section>
 
@@ -397,6 +456,7 @@ export function PostingCardDetails({
               <PostingCardSourceEvidence
                 source={posting.contact.source}
                 areSourcesVisible={areSourcesVisible}
+                isModified={isSectionModified('contact')}
               />
             )}
           </div>
@@ -406,11 +466,20 @@ export function PostingCardDetails({
           <summary>About the company</summary>
 
           <div className="posting-card-details__disclosure-content">
-            <PostingCardAboutCompany company={posting.company} />
+            <PostingCardAboutCompany
+              company={posting.company}
+              companySummaryDraft={editor.draft.companySummary}
+              employeeRangeDraft={editor.draft.employeeRange}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onCompanySummaryChange={editor.updateDraftCompanySummary}
+              onEmployeeRangeChange={editor.updateDraftEmployeeRange}
+            />
 
             <PostingCardSourceEvidence
               source={posting.company.source}
               areSourcesVisible={areSourcesVisible}
+              isModified={isSectionModified('company')}
             />
           </div>
         </details>

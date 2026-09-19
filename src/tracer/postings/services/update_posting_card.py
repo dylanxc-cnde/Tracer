@@ -190,6 +190,48 @@ class UpdatePostingCardService:
                 updated_instructions
             )
 
+        saved_company_summary = card.posting.company.company_summary
+        saved_company_summary_value = (
+            saved_company_summary.value if saved_company_summary is not None else None
+        )
+        if request.company_summary != saved_company_summary_value:
+            if request.company_summary is None:
+                payload["posting"]["company"]["company_summary"] = None
+            else:
+                original_company_summary = original_card.posting.company.company_summary
+                origin = FactOrigin.USER_DEFINED
+                if (
+                    original_company_summary is not None
+                    and request.company_summary == original_company_summary.value
+                ):
+                    origin = original_company_summary.origin
+
+                payload["posting"]["company"]["company_summary"] = {
+                    "value": request.company_summary,
+                    "origin": origin,
+                }
+
+        saved_employee_range = card.posting.company.employee_range
+        saved_employee_range_value = (
+            saved_employee_range.value if saved_employee_range is not None else None
+        )
+        if request.employee_range != saved_employee_range_value:
+            if request.employee_range is None:
+                payload["posting"]["company"]["employee_range"] = None
+            else:
+                original_employee_range = original_card.posting.company.employee_range
+                origin = FactOrigin.USER_DEFINED
+                if (
+                    original_employee_range is not None
+                    and request.employee_range == original_employee_range.value
+                ):
+                    origin = original_employee_range.origin
+
+                payload["posting"]["company"]["employee_range"] = {
+                    "value": request.employee_range,
+                    "origin": origin,
+                }
+
         payload["posting_alias"] = request.posting_alias
         payload["user_notes"] = request.user_notes
         payload["tags"] = request.tags
