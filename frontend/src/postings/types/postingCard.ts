@@ -2,8 +2,14 @@ import type {
   ApplicationChannel,
   CompensationPeriod,
   CompensationType,
+  ContractType,
+  InternshipRequirement,
   PayBasis,
   PostingDetails,
+  RoleFamily,
+  Seniority,
+  WorkMode,
+  WorkloadType,
 } from './postingDetails'
 
 export type CreatePostingCardRequest = {
@@ -40,6 +46,15 @@ export type UpdatePostingCardRequest = {
   role_summary: string | null
   responsibilities: string[]
   role_domains: string[]
+  workload_type: WorkloadType | null
+  role_families: RoleFamily[]
+  contract_type: ContractType | null
+  seniority: Seniority | null
+  work_modes: WorkMode[]
+  primary_address: string | null
+  address_candidates: string[]
+  internship_requirement: InternshipRequirement | null
+  eligibility: string | null
   weekly_hours_minimum: number | null
   weekly_hours_maximum: number | null
   schedule: string | null

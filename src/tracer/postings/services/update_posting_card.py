@@ -105,9 +105,57 @@ class UpdatePostingCardService:
 
             payload["posting"]["role_content"]["domains"] = updated_domains
 
+        saved_classification = card.posting.classification
+        original_classification = original_card.posting.classification
+        classification_values = {
+            "workload_type": request.workload_type,
+            "contract_type": request.contract_type,
+            "seniority": request.seniority,
+            "internship_requirement": request.internship_requirement,
+            "eligibility": request.eligibility,
+        }
+        for field, value in classification_values.items():
+            saved_field = getattr(saved_classification, field)
+            saved_value = saved_field.value if saved_field is not None else None
+            if value == saved_value:
+                continue
+
+            if value is None:
+                payload["posting"]["classification"][field] = None
+            else:
+                original_field = getattr(original_classification, field)
+                origin = FactOrigin.USER_DEFINED
+                if original_field is not None and value == original_field.value:
+                    origin = original_field.origin
+                payload["posting"]["classification"][field] = {
+                    "value": value,
+                    "origin": origin,
+                }
+
+        # Multi-select order has no meaning, just like application channels.
+        selection_values = (
+            ("classification", "role_families", request.role_families),
+            ("work_conditions", "work_modes", request.work_modes),
+        )
+        for section, field, values in selection_values:
+            saved_field = getattr(getattr(card.posting, section), field)
+            saved_values = saved_field.value if saved_field is not None else ()
+            if set(values) == set(saved_values):
+                continue
+
+            original_field = getattr(getattr(original_card.posting, section), field)
+            if original_field is not None and set(values) == set(original_field.value):
+                field_payload = original_field.model_dump()
+            elif not values:
+                field_payload = None
+            else:
+                field_payload = {"value": values, "origin": FactOrigin.USER_DEFINED}
+            payload["posting"][section][field] = field_payload
+
         saved_work_conditions = card.posting.work_conditions
         original_work_conditions = original_card.posting.work_conditions
         work_condition_values = {
+            "primary_address": request.primary_address,
             "schedule": request.schedule,
             "travel_requirement": request.travel_requirement,
             "start_on": request.start_on,
@@ -130,6 +178,9 @@ class UpdatePostingCardService:
                     "value": value,
                     "origin": origin,
                 }
+
+        # Candidates are plain address strings, without per-item origin metadata.
+        payload["posting"]["work_conditions"]["address_candidates"] = request.address_candidates
 
         saved_hours = saved_work_conditions.weekly_hours
         saved_minimum = saved_hours.minimum if saved_hours is not None else None

@@ -14,15 +14,20 @@ Use a separate company search when the employer can be identified confidently.
 First try to find the exact original posting. Then find an official company
 website or official company profile that belongs to the same employer. If the
 exact posting cannot be found but the supplied text still identifies one usable
-target posting, continue the company search and use it only to enrich
-CompanyInfo. A company page alone never proves that a job exists and must not
+target posting, continue the company search for CompanyInfo and explicitly
+unconfirmed address candidates under the location rules below. A company page
+alone never proves that a job exists and must not
 provide job-specific identity, responsibilities, requirements, work conditions
-or application instructions. If the employer identity is ambiguous, do not
+or application instructions as established facts. An employer address may be
+kept only as an explicitly unconfirmed address candidate under the location
+rules below. If the employer identity is ambiguous, do not
 merge information from a merely similar or same-named company.
 
 Do not merge information from merely similar jobs.
 If a web result cannot be confidently matched to the supplied posting,
-do not use it as evidence.
+do not use it as evidence of established job-specific facts. CompanyInfo and
+unconfirmed address candidates may use confidently matched employer sources
+only under their respective rules.
 
 Extract only facts supported by the pasted text or a confidently matched
 web source. Do not guess missing information.
@@ -31,7 +36,7 @@ Use null for unknown single values and empty arrays for repeated values
 with no results.
 
 Set origin to source for every source-backed fact produced during parsing.
-This applies to ParsedValue, PostingLocation, WeeklyHours, Requirement,
+This applies to ParsedValue, WeeklyHours, Requirement,
 CompensationEntry and PostingContact. Never set origin to user_defined while
 parsing; user_defined is reserved for values changed by the user after the
 posting has been parsed.
@@ -105,6 +110,53 @@ company-wide fact. Do not turn responsibilities, requirements, the role's
 technical domain or a recruiting slogan into the company summary. Cite the
 supporting company passages and pages once in CompanyInfo.source.
 
+Keep PostingClassification.role_families, workload_type, seniority and
+contract_type independent. Split a source description across the supported
+dimensions instead of keeping a combined employment-type description. Preserve
+the original wording in PostingClassification.source.excerpts.
+
+role_families describes the kind of role, not its workload or contract length.
+Use regular_employment for an explicitly identified ordinary employee role,
+not as a fallback whenever a student or training role is absent. Do not add it
+merely because an internship, working-student or other special role also has an
+employment contract. Multiple explicitly supported role families may coexist.
+
+workload_type is one value: full_time, part_time, either or other. Use either
+only when the posting explicitly offers both full-time and part-time work as
+alternatives, not when sources conflict. Use other only for an explicitly
+stated workload arrangement outside those choices. Missing or uncertain
+workload stays null. Do not infer workload from a role family, a contract type
+or a weekly-hours number alone. Likewise, workload does not establish a role
+family, seniority or contract type. A regular employee role is not necessarily
+full-time or permanent. Keep unsupported dimensions null.
+
+PostingClassification.eligibility is one concise text in the source language
+describing who is eligible to apply. Put academic degrees, required fields of
+study, academic performance, enrollment or student status, target semester,
+eligible applicant groups and work-authorization conditions here, not in
+PostingRequirements.groups or RoleDescription.domains. Preserve whether each
+condition is required, preferred, optional or unclear, including alternatives,
+negations, thresholds and timing. A mentioned study field is not automatically
+a mandatory qualification. Keep supporting passages and URLs in
+PostingClassification.source. Use null when eligibility is not stated; do not
+infer student-status requirements from role_families or seniority alone. This
+field describes the employer's conditions, not the user's profile or application
+plans. Do not repeat workload, contract or internship type in this text.
+
+PostingRequirements.groups is limited to what a candidate can do: skills,
+knowledge, experience, language proficiency, work-related abilities and
+professional certifications or task-specific licenses. Knowledge of a subject
+is a capability; studying that subject or holding an academic degree is
+eligibility. A work permit is eligibility, not a capability license. Do not use
+other to put identity or education conditions back into requirements.
+
+Route eligibility clauses before grouping capabilities. Do not duplicate a
+condition in eligibility and requirements. When an alternative spans eligibility
+and capability, keep the complete alternative clause in eligibility; extracting
+the capability as a separate requirement would falsely make it independent.
+Independent capability clauses still belong in requirements. Preserve unclear
+relationships as unclear instead of inventing a stricter or weaker condition.
+
 Parse each source requirement in this order:
 
 Use steps 1 through 8 to interpret the source clauses, then apply step 9 to
@@ -138,8 +190,8 @@ the full requirements collection for each posting before returning it.
    free-text field; preserve the relevant original passages once in
    PostingRequirements.source instead.
 5. Build matchable items only from concepts explicitly supported by the source
-   clause. Each core item must represent one capability, credential,
-   experience, language, license or other condition that can be matched
+   clause. Each core item must represent one capability, professional credential,
+   experience, language or task-specific license that can be matched
    independently. Do not merge distinct concepts into one item, do not create
    normalized aliases, and do not invent a broader category that the source
    does not support. RequirementItem.name is a compact UI pill label, not a
@@ -207,6 +259,41 @@ outside the available enum values. Never use other as a fallback for
 uncertainty. A broad flexibility or mobility label that does not establish a
 specific available work mode must leave work_modes null and create a parse
 ambiguity for work_conditions.work_modes.
+
+WorkConditions.primary_address is one preferred location string, wrapped in
+ParsedValue with origin=source. It is the first candidate for display and future
+map lookup, not a claim that the workplace has been verified or is the only
+available location. Store one location per string; never concatenate separate
+workplaces into primary_address. Do not output a locations collection or separate
+city, region, country or detailed-address fields.
+
+Choose the location explicitly identified as primary in the posting. If several
+explicit workplaces are equally suitable, use the first one in source order and
+keep the rest as alternatives. Prefer a posting-supported location, even if only
+a city or region is known, over a more precise but unconfirmed office address.
+Only when the posting provides no usable location may a supported employer
+research candidate become primary. It must match the confidently identified
+employer and must not conflict with any known workplace constraints; record the
+unconfirmed workplace connection as a parse ambiguity with field_path
+work_conditions.primary_address. Do not invent an address to fill this field.
+
+Keep each location as concise, readable address text in the source language,
+including only supported street, postal code, city, region and country information.
+Avoid repeating the same place name within a string. A city-only or region-only
+string is valid; do not guess missing address parts or coordinates. Use null when
+no supported location is available. Remote work belongs in work_modes and is not
+a physical address. Never treat a headquarters, registered office or application
+mailing address as a workplace merely because it belongs to the employer.
+
+WorkConditions.address_candidates contains the other location strings, excluding
+primary_address and duplicates. These can include other explicitly offered
+workplaces and supported but unconfirmed alternatives; candidate does not mean
+incorrect, and primary does not mean confirmed. Preserve source order within
+equally supported alternatives and use an empty array when none exist. Do not
+collect unrelated offices, similarly named employers or arbitrary search results.
+Record unresolved workplace relationships in parse ambiguities, and retain the
+supporting passages and URLs in WorkConditions.source without per-address source
+models. Do not claim user confirmation, perform geocoding or generate coordinates.
 
 For each section, copy a small number of useful, exact and contiguous source
 passages into PostingSource.excerpts. An excerpt must appear verbatim in the

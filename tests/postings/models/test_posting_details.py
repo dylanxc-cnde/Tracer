@@ -18,6 +18,7 @@ from tracer.postings.models.posting_details import (
     RequirementItemRule,
     RoleFamily,
     WorkMode,
+    WorkloadType,
 )
 
 
@@ -88,16 +89,13 @@ def make_posting_details() -> PostingDetails:
             ),
         },
         classification={
-            "source": source("Feste Anstellung"),
-            "role_families": value(["full_time"]),
-            "original_employment_type": value("Feste Anstellung"),
+            "source": source("Feste Anstellung", "Vollzeit"),
+            "role_families": value(["regular_employment"]),
+            "workload_type": value("full_time"),
             "contract_type": value("permanent"),
             "seniority": value("experienced"),
             "internship_requirement": value("not_applicable"),
-            "eligible_groups": None,
-            "study_fields": None,
-            "student_status_required": value(False),
-            "target_semester": None,
+            "eligibility": None,
         },
         work_conditions={
             "source": source(
@@ -105,14 +103,8 @@ def make_posting_details() -> PostingDetails:
                 "Mobiles Arbeiten Region München",
                 "Bereitschaft zur Reisetätigkeit",
             ),
-            "locations": [
-                {
-                    "origin": "source",
-                    "city": "München",
-                    "region": "Bayern",
-                    "country": "Germany",
-                }
-            ],
+            "primary_address": value("München, Bayern, Germany"),
+            "address_candidates": [],
             "work_modes": value(["field_based"]),
             "weekly_hours": None,
             "schedule": None,
@@ -261,11 +253,15 @@ def test_posting_details_accept_detailed_job_data():
     assert posting.identity.published_on is not None
     assert posting.identity.published_on.value == date(2026, 8, 13)
     assert posting.classification.role_families is not None
-    assert posting.classification.role_families.value == (RoleFamily.FULL_TIME,)
+    assert posting.classification.role_families.value == (RoleFamily.REGULAR_EMPLOYMENT,)
+    assert posting.classification.workload_type is not None
+    assert posting.classification.workload_type.value is WorkloadType.FULL_TIME
     assert posting.classification.contract_type is not None
     assert posting.classification.contract_type.value is ContractType.PERMANENT
     assert posting.work_conditions.work_modes is not None
     assert posting.work_conditions.work_modes.value == (WorkMode.FIELD_BASED,)
+    assert posting.work_conditions.primary_address.value == "München, Bayern, Germany"
+    assert posting.work_conditions.address_candidates == ()
 
     requirement = posting.requirements.groups[0]
     assert requirement.importance is RequirementImportance.REQUIRED
@@ -273,6 +269,153 @@ def test_posting_details_accept_detailed_job_data():
     assert requirement.items[0].category is RequirementCategory.LICENSE
     assert len(posting.compensation.entries) == 3
     assert posting.contact is None
+
+
+@pytest.mark.parametrize("workload_type", [*WorkloadType, None])
+def test_role_and_workload_are_independent(workload_type):
+    original = make_posting_details()
+    payload = original.model_dump(mode="json")
+    payload["classification"]["role_families"] = value(
+        ["internship", "working_student"]
+    )
+    payload["classification"]["workload_type"] = (
+        value(workload_type) if workload_type is not None else None
+    )
+
+    posting = PostingDetails.model_validate(payload)
+    classification = posting.classification
+
+    assert classification.role_families.value == (
+        RoleFamily.INTERNSHIP,
+        RoleFamily.WORKING_STUDENT,
+    )
+    if workload_type is None:
+        assert classification.workload_type is None
+    else:
+        assert classification.workload_type.value is workload_type
+        assert classification.workload_type.origin is FactOrigin.SOURCE
+    assert classification.contract_type == original.classification.contract_type
+    assert classification.seniority == original.classification.seniority
+    assert PostingDetails.model_validate_json(posting.model_dump_json()) == posting
+
+
+@pytest.mark.parametrize("legacy_role", ["full_time", "part_time"])
+def test_role_families_no_longer_accept_workload_values(legacy_role):
+    payload = make_posting_details().model_dump(mode="json")
+    payload["classification"]["role_families"] = value([legacy_role])
+
+    with pytest.raises(ValidationError, match="role_families"):
+        PostingDetails.model_validate(payload)
+
+
+@pytest.mark.parametrize("origin", ["source", "user_defined"])
+@pytest.mark.parametrize("text", [None, "Enrollment required; any field of study accepted."])
+def test_eligibility_is_one_nullable_text_with_origin(text, origin):
+    payload = make_posting_details().model_dump(mode="json")
+    payload["classification"]["eligibility"] = (
+        {"value": text, "origin": origin} if text is not None else None
+    )
+
+    posting = PostingDetails.model_validate(payload)
+
+    if text is None:
+        assert posting.classification.eligibility is None
+    else:
+        assert posting.classification.eligibility.value == text
+        assert posting.classification.eligibility.origin == origin
+    assert PostingDetails.model_validate_json(posting.model_dump_json()) == posting
+
+
+@pytest.mark.parametrize("text", [True, ["Students"], {"study_fields": ["CS"]}])
+def test_eligibility_rejects_non_text_values(text):
+    payload = make_posting_details().model_dump(mode="json")
+    payload["classification"]["eligibility"] = value(text)
+
+    with pytest.raises(ValidationError, match="eligibility"):
+        PostingDetails.model_validate(payload)
+
+
+@pytest.mark.parametrize("field", [
+    "eligible_groups", "study_fields", "student_status_required", "target_semester",
+])
+def test_classification_rejects_removed_eligibility_fields(field):
+    payload = make_posting_details().model_dump(mode="json")
+    payload["classification"][field] = None
+
+    with pytest.raises(ValidationError, match=field):
+        PostingDetails.model_validate(payload)
+
+
+def test_requirements_no_longer_have_an_education_category():
+    with pytest.raises(ValidationError, match="category"):
+        RequirementItem(name="Computer Science degree", category="education", is_example=False)
+
+    schema = PostingDetails.model_json_schema()
+    assert "education" not in schema["$defs"]["RequirementCategory"]["enum"]
+    classification = schema["$defs"]["PostingClassification"]
+    assert "eligibility" in classification["required"]
+    assert "study_fields" not in classification["properties"]
+
+
+def test_classification_rejects_the_removed_employment_description():
+    payload = make_posting_details().model_dump(mode="json")
+    payload["classification"]["original_employment_type"] = value("Teilzeit")
+
+    with pytest.raises(ValidationError, match="original_employment_type"):
+        PostingDetails.model_validate(payload)
+
+
+@pytest.mark.parametrize("origin", ["source", "user_defined"])
+@pytest.mark.parametrize(
+    "address",
+    ["Aachen", "Nordrhein-Westfalen", "Example Street 1, 52062 Aachen, Germany", None],
+)
+def test_work_conditions_keep_one_primary_address_and_other_candidates(address, origin):
+    payload = make_posting_details().model_dump(mode="json")
+    conditions = payload["work_conditions"]
+    conditions["primary_address"] = (
+        {"origin": origin, "value": address} if address is not None else None
+    )
+    conditions["address_candidates"] = ["Berlin, Germany", "Candidate Street 2, Aachen"]
+
+    posting = PostingDetails.model_validate(payload)
+    if address is None:
+        assert posting.work_conditions.primary_address is None
+    else:
+        assert posting.work_conditions.primary_address.value == address
+        assert posting.work_conditions.primary_address.origin == origin
+    assert posting.work_conditions.address_candidates == (
+        "Berlin, Germany", "Candidate Street 2, Aachen"
+    )
+    assert posting.work_conditions.source == make_posting_details().work_conditions.source
+    assert PostingDetails.model_validate_json(posting.model_dump_json()) == posting
+
+
+@pytest.mark.parametrize("address", [["Aachen", "Berlin"], {"city": "Aachen"}, None])
+def test_primary_address_value_must_be_a_string(address):
+    payload = make_posting_details().model_dump(mode="json")
+    payload["work_conditions"]["primary_address"] = value(address)
+
+    with pytest.raises(ValidationError, match="primary_address"):
+        PostingDetails.model_validate(payload)
+
+
+@pytest.mark.parametrize("field", ["locations", "city", "region", "country", "address_text"])
+def test_work_conditions_reject_removed_location_fields(field):
+    payload = make_posting_details().model_dump(mode="json")
+    payload["work_conditions"][field] = [] if field == "locations" else "Old address"
+
+    with pytest.raises(ValidationError, match=field):
+        PostingDetails.model_validate(payload)
+
+
+@pytest.mark.parametrize("candidates", [None, "Aachen", [{"city": "Aachen"}]])
+def test_address_candidates_require_a_collection_of_strings(candidates):
+    payload = make_posting_details().model_dump(mode="json")
+    payload["work_conditions"]["address_candidates"] = candidates
+
+    with pytest.raises(ValidationError, match="address_candidates"):
+        PostingDetails.model_validate(payload)
 
 
 def test_requirement_groups_keep_rules_and_examples():

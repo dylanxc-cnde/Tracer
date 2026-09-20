@@ -3,7 +3,7 @@ import type { PostingDetails } from '../../../postings/types/postingDetails'
 import {
   formatCompensationEntry,
   formatEnumValue,
-  formatLocation,
+  formatAddressPreview,
   formatWeeklyHours,
 } from './PostingCardFormatters'
 
@@ -18,12 +18,12 @@ type PostingCardQuickFactsProps = {
 
 function createQuickFacts(posting: PostingDetails) {
   const facts: PostingCardQuickFact[] = []
-  const locations = posting.work_conditions.locations
-    .map(formatLocation)
-    .filter((location) => location.length > 0)
+  const address = formatAddressPreview(
+    posting.work_conditions.primary_address?.value ?? null,
+  )
 
-  if (locations.length > 0) {
-    facts.push({ label: 'Location', value: locations.join(' · ') })
+  if (address !== null) {
+    facts.push({ label: 'Location', value: address })
   }
 
   if (posting.work_conditions.work_modes !== null) {
@@ -35,17 +35,30 @@ function createQuickFacts(posting: PostingDetails) {
     })
   }
 
-  if (posting.classification.original_employment_type !== null) {
+  if (posting.classification.workload_type !== null) {
+    const workloadType = posting.classification.workload_type.value
+
     facts.push({
-      label: 'Job type',
-      value: posting.classification.original_employment_type.value,
+      label: 'Workload',
+      value: workloadType === 'either'
+        ? 'Full time / Part time'
+        : formatEnumValue(workloadType),
     })
-  } else if (posting.classification.role_families !== null) {
+  }
+
+  if (posting.classification.role_families !== null) {
     facts.push({
       label: 'Job type',
       value: posting.classification.role_families.value
         .map(formatEnumValue)
         .join(' · '),
+    })
+  }
+
+  if (posting.classification.contract_type !== null) {
+    facts.push({
+      label: 'Contract type',
+      value: formatEnumValue(posting.classification.contract_type.value),
     })
   }
 

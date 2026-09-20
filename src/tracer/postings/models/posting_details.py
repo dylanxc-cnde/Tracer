@@ -54,10 +54,16 @@ class RoleFamily(StrEnum):
     WORKING_STUDENT = "working_student"
     STUDENT_ASSISTANT = "student_assistant"
     THESIS = "thesis"
-    FULL_TIME = "full_time"
-    PART_TIME = "part_time"
+    REGULAR_EMPLOYMENT = "regular_employment"
     APPRENTICESHIP = "apprenticeship"
     GRADUATE = "graduate"
+    OTHER = "other"
+
+
+class WorkloadType(StrEnum):
+    FULL_TIME = "full_time"
+    PART_TIME = "part_time"
+    EITHER = "either"
     OTHER = "other"
 
 
@@ -101,7 +107,6 @@ class RequirementImportance(StrEnum):
 class RequirementCategory(StrEnum):
     SKILL = "skill"
     EXPERIENCE = "experience"
-    EDUCATION = "education"
     LANGUAGE = "language"
     CERTIFICATION = "certification"
     LICENSE = "license"
@@ -168,27 +173,15 @@ class CompanyInfo(_PostingDetailsModel):
 
 
 class PostingClassification(_PostingDetailsModel):
-    """Normalized job and student-role classifications."""
+    """Role classifications and source-stated applicant eligibility."""
 
     source: PostingSource
     role_families: ParsedValue[tuple[RoleFamily, ...]] | None
-    original_employment_type: ParsedValue[str] | None
+    workload_type: ParsedValue[WorkloadType] | None
     contract_type: ParsedValue[ContractType] | None
     seniority: ParsedValue[Seniority] | None
     internship_requirement: ParsedValue[InternshipRequirement] | None
-    eligible_groups: ParsedValue[tuple[str, ...]] | None
-    study_fields: ParsedValue[tuple[str, ...]] | None
-    student_status_required: ParsedValue[bool] | None
-    target_semester: ParsedValue[str] | None
-
-
-class PostingLocation(_PostingDetailsModel):
-    """One work location stated by the posting."""
-
-    origin: FactOrigin
-    city: str | None
-    region: str | None
-    country: str | None
+    eligibility: ParsedValue[str] | None
 
 
 class WeeklyHours(_PostingDetailsModel):
@@ -203,7 +196,9 @@ class WorkConditions(_PostingDetailsModel):
     """Location, schedule and timing information for the job."""
 
     source: PostingSource
-    locations: tuple[PostingLocation, ...]
+    # Primary means preferred for display and future lookup, not verified.
+    primary_address: ParsedValue[str] | None
+    address_candidates: tuple[str, ...]
     work_modes: ParsedValue[tuple[WorkMode, ...]] | None
     weekly_hours: WeeklyHours | None
     schedule: ParsedValue[str] | None
@@ -222,7 +217,7 @@ class RoleDescription(_PostingDetailsModel):
 
 
 class RequirementItem(_PostingDetailsModel):
-    """One independently matchable item in a job requirement."""
+    """One matchable capability, not an applicant's identity or education status."""
 
     name: str
     category: RequirementCategory

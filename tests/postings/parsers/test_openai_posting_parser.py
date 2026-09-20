@@ -55,6 +55,21 @@ def test_shared_prompt_defines_every_parse_status_and_refinement_reason():
     assert "Never set origin to user_defined" in POSTING_PARSE_PROMPT
 
 
+def test_shared_prompt_separates_eligibility_from_capabilities():
+    prompt = " ".join(POSTING_PARSE_PROMPT.split())
+
+    assert "PostingClassification.eligibility is one concise text" in prompt
+    assert "enrollment or student status, target semester" in prompt
+    assert "A mentioned study field is not automatically a mandatory qualification" in prompt
+    assert "do not infer student-status requirements from role_families or seniority alone" in prompt
+    assert "Keep supporting passages and URLs in PostingClassification.source" in prompt
+    assert "PostingRequirements.groups is limited to what a candidate can do" in prompt
+    assert "A work permit is eligibility, not a capability license" in prompt
+    assert "Do not duplicate a condition in eligibility and requirements" in prompt
+    assert "keep the complete alternative clause in eligibility" in prompt
+    assert "negations, thresholds and timing" in prompt
+
+
 def test_shared_prompt_uses_requirement_strategy_without_scenarios():
     prompt = " ".join(POSTING_PARSE_PROMPT.split())
 
@@ -84,6 +99,34 @@ def test_shared_prompt_uses_one_source_bundle_per_section():
     assert "do not create or imply a field-to-excerpt" in prompt
     assert "Multiple URLs are allowed" in prompt
     assert "SourceExcerpt" not in POSTING_PARSE_PROMPT
+
+
+def test_shared_prompt_separates_classification_dimensions():
+    prompt = " ".join(POSTING_PARSE_PROMPT.split())
+
+    assert "role_families, workload_type, seniority and contract_type independent" in prompt
+    assert "Use regular_employment for an explicitly identified ordinary employee role" in prompt
+    assert "workload_type is one value: full_time, part_time, either or other" in prompt
+    assert "Do not infer workload from a role family" in prompt
+    assert "original wording in PostingClassification.source.excerpts" in prompt
+
+
+def test_shared_prompt_uses_one_primary_address_and_other_candidates():
+    prompt = " ".join(POSTING_PARSE_PROMPT.split())
+
+    assert "primary_address is one preferred location string" in prompt
+    assert "not a claim that the workplace has been verified" in prompt
+    assert "never concatenate separate workplaces into primary_address" in prompt
+    assert "use the first one in source order" in prompt
+    assert "Prefer a posting-supported location" in prompt
+    assert "Only when the posting provides no usable location" in prompt
+    assert "field_path work_conditions.primary_address" in prompt
+    assert "A city-only or region-only string is valid" in prompt
+    assert "Use null when no supported location is available" in prompt
+    assert "address_candidates contains the other location strings" in prompt
+    assert "candidate does not mean incorrect, and primary does not mean confirmed" in prompt
+    assert "Do not claim user confirmation, perform geocoding or generate coordinates" in prompt
+    assert "PostingLocation" not in prompt
 
 
 def test_parser_sends_text_import_with_shared_prompt():

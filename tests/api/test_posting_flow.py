@@ -65,18 +65,16 @@ def make_posting_details() -> PostingDetails:
         classification={
             "source": empty_source,
             "role_families": None,
-            "original_employment_type": None,
+            "workload_type": None,
             "contract_type": None,
             "seniority": None,
             "internship_requirement": None,
-            "eligible_groups": None,
-            "study_fields": None,
-            "student_status_required": None,
-            "target_semester": None,
+            "eligibility": None,
         },
         work_conditions={
             "source": empty_source,
-            "locations": [],
+            "primary_address": None,
+            "address_candidates": [],
             "work_modes": None,
             "weekly_hours": None,
             "schedule": None,
@@ -214,6 +212,15 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
                 "role_summary": None,
                 "responsibilities": [],
                 "role_domains": [],
+                "workload_type": None,
+                "role_families": [],
+                "contract_type": None,
+                "seniority": None,
+                "work_modes": [],
+                "primary_address": None,
+                "address_candidates": [],
+                "internship_requirement": None,
+                "eligibility": None,
                 "weekly_hours_minimum": None,
                 "weekly_hours_maximum": None,
                 "schedule": None,
@@ -318,6 +325,15 @@ def test_http_updates_role_summary_and_preserves_card_context(
         "role_summary": new_value,
         "responsibilities": ["Build reports"],
         "role_domains": ["Data analytics"],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -435,6 +451,15 @@ def test_http_rejects_invalid_card_update_without_changing_storage(
         "role_summary": "User summary",
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -488,6 +513,15 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
                 "role_summary": "User summary",
                 "responsibilities": [],
                 "role_domains": [],
+                "workload_type": None,
+                "role_families": [],
+                "contract_type": None,
+                "seniority": None,
+                "work_modes": [],
+                "primary_address": None,
+                "address_candidates": [],
+                "internship_requirement": None,
+                "eligibility": None,
                 "weekly_hours_minimum": None,
                 "weekly_hours_maximum": None,
                 "schedule": None,
@@ -521,6 +555,15 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
                 "role_summary": "User summary",
                 "responsibilities": [],
                 "role_domains": [],
+                "workload_type": None,
+                "role_families": [],
+                "contract_type": None,
+                "seniority": None,
+                "work_modes": [],
+                "primary_address": None,
+                "address_candidates": [],
+                "internship_requirement": None,
+                "eligibility": None,
                 "weekly_hours_minimum": None,
                 "weekly_hours_maximum": None,
                 "schedule": None,
@@ -594,6 +637,15 @@ def test_http_restores_original_summary_and_origin(
         "role_summary": intermediate_value,
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -703,6 +755,15 @@ def test_http_updates_and_restores_responsibilities(
         "role_summary": "Original summary",
         "responsibilities": new_values,
         "role_domains": ["Data analytics"],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -814,6 +875,15 @@ def test_http_updates_and_restores_role_domains(
         "role_summary": "Original summary",
         "responsibilities": ["Build reports"],
         "role_domains": new_values,
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -895,6 +965,15 @@ def test_http_requires_role_domains_and_can_add_to_empty_list(tmp_path):
     update_request = {
         "role_summary": None,
         "responsibilities": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -1009,6 +1088,15 @@ def test_http_updates_and_restores_benefits(tmp_path, new_values, expected_origi
         "role_summary": None,
         "responsibilities": ["Build reports"],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -1095,6 +1183,15 @@ def test_http_requires_benefits_and_can_add_to_empty_list(tmp_path):
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -1188,6 +1285,15 @@ def test_http_updates_and_restores_vacation_days(
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -1272,6 +1378,15 @@ def test_http_requires_vacation_days_in_card_update(tmp_path):
                 "role_summary": None,
                 "responsibilities": [],
                 "role_domains": [],
+                "workload_type": None,
+                "role_families": [],
+                "contract_type": None,
+                "seniority": None,
+                "work_modes": [],
+                "primary_address": None,
+                "address_candidates": [],
+                "internship_requirement": None,
+                "eligibility": None,
                 "weekly_hours_minimum": None,
                 "weekly_hours_maximum": None,
                 "schedule": None,
@@ -1361,6 +1476,15 @@ def test_http_updates_and_restores_application_lists(
         "role_summary": None,
         "responsibilities": ["Build reports"],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -1449,6 +1573,15 @@ def test_http_requires_application_lists_and_can_add_both(tmp_path, missing_fiel
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -1516,6 +1649,15 @@ def make_card_update_request(contact_values=None):
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -1735,6 +1877,227 @@ def test_http_requires_application_facts_in_card_update(tmp_path, field):
     assert store.get_original_by_card_key(card.card_key) == card
 
 
+@pytest.mark.parametrize("origin", ["source", "user_defined"])
+def test_http_reads_and_preserves_eligibility_when_updating_other_fields(tmp_path, origin):
+    database_path = tmp_path / "tracer.db"
+    payload = make_posting_details().model_dump(mode="json")
+    payload["classification"]["eligibility"] = {
+        "value": "Enrollment required; Computer Science or a related degree.",
+        "origin": origin,
+    }
+    card = PostingCard(import_key=uuid4(), posting=PostingDetails.model_validate(payload))
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    request["user_notes"] = "Review eligibility before applying."
+    request["eligibility"] = payload["classification"]["eligibility"]["value"]
+
+    with TestClient(create_app(database_path=database_path)) as client:
+        for suffix in ("", "/original"):
+            response = client.get(f"/posting-cards/{card.card_key}{suffix}")
+            assert response.status_code == 200
+            assert response.json()["posting"]["classification"] == payload["classification"]
+
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 200
+        assert response.json()["posting"]["classification"] == payload["classification"]
+        assert response.json()["user_notes"] == request["user_notes"]
+
+    assert store.get_by_card_key(card.card_key).posting.classification == card.posting.classification
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+JOB_DETAIL_CASES = [
+    ("classification", "workload_type", "part_time", "either", None),
+    ("classification", "role_families", ["working_student", "internship"], ["regular_employment"], []),
+    ("classification", "contract_type", "fixed_term", "permanent", None),
+    ("classification", "seniority", "student", "experienced", None),
+    ("work_conditions", "work_modes", ["hybrid", "remote"], ["onsite"], []),
+    ("classification", "internship_requirement", "mandatory", "not_applicable", None),
+    ("classification", "eligibility", "Enrollment required.", "Any subject accepted.", None),
+]
+
+
+@pytest.mark.parametrize("original_origin", ["source", "user_defined"])
+@pytest.mark.parametrize("section,field,original_value,new_value,empty_value", JOB_DETAIL_CASES)
+def test_http_job_details_edit_clear_and_restore(
+    tmp_path, original_origin, section, field, original_value, new_value, empty_value,
+):
+    database_path = tmp_path / "tracer.db"
+    payload = make_posting_details().model_dump(mode="json")
+    payload[section][field] = {"value": original_value, "origin": original_origin}
+    payload["classification"]["source"] = {
+        "excerpts": ["Original classification evidence"],
+        "source_urls": ["https://example.com/job"],
+    }
+    payload["work_conditions"]["primary_address"] = {"value": "Aachen", "origin": "source"}
+    payload["work_conditions"]["address_candidates"] = ["Berlin", "Hamburg"]
+    card = PostingCard(import_key=uuid4(), posting=PostingDetails.model_validate(payload))
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    request["primary_address"] = "Aachen"
+    request["address_candidates"] = ["Berlin", "Hamburg"]
+    expected = card.model_dump(mode="json")
+
+    with TestClient(create_app(database_path=database_path)) as client:
+        for value, origin in [
+            (original_value, original_origin),
+            (new_value, "user_defined"),
+            (empty_value, None),
+            (original_value, original_origin),
+        ]:
+            request[field] = value
+            expected["posting"][section][field] = (
+                {"value": value, "origin": origin} if origin is not None else None
+            )
+            response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+            assert response.status_code == 200
+            assert response.json() == expected
+            assert client.get(f"/posting-cards/{card.card_key}").json() == expected
+            assert store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
+        assert client.get(f"/posting-cards/{card.card_key}/original").json() == card.model_dump(mode="json")
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize("section,field,original_value,new_value,empty_value", JOB_DETAIL_CASES)
+def test_http_job_details_can_fill_missing_values(tmp_path, section, field, original_value, new_value, empty_value):
+    database_path = tmp_path / "tracer.db"
+    card = PostingCard(import_key=uuid4(), posting=make_posting_details())
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    request[field] = new_value
+    with TestClient(create_app(database_path=database_path)) as client:
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 200
+        assert response.json()["posting"][section][field] == {"value": new_value, "origin": "user_defined"}
+        request[field] = empty_value
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 200
+        assert response.json() == card.model_dump(mode="json")
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize("origin", ["source", "user_defined"])
+@pytest.mark.parametrize("section,field,values", [
+    ("classification", "role_families", ["working_student", "internship"]),
+    ("work_conditions", "work_modes", ["hybrid", "remote"]),
+])
+def test_http_job_detail_selection_order_preserves_provenance(tmp_path, origin, section, field, values):
+    database_path = tmp_path / "tracer.db"
+    payload = make_posting_details().model_dump(mode="json")
+    payload[section][field] = {"value": values, "origin": origin}
+    card = PostingCard(import_key=uuid4(), posting=PostingDetails.model_validate(payload))
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    with TestClient(create_app(database_path=database_path)) as client:
+        request[field] = list(reversed(values))
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 200
+        assert response.json() == card.model_dump(mode="json")
+        request[field] = ["other"]
+        assert client.patch(f"/posting-cards/{card.card_key}", json=request).status_code == 200
+        request[field] = list(reversed(values))
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 200
+        assert response.json() == card.model_dump(mode="json")
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize("field,value", [
+    ("workload_type", "working_student"),
+    ("workload_type", ["part_time", "full_time"]),
+    ("role_families", ["part_time"]),
+    ("role_families", ["working_student", "working_student"]),
+    ("role_families", None),
+    ("contract_type", "student"),
+    ("seniority", "permanent"),
+    ("work_modes", ["unknown"]),
+    ("work_modes", ["hybrid", "hybrid"]),
+    ("work_modes", "remote"),
+    ("work_modes", None),
+    ("internship_requirement", "unknown"),
+    ("eligibility", ["Students"]),
+    ("eligibility", {"value": "Injected origin", "origin": "source"}),
+    ("primary_address", {"value": "Injected address", "origin": "source"}),
+    ("primary_address", ["Aachen"]),
+    ("primary_address", 123),
+    ("address_candidates", [{"address": "Aachen", "primary": 1}]),
+    ("address_candidates", "Berlin"),
+    ("address_candidates", [123]),
+    ("address_candidates", None),
+])
+def test_http_rejects_invalid_job_detail_updates(tmp_path, field, value):
+    database_path = tmp_path / "tracer.db"
+    card = PostingCard(import_key=uuid4(), posting=make_posting_details())
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    request[field] = value
+    with TestClient(create_app(database_path=database_path)) as client:
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 422
+    assert store.get_by_card_key(card.card_key) == card
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize("field", [case[1] for case in JOB_DETAIL_CASES] + ["primary_address", "address_candidates"])
+def test_http_requires_job_details_in_full_card_update(tmp_path, field):
+    database_path = tmp_path / "tracer.db"
+    card = PostingCard(import_key=uuid4(), posting=make_posting_details())
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    del request[field]
+    with TestClient(create_app(database_path=database_path)) as client:
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 422
+        assert any(error["loc"] == ["body", field] for error in response.json()["detail"])
+    assert store.get_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize("original_addresses", [[], ["Berlin", "Hamburg"]])
+def test_http_address_candidates_edit_clear_and_restore(tmp_path, original_addresses):
+    database_path = tmp_path / "tracer.db"
+    payload = make_posting_details().model_dump(mode="json")
+    payload["work_conditions"]["address_candidates"] = original_addresses
+    payload["work_conditions"]["primary_address"] = {"value": "Aachen", "origin": "source"}
+    payload["work_conditions"]["source"] = {
+        "excerpts": ["Original workplace information."],
+        "source_urls": ["https://example.com/workplace"],
+    }
+    card = PostingCard(import_key=uuid4(), posting=PostingDetails.model_validate(payload))
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    request["primary_address"] = "Aachen"
+    expected = card.model_dump(mode="json")
+
+    with TestClient(create_app(database_path=database_path)) as client:
+        for addresses in [original_addresses, ["Office B, Köln", "Office C, Berlin"], [], original_addresses]:
+            request["address_candidates"] = addresses
+            expected["posting"]["work_conditions"]["address_candidates"] = addresses
+            response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+            assert response.status_code == 200
+            assert response.json() == expected
+            assert client.get(f"/posting-cards/{card.card_key}").json() == expected
+            assert store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
+
+        # Clearing the primary address does not silently promote a candidate.
+        request["primary_address"] = None
+        request["address_candidates"] = ["Office B, Köln"]
+        expected["posting"]["work_conditions"]["primary_address"] = None
+        expected["posting"]["work_conditions"]["address_candidates"] = request["address_candidates"]
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 200
+        assert response.json() == expected
+        assert store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
+        assert client.get(f"/posting-cards/{card.card_key}/original").json() == card.model_dump(mode="json")
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
 def make_compensation_entry(**changes):
     entry = {
         "compensation_type": "base_salary",
@@ -1906,6 +2269,7 @@ def test_compensation_update_rejects_non_finite_amounts(bound, amount):
 @pytest.mark.parametrize(
     ("field_name", "original_value", "new_value"),
     [
+        ("primary_address", "Example Street 1, Aachen", "New Street 2, Berlin"),
         ("schedule", "Flexible", "Weekdays"),
         ("travel_requirement", "Occasional travel", "No travel"),
         ("start_on", "2026-10-01", "2026-12-15"),
@@ -1924,9 +2288,10 @@ def test_http_work_condition_text_add_edit_delete_and_restore(
         "excerpts": ["Original work conditions."],
         "source_urls": ["https://example.com/jobs/conditions"],
     }
-    conditions["locations"] = [
-        {"city": "Aachen", "region": None, "country": "Germany", "origin": "source"}
-    ]
+    conditions["primary_address"] = {
+        "origin": "source", "value": "Example Street 1, Aachen, Germany"
+    }
+    conditions["address_candidates"] = ["Candidate Street 2, Aachen"]
     conditions["work_modes"] = {"value": ["hybrid"], "origin": "source"}
     conditions[field_name] = (
         {"value": original_value, "origin": original_origin} if has_original_value else None
@@ -1944,6 +2309,11 @@ def test_http_work_condition_text_add_edit_delete_and_restore(
         (None, None),
         (original_value if has_original_value else None, conditions[field_name]),
     ]
+    update_request["work_modes"] = conditions["work_modes"]["value"]
+    update_request["primary_address"] = (
+        conditions["primary_address"]["value"] if conditions["primary_address"] is not None else None
+    )
+    update_request["address_candidates"] = conditions["address_candidates"]
     with TestClient(create_app(database_path=database_path)) as client:
         for value, expected_field in changes:
             update_request[field_name] = value
@@ -2270,6 +2640,15 @@ def test_http_updates_and_restores_company_text(
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -2358,6 +2737,15 @@ def test_http_requires_company_fields_and_can_add_both(tmp_path, missing_field):
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -2457,6 +2845,15 @@ def test_http_updates_and_restores_industries(tmp_path, new_values, expected_ori
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -2537,6 +2934,15 @@ def test_http_requires_industries_and_can_add_to_empty_list(tmp_path):
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "workload_type": None,
+        "role_families": [],
+        "contract_type": None,
+        "seniority": None,
+        "work_modes": [],
+        "primary_address": None,
+        "address_candidates": [],
+        "internship_requirement": None,
+        "eligibility": None,
         "weekly_hours_minimum": None,
         "weekly_hours_maximum": None,
         "schedule": None,
@@ -2617,6 +3023,15 @@ def test_missing_import_and_card_return_not_found(tmp_path):
                 "role_summary": None,
                 "responsibilities": [],
                 "role_domains": [],
+                "workload_type": None,
+                "role_families": [],
+                "contract_type": None,
+                "seniority": None,
+                "work_modes": [],
+                "primary_address": None,
+                "address_candidates": [],
+                "internship_requirement": None,
+                "eligibility": None,
                 "weekly_hours_minimum": None,
                 "weekly_hours_maximum": None,
                 "schedule": None,

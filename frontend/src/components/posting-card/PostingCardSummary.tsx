@@ -1,4 +1,5 @@
 import type { PostingCard } from '../../postings/types/postingCard'
+import { formatAddressPreview } from './details/PostingCardFormatters'
 
 type PostingCardSummaryProps = {
     card: PostingCard
@@ -19,11 +20,9 @@ export function PostingCardSummary(
     const company = posting.identity.company_name?.value ??
         'Unknown company'
 
-    const firstLocation = posting.work_conditions.locations[0]
-    const location =
-        firstLocation?.city ??
-        firstLocation?.country ??
-        'Unknown location'
+    const location = formatAddressPreview(
+        posting.work_conditions.primary_address?.value ?? null,
+    ) ?? 'Unknown location'
 
     const workMode =
         posting.work_conditions.work_modes?.value.join(', ') ??

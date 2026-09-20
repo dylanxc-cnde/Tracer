@@ -69,6 +69,7 @@ stays unknown, and you review and select a posting before saving it as a Card.
 | Section | Editable content |
 | --- | --- |
 | What you'll do | Role summary, responsibilities, and role-domain pills |
+| Job details | Workload, job types, contract type, seniority, work modes, primary address, other address candidates, internship requirement, and eligibility |
 | Work conditions | Weekly hours, schedule, travel requirement, start date, and duration; add missing fields or remove existing ones |
 | Salary and benefits | Repeatable compensation entries, amounts, currency, period, pay basis, applicable groups, payment conditions, benefits, and vacation days |
 | Application | Channels, application URL, deadline, email subject, required documents, and special instructions |
@@ -76,11 +77,27 @@ stays unknown, and you review and select a posting before saving it as a Card.
 | About the company | Company summary, industries, and company size |
 | My Card | Alias, tags, and notes |
 
-Requirements is the next major editor, not the last read-only field in the
-whole Card. Identity and Posting info, locations, work modes, and job
-classification are still read-only. Quick Facts remains a display-only summary
-of the saved Card: supported edits to hours, deadline, and salary appear there
+Requirements is the largest remaining editor, not the last read-only field in the
+whole Card. Identity and Posting info are still read-only.
+Quick Facts remains a display-only summary of the saved Card: supported edits to
+classification, primary address, work modes, hours, deadline, and salary appear there
 after saving, not while typing in the draft.
+
+Job classification separates role category, full-time/part-time workload,
+seniority, and contract type. The Job details section, between Requirements
+and Work conditions, shows these fields alongside eligibility, work mode,
+and addresses. Each Card keeps one preferred address string and a list of
+alternatives, without separate city/region/country fields to keep in sync.
+Preferred means first choice for display and future map lookup, not verified.
+Quick Facts uses a shortened preview; Job details keeps the full text.
+Eligibility is one text for education, fields of study, enrollment and other
+applicant conditions. Requirements focuses on capabilities, experience, languages
+and professional credentials instead of repeating those eligibility conditions.
+Job details edits use the same Card Save/Cancel; job types and work modes allow
+multiple selections. Each alternative address has its own editable box, with
+add and delete controls in edit mode. Choosing a primary address directly from the candidate list
+and confirming addresses are still to come. Deadline stays under Application
+and in the read-only Quick Facts summary, not in Job details.
 
 Card storage keeps two full JSON payloads in the same row: the initial saved
 Card and the current version. Save submits the supported editable fields;
@@ -182,8 +199,19 @@ the repository.
 
 ## Next
 
-- review and merge the current inline-editing baseline before starting
-  Requirements editing in a separate branch;
+The next focus is the workspace as a whole: build out Home, the dashboard view,
+and Settings in small steps, with clear navigation and useful basic flows.
+Their exact scope—and whether Home and the dashboard need separate pages—will
+be settled as each area is added. These pages are planned, not available yet.
+
+Once the main pieces are in place, bring their layouts, controls, and motion
+into one consistent interface language, including revisiting Card Details.
+The current layout is a working baseline, not a design we have to keep forever;
+basic usability and reliable saving still matter along the way.
+
+Remaining Card work stays on the roadmap, without making every field editor
+a prerequisite for building the wider workspace:
+
 - build Requirements editing in small, reviewable steps: agree on the draft
   and update contract, then connect validation, saving, and the UI; keep one
   `all_of` group per importance level and each `any_of`/`unknown` group separate;
@@ -191,15 +219,12 @@ the repository.
   settle group editing before adding drag-and-drop;
 - keep Quick Facts read-only; give its underlying fields a detailed home and
   editing controls rather than duplicating their state;
-- add locations and work modes to Work conditions, and a compact job-details
-  area for job classification, contract type, seniority, and student/internship
-  eligibility; avoid repeating the same requirements in multiple sections;
 - add editing to the existing Identity/Posting info area separately, without
   duplicating the metadata already shown in the header;
-- prepare location data for later maps by considering a full address-text
-  field when the source provides one; keep city-level locations explicitly
-  approximate and never substitute company headquarters for a work location.
-  Geocoding and commute estimates remain separate, later work;
+- add address review and selection before presenting a map destination as
+  confirmed; keep city-level locations explicitly approximate and never
+  substitute company headquarters for a work location. Coordinates, geocoding,
+  caching, and commute estimates remain separate, later work;
 - design a stable tag catalog and selection UI only when filtering and matching
   need more than the current string tags;
 - show the relationship between an Import and the Cards created from it;

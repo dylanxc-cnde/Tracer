@@ -15,10 +15,15 @@ export type RoleFamily =
   | 'working_student'
   | 'student_assistant'
   | 'thesis'
-  | 'full_time'
-  | 'part_time'
+  | 'regular_employment'
   | 'apprenticeship'
   | 'graduate'
+  | 'other'
+
+export type WorkloadType =
+  | 'full_time'
+  | 'part_time'
+  | 'either'
   | 'other'
 
 export type ContractType =
@@ -56,7 +61,6 @@ export type RequirementImportance =
 export type RequirementCategory =
   | 'skill'
   | 'experience'
-  | 'education'
   | 'language'
   | 'certification'
   | 'license'
@@ -110,21 +114,11 @@ export type CompanyInfo = {
 export type PostingClassification = {
   source: PostingSource
   role_families: ParsedValue<RoleFamily[]> | null
-  original_employment_type: ParsedValue<string> | null
+  workload_type: ParsedValue<WorkloadType> | null
   contract_type: ParsedValue<ContractType> | null
   seniority: ParsedValue<Seniority> | null
   internship_requirement: ParsedValue<InternshipRequirement> | null
-  eligible_groups: ParsedValue<string[]> | null
-  study_fields: ParsedValue<string[]> | null
-  student_status_required: ParsedValue<boolean> | null
-  target_semester: ParsedValue<string> | null
-}
-
-export type PostingLocation = {
-  origin: FactOrigin
-  city: string | null
-  region: string | null
-  country: string | null
+  eligibility: ParsedValue<string> | null
 }
 
 export type WeeklyHours = {
@@ -135,7 +129,8 @@ export type WeeklyHours = {
 
 export type WorkConditions = {
   source: PostingSource
-  locations: PostingLocation[]
+  primary_address: ParsedValue<string> | null
+  address_candidates: string[]
   work_modes: ParsedValue<WorkMode[]> | null
   weekly_hours: WeeklyHours | null
   schedule: ParsedValue<string> | null
