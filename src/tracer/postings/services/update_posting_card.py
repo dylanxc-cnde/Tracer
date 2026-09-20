@@ -105,6 +105,59 @@ class UpdatePostingCardService:
 
             payload["posting"]["role_content"]["domains"] = updated_domains
 
+        saved_work_conditions = card.posting.work_conditions
+        original_work_conditions = original_card.posting.work_conditions
+        work_condition_values = {
+            "schedule": request.schedule,
+            "travel_requirement": request.travel_requirement,
+            "start_on": request.start_on,
+            "duration": request.duration,
+        }
+        for field, value in work_condition_values.items():
+            saved_field = getattr(saved_work_conditions, field)
+            saved_value = saved_field.value if saved_field is not None else None
+            if value == saved_value:
+                continue
+
+            if value is None:
+                payload["posting"]["work_conditions"][field] = None
+            else:
+                original_field = getattr(original_work_conditions, field)
+                origin = FactOrigin.USER_DEFINED
+                if original_field is not None and value == original_field.value:
+                    origin = original_field.origin
+                payload["posting"]["work_conditions"][field] = {
+                    "value": value,
+                    "origin": origin,
+                }
+
+        saved_hours = saved_work_conditions.weekly_hours
+        saved_minimum = saved_hours.minimum if saved_hours is not None else None
+        saved_maximum = saved_hours.maximum if saved_hours is not None else None
+        if (
+            request.weekly_hours_minimum != saved_minimum
+            or request.weekly_hours_maximum != saved_maximum
+        ):
+            if (
+                request.weekly_hours_minimum is None
+                and request.weekly_hours_maximum is None
+            ):
+                payload["posting"]["work_conditions"]["weekly_hours"] = None
+            else:
+                original_hours = original_work_conditions.weekly_hours
+                origin = FactOrigin.USER_DEFINED
+                if (
+                    original_hours is not None
+                    and request.weekly_hours_minimum == original_hours.minimum
+                    and request.weekly_hours_maximum == original_hours.maximum
+                ):
+                    origin = original_hours.origin
+                payload["posting"]["work_conditions"]["weekly_hours"] = {
+                    "minimum": request.weekly_hours_minimum,
+                    "maximum": request.weekly_hours_maximum,
+                    "origin": origin,
+                }
+
         saved_benefits = tuple(
             benefit.value for benefit in card.posting.compensation.benefits
         )

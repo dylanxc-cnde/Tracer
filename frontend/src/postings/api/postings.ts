@@ -181,6 +181,10 @@ export async function updatePostingCard(
     body: JSON.stringify(request),
   })
 
+  if (response.status === 422) {
+    throw new Error('Some card fields are invalid. Please check or reset your entries.')
+  }
+
   if (!response.ok) {
     const errorBody = await response.text()
 

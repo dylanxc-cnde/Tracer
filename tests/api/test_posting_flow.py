@@ -212,6 +212,12 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
                 "role_summary": None,
                 "responsibilities": [],
                 "role_domains": [],
+                "weekly_hours_minimum": None,
+                "weekly_hours_maximum": None,
+                "schedule": None,
+                "travel_requirement": None,
+                "start_on": None,
+                "duration": None,
                 "benefits": [],
                 "vacation_days": None,
                 "required_documents": [],
@@ -305,6 +311,12 @@ def test_http_updates_role_summary_and_preserves_card_context(
         "role_summary": new_value,
         "responsibilities": ["Build reports"],
         "role_domains": ["Data analytics"],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -411,6 +423,12 @@ def test_http_rejects_invalid_card_update_without_changing_storage(
         "role_summary": "User summary",
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -453,6 +471,12 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
                 "role_summary": "User summary",
                 "responsibilities": [],
                 "role_domains": [],
+                "weekly_hours_minimum": None,
+                "weekly_hours_maximum": None,
+                "schedule": None,
+                "travel_requirement": None,
+                "start_on": None,
+                "duration": None,
                 "benefits": [],
                 "vacation_days": None,
                 "required_documents": [],
@@ -475,6 +499,12 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
                 "role_summary": "User summary",
                 "responsibilities": [],
                 "role_domains": [],
+                "weekly_hours_minimum": None,
+                "weekly_hours_maximum": None,
+                "schedule": None,
+                "travel_requirement": None,
+                "start_on": None,
+                "duration": None,
                 "benefits": [],
                 "vacation_days": None,
                 "required_documents": [],
@@ -537,6 +567,12 @@ def test_http_restores_original_summary_and_origin(
         "role_summary": intermediate_value,
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -635,6 +671,12 @@ def test_http_updates_and_restores_responsibilities(
         "role_summary": "Original summary",
         "responsibilities": new_values,
         "role_domains": ["Data analytics"],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -735,6 +777,12 @@ def test_http_updates_and_restores_role_domains(
         "role_summary": "Original summary",
         "responsibilities": ["Build reports"],
         "role_domains": new_values,
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -805,6 +853,12 @@ def test_http_requires_role_domains_and_can_add_to_empty_list(tmp_path):
     update_request = {
         "role_summary": None,
         "responsibilities": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -908,6 +962,12 @@ def test_http_updates_and_restores_benefits(tmp_path, new_values, expected_origi
         "role_summary": None,
         "responsibilities": ["Build reports"],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": new_values,
         "vacation_days": 30,
         "required_documents": [],
@@ -979,6 +1039,12 @@ def test_http_requires_benefits_and_can_add_to_empty_list(tmp_path):
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "vacation_days": None,
         "required_documents": [],
         "special_instructions": [],
@@ -1061,6 +1127,12 @@ def test_http_updates_and_restores_vacation_days(
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": ["Transport pass"],
         "vacation_days": new_value,
         "required_documents": [],
@@ -1134,6 +1206,12 @@ def test_http_requires_vacation_days_in_card_update(tmp_path):
                 "role_summary": None,
                 "responsibilities": [],
                 "role_domains": [],
+                "weekly_hours_minimum": None,
+                "weekly_hours_maximum": None,
+                "schedule": None,
+                "travel_requirement": None,
+                "start_on": None,
+                "duration": None,
                 "benefits": [],
                 "required_documents": [],
                 "special_instructions": [],
@@ -1212,6 +1290,12 @@ def test_http_updates_and_restores_application_lists(
         "role_summary": None,
         "responsibilities": ["Build reports"],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [
@@ -1289,6 +1373,12 @@ def test_http_requires_application_lists_and_can_add_both(tmp_path, missing_fiel
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -1339,11 +1429,18 @@ def test_http_requires_application_lists_and_can_add_both(tmp_path, missing_fiel
     assert reopened_store.get_original_by_card_key(card.card_key) == card
 
 
-def make_contact_update_request(contact_values):
+def make_card_update_request(contact_values=None):
+    contact_values = contact_values or {}
     return {
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -1359,6 +1456,140 @@ def make_contact_update_request(contact_values):
         "user_notes": None,
         "tags": [],
     }
+
+
+@pytest.mark.parametrize(
+    ("field_name", "original_value", "new_value"),
+    [
+        ("schedule", "Flexible", "Weekdays"),
+        ("travel_requirement", "Occasional travel", "No travel"),
+        ("start_on", "2026-10-01", "2026-12-15"),
+        ("duration", "Six months", "One year"),
+    ],
+)
+@pytest.mark.parametrize("has_original_value", [True, False])
+@pytest.mark.parametrize("original_origin", ["source", "user_defined"])
+def test_http_work_condition_text_add_edit_delete_and_restore(
+    tmp_path, field_name, original_value, new_value, has_original_value, original_origin
+):
+    database_path = tmp_path / "tracer.db"
+    posting_payload = make_posting_details().model_dump(mode="json")
+    conditions = posting_payload["work_conditions"]
+    conditions["source"] = {
+        "excerpts": ["Original work conditions."],
+        "source_urls": ["https://example.com/jobs/conditions"],
+    }
+    conditions["locations"] = [
+        {"city": "Aachen", "region": None, "country": "Germany", "origin": "source"}
+    ]
+    conditions["work_modes"] = {"value": ["hybrid"], "origin": "source"}
+    conditions[field_name] = (
+        {"value": original_value, "origin": original_origin} if has_original_value else None
+    )
+    card = PostingCard(
+        import_key=uuid4(), posting=PostingDetails.model_validate(posting_payload)
+    )
+    store = PostingCardStore(database_path)
+    store.add(card)
+    update_request = make_card_update_request()
+    expected_payload = card.model_dump(mode="json")
+    changes = [
+        (new_value, {"value": new_value, "origin": "user_defined"}),
+        (new_value, {"value": new_value, "origin": "user_defined"}),
+        (None, None),
+        (original_value if has_original_value else None, conditions[field_name]),
+    ]
+    with TestClient(create_app(database_path=database_path)) as client:
+        for value, expected_field in changes:
+            update_request[field_name] = value
+            response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+            expected_payload["posting"]["work_conditions"][field_name] = expected_field
+            assert response.status_code == 200
+            assert response.json() == expected_payload
+            assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
+            assert PostingCardStore(database_path).get_by_card_key(card.card_key) == (
+                PostingCard.model_validate(expected_payload)
+            )
+        assert client.get(f"/posting-cards/{card.card_key}/original").json() == (
+            card.model_dump(mode="json")
+        )
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize("has_original_hours", [True, False])
+@pytest.mark.parametrize("original_origin", ["source", "user_defined"])
+@pytest.mark.parametrize(
+    ("minimum", "maximum"), [(0, 0), (20, 20), (10.5, 25.5), (None, 20), (15, None)]
+)
+def test_http_weekly_hours_add_edit_delete_and_restore(
+    tmp_path, has_original_hours, original_origin, minimum, maximum
+):
+    database_path = tmp_path / "tracer.db"
+    posting_payload = make_posting_details().model_dump(mode="json")
+    conditions = posting_payload["work_conditions"]
+    conditions["source"] = {"excerpts": ["Work from 8 to 40 hours per week."], "source_urls": []}
+    conditions["weekly_hours"] = (
+        {"minimum": 8, "maximum": 40, "origin": original_origin}
+        if has_original_hours else None
+    )
+    card = PostingCard(
+        import_key=uuid4(), posting=PostingDetails.model_validate(posting_payload)
+    )
+    store = PostingCardStore(database_path)
+    store.add(card)
+    update_request = make_card_update_request()
+    expected_payload = card.model_dump(mode="json")
+    with TestClient(create_app(database_path=database_path)) as client:
+        for lower, upper, expected_hours in [
+            (minimum, maximum, {"minimum": minimum, "maximum": maximum, "origin": "user_defined"}),
+            (None, None, None),
+            (8 if has_original_hours else None, 40 if has_original_hours else None, conditions["weekly_hours"]),
+        ]:
+            update_request["weekly_hours_minimum"] = lower
+            update_request["weekly_hours_maximum"] = upper
+            response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+            expected_payload["posting"]["work_conditions"]["weekly_hours"] = expected_hours
+            assert response.status_code == 200
+            assert response.json() == expected_payload
+            assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
+            assert PostingCardStore(database_path).get_by_card_key(card.card_key) == (
+                PostingCard.model_validate(expected_payload)
+            )
+        assert client.get(f"/posting-cards/{card.card_key}/original").json() == (
+            card.model_dump(mode="json")
+        )
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize(
+    "invalid_fields",
+    [
+        {"weekly_hours_minimum": -1},
+        {"weekly_hours_maximum": -1},
+        {"weekly_hours_minimum": True},
+        {"weekly_hours_maximum": "20"},
+        {"weekly_hours_minimum": "not a number"},
+        {"weekly_hours_minimum": 40, "weekly_hours_maximum": 20},
+        {"schedule": ["Not text"]},
+        {"travel_requirement": 42},
+        {"start_on": "2026-02-30"},
+        {"start_on": "not a date"},
+        {"duration": {"value": "Six months", "origin": "source"}},
+        {"work_conditions": {"source": {"excerpts": ["Cannot replace sources"]}}},
+    ],
+)
+def test_http_rejects_invalid_work_conditions_without_changing_storage(tmp_path, invalid_fields):
+    database_path = tmp_path / "tracer.db"
+    card = PostingCard(import_key=uuid4(), posting=make_posting_details())
+    store = PostingCardStore(database_path)
+    store.add(card)
+    update_request = make_card_update_request()
+    update_request.update(invalid_fields)
+    with TestClient(create_app(database_path=database_path)) as client:
+        response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+        assert response.status_code == 422
+    assert store.get_by_card_key(card.card_key) == card
+    assert store.get_original_by_card_key(card.card_key) == card
 
 
 @pytest.mark.parametrize("field_name", ["name", "role", "email", "phone"])
@@ -1386,7 +1617,7 @@ def test_http_updates_and_restores_contact_fields(
     )
     store = PostingCardStore(database_path)
     store.add(card)
-    update_request = make_contact_update_request(contact)
+    update_request = make_card_update_request(contact)
     update_request[f"contact_{field_name}"] = new_value
 
     with TestClient(create_app(database_path=database_path)) as client:
@@ -1435,7 +1666,7 @@ def test_http_adds_and_clears_previously_missing_contact(tmp_path, field_name):
     card = PostingCard(import_key=uuid4(), posting=make_posting_details())
     store = PostingCardStore(database_path)
     store.add(card)
-    update_request = make_contact_update_request({})
+    update_request = make_card_update_request({})
     update_request[f"contact_{field_name}"] = "New contact text"
 
     with TestClient(create_app(database_path=database_path)) as client:
@@ -1489,7 +1720,7 @@ def test_http_contact_keeps_source_and_restores_origin_only_for_full_match(
     )
     store = PostingCardStore(database_path)
     store.add(card)
-    update_request = make_contact_update_request(contact)
+    update_request = make_card_update_request(contact)
     update_request["contact_name"] = "Jamie"
     update_request["contact_role"] = "Team lead"
 
@@ -1506,7 +1737,7 @@ def test_http_contact_keeps_source_and_restores_origin_only_for_full_match(
         assert partial_response.json()["posting"]["contact"]["origin"] == "user_defined"
 
         cleared_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=make_contact_update_request({})
+            f"/posting-cards/{card.card_key}", json=make_card_update_request({})
         )
         assert cleared_response.status_code == 200
         assert cleared_response.json()["posting"]["contact"] == {
@@ -1517,7 +1748,7 @@ def test_http_contact_keeps_source_and_restores_origin_only_for_full_match(
         }
 
         restored_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=make_contact_update_request(contact)
+            f"/posting-cards/{card.card_key}", json=make_card_update_request(contact)
         )
         assert restored_response.status_code == 200
         assert restored_response.json() == card.model_dump(mode="json")
@@ -1535,7 +1766,7 @@ def test_http_rejects_invalid_contact_without_changing_storage(
     card = PostingCard(import_key=uuid4(), posting=make_posting_details())
     store = PostingCardStore(database_path)
     store.add(card)
-    update_request = make_contact_update_request({})
+    update_request = make_card_update_request({})
     update_request[f"contact_{field_name}"] = invalid_value
 
     with TestClient(create_app(database_path=database_path)) as client:
@@ -1594,6 +1825,12 @@ def test_http_updates_and_restores_company_text(
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -1671,6 +1908,12 @@ def test_http_requires_company_fields_and_can_add_both(tmp_path, missing_field):
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -1759,6 +2002,12 @@ def test_http_updates_and_restores_industries(tmp_path, new_values, expected_ori
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -1828,6 +2077,12 @@ def test_http_requires_industries_and_can_add_to_empty_list(tmp_path):
         "role_summary": None,
         "responsibilities": [],
         "role_domains": [],
+        "weekly_hours_minimum": None,
+        "weekly_hours_maximum": None,
+        "schedule": None,
+        "travel_requirement": None,
+        "start_on": None,
+        "duration": None,
         "benefits": [],
         "vacation_days": None,
         "required_documents": [],
@@ -1897,6 +2152,12 @@ def test_missing_import_and_card_return_not_found(tmp_path):
                 "role_summary": None,
                 "responsibilities": [],
                 "role_domains": [],
+                "weekly_hours_minimum": None,
+                "weekly_hours_maximum": None,
+                "schedule": None,
+                "travel_requirement": None,
+                "start_on": None,
+                "duration": None,
                 "benefits": [],
                 "vacation_days": None,
                 "required_documents": [],

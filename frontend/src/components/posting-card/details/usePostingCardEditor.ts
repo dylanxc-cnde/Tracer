@@ -3,18 +3,30 @@ import type {
   PostingCard,
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
-import { hasDuplicateTags } from './PostingCardValidators'
+import { hasDuplicateTags, isValidIsoDate } from './PostingCardValidators'
 
 export type TextItemDraft = {
   id: string
   value: string
 }
 
+export type WorkConditionsDraft = {
+  weeklyHours: { minimum: string; maximum: string } | null
+  schedule: string | null
+  travelRequirement: string | null
+  startOn: string | null
+  duration: string | null
+}
+
+export type WorkConditionField = keyof WorkConditionsDraft
+export type WorkConditionTextField = Exclude<WorkConditionField, 'weeklyHours'>
+
 // Type Definition: CardDraft
 export type PostingCardUserDraft = {
   roleSummary: string
   responsibilities: TextItemDraft[]
   roleDomains: TextItemDraft[]
+  workConditions: WorkConditionsDraft
   benefits: TextItemDraft[]
   vacationDays: string
   requiredDocuments: TextItemDraft[]
@@ -38,6 +50,9 @@ type PostingCardUpdateCallback = (
 ) => Promise<PostingCard>
 
 function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
+  const workConditions = card.posting.work_conditions
+  const weeklyHours = workConditions.weekly_hours
+
   return {
     roleSummary: card.posting.role_content.role_summary?.value ?? '',
     responsibilities: card.posting.role_content.responsibilities.map(
@@ -50,6 +65,20 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
       id: crypto.randomUUID(),
       value: domain.value,
     })),
+    workConditions: {
+      weeklyHours: weeklyHours === null || (
+        weeklyHours.minimum === null && weeklyHours.maximum === null
+      )
+        ? null
+        : {
+            minimum: weeklyHours.minimum?.toString() ?? '',
+            maximum: weeklyHours.maximum?.toString() ?? '',
+          },
+      schedule: workConditions.schedule?.value ?? null,
+      travelRequirement: workConditions.travel_requirement?.value ?? null,
+      startOn: workConditions.start_on?.value ?? null,
+      duration: workConditions.duration?.value ?? null,
+    },
     benefits: card.posting.compensation.benefits.map((benefit) => ({
       id: crypto.randomUUID(),
       value: benefit.value,
@@ -113,6 +142,12 @@ function createPostingCardUpdateRequest(
     role_summary: normalizeOptionalText(draft.roleSummary),
     responsibilities: normalizeTextItems(draft.responsibilities),
     role_domains: normalizeTextItems(draft.roleDomains),
+    weekly_hours_minimum: normalizeOptionalNumber(draft.workConditions.weeklyHours?.minimum ?? ''),
+    weekly_hours_maximum: normalizeOptionalNumber(draft.workConditions.weeklyHours?.maximum ?? ''),
+    schedule: normalizeOptionalText(draft.workConditions.schedule ?? ''),
+    travel_requirement: normalizeOptionalText(draft.workConditions.travelRequirement ?? ''),
+    start_on: normalizeOptionalText(draft.workConditions.startOn ?? ''),
+    duration: normalizeOptionalText(draft.workConditions.duration ?? ''),
     benefits: normalizeTextItems(draft.benefits),
     vacation_days: normalizeOptionalNumber(draft.vacationDays),
     required_documents: normalizeTextItems(draft.requiredDocuments),
@@ -160,6 +195,15 @@ export function usePostingCardEditor(
     updateRequest.role_domains.some(
       (value, index) => value !== card.posting.role_content.domains[index]?.value,
     ) ||
+    updateRequest.weekly_hours_minimum !==
+      (card.posting.work_conditions.weekly_hours?.minimum ?? null) ||
+    updateRequest.weekly_hours_maximum !==
+      (card.posting.work_conditions.weekly_hours?.maximum ?? null) ||
+    updateRequest.schedule !== (card.posting.work_conditions.schedule?.value ?? null) ||
+    updateRequest.travel_requirement !==
+      (card.posting.work_conditions.travel_requirement?.value ?? null) ||
+    updateRequest.start_on !== (card.posting.work_conditions.start_on?.value ?? null) ||
+    updateRequest.duration !== (card.posting.work_conditions.duration?.value ?? null) ||
     updateRequest.benefits.length !== card.posting.compensation.benefits.length ||
     updateRequest.benefits.some(
       (value, index) => value !== card.posting.compensation.benefits[index]?.value,
@@ -225,6 +269,25 @@ export function usePostingCardEditor(
 
     if (hasDuplicateTags(updateRequest.role_domains)) {
       setSaveError('Role domains must be unique, ignoring uppercase and lowercase.')
+      return
+    }
+
+    const minimumHours = updateRequest.weekly_hours_minimum
+    const maximumHours = updateRequest.weekly_hours_maximum
+    if (
+      (minimumHours !== null && (!Number.isFinite(minimumHours) || minimumHours < 0)) ||
+      (maximumHours !== null && (!Number.isFinite(maximumHours) || maximumHours < 0))
+    ) {
+      setSaveError('Weekly hours must be non-negative numbers, or empty.')
+      return
+    }
+    if (minimumHours !== null && maximumHours !== null && minimumHours > maximumHours) {
+      setSaveError('Weekly hours minimum must not exceed maximum.')
+      return
+    }
+
+    if (updateRequest.start_on !== null && !isValidIsoDate(updateRequest.start_on)) {
+      setSaveError('Start date must be a real date in YYYY-MM-DD format. Please check the year, month and day.')
       return
     }
 
@@ -326,6 +389,56 @@ export function usePostingCardEditor(
     setDraft((currentDraft) => ({
       ...currentDraft,
       roleDomains: currentDraft.roleDomains.filter((domain) => domain.id !== id),
+    }))
+  }
+
+  function addDraftWorkCondition(field: WorkConditionField) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => {
+      if (currentDraft.workConditions[field] !== null) {
+        return currentDraft
+      }
+      return {
+        ...currentDraft,
+        workConditions: {
+          ...currentDraft.workConditions,
+          [field]: field === 'weeklyHours' ? { minimum: '', maximum: '' } : '',
+        },
+      }
+    })
+  }
+
+  function updateDraftWorkConditionText(field: WorkConditionTextField, value: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      workConditions: { ...currentDraft.workConditions, [field]: value },
+    }))
+  }
+
+  function updateDraftWeeklyHours(bound: 'minimum' | 'maximum', value: string) {
+    setDraft((currentDraft) => {
+      if (currentDraft.workConditions.weeklyHours === null) {
+        return currentDraft
+      }
+      return {
+        ...currentDraft,
+        workConditions: {
+          ...currentDraft.workConditions,
+          weeklyHours: { ...currentDraft.workConditions.weeklyHours, [bound]: value },
+        },
+      }
+    })
+  }
+
+  function deleteDraftWorkCondition(field: WorkConditionField) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      workConditions: { ...currentDraft.workConditions, [field]: null },
     }))
   }
 
@@ -531,6 +644,10 @@ export function usePostingCardEditor(
     addDraftRoleDomain,
     updateDraftRoleDomain,
     deleteDraftRoleDomain,
+    addDraftWorkCondition,
+    updateDraftWorkConditionText,
+    updateDraftWeeklyHours,
+    deleteDraftWorkCondition,
     addDraftBenefit,
     updateDraftBenefit,
     deleteDraftBenefit,

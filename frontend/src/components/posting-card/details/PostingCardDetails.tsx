@@ -19,7 +19,10 @@ import { PostingCardRoleSummary } from './PostingCardRoleSummary'
 import { PostingCardResponsibilities } from './PostingCardResponsibilities'
 import { PostingCardRoleDomains } from './PostingCardRoleDomains'
 import { PostingCardRequirements } from './PostingCardRequirements'
-import { PostingCardWorkConditions } from './PostingCardWorkConditions'
+import {
+  PostingCardWorkConditions,
+  PostingCardWorkConditionAdd,
+} from './PostingCardWorkConditions'
 import { PostingCardCompensation } from './PostingCardCompensation'
 import { PostingCardBenefits } from './PostingCardBenefits'
 import { PostingCardVacation } from './PostingCardVacation'
@@ -311,10 +314,26 @@ export function PostingCardDetails({
         )}
 
         <section className="posting-card-details__section">
-          <h3>Work conditions</h3>
+          <div className="posting-card-work-conditions__heading">
+            <h3>Work conditions</h3>
+            {editor.isEditing && (
+              <PostingCardWorkConditionAdd
+                draft={editor.draft.workConditions}
+                isSavingCardChanges={editor.isSavingCardChanges}
+                onAdd={editor.addDraftWorkCondition}
+              />
+            )}
+          </div>
 
           <PostingCardWorkConditions
+            key={editor.isEditing ? 'editing' : 'reading'}
             workConditions={posting.work_conditions}
+            draft={editor.draft.workConditions}
+            isEditing={editor.isEditing}
+            isSavingCardChanges={editor.isSavingCardChanges}
+            onTextChange={editor.updateDraftWorkConditionText}
+            onWeeklyHoursChange={editor.updateDraftWeeklyHours}
+            onDelete={editor.deleteDraftWorkCondition}
           />
 
           <PostingCardSourceEvidence

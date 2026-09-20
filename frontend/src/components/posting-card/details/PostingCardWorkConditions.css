@@ -1,11 +1,13 @@
 .posting-card-work-conditions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 12px;
   margin: 0;
 }
 
 .posting-card-work-conditions__field {
+  position: relative;
+  min-width: 0;
   padding: 14px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
@@ -14,6 +16,7 @@
 
 .posting-card-work-conditions__field dt {
   margin-bottom: 6px;
+  padding-right: 28px;
   color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 700;
@@ -22,6 +25,197 @@
 }
 
 .posting-card-work-conditions__field dd {
+  min-width: 0;
   margin: 0;
   line-height: 1.5;
+}
+
+.posting-card-work-conditions__heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  margin-bottom: 16px;
+  padding-right: 48px;
+}
+
+.posting-card-work-conditions__heading > h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.posting-card-work-conditions__add-control {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.posting-card-work-conditions__delete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background-color: transparent;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.posting-card-work-conditions__delete > span {
+  transform: translateY(-1px);
+}
+
+.posting-card-work-conditions__delete:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+}
+
+.posting-card-work-conditions__text {
+  position: relative;
+  min-width: 0;
+}
+
+.posting-card-work-conditions__value,
+.posting-card-work-conditions__input,
+.posting-card-work-conditions__number-input,
+.posting-card-work-conditions__date-input {
+  display: block;
+  min-height: 1.5em;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: 1.5;
+  letter-spacing: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-work-conditions__value--sizing {
+  visibility: hidden;
+}
+
+.posting-card-work-conditions__value::after {
+  content: '\200b';
+}
+
+.posting-card-work-conditions__input,
+.posting-card-work-conditions__number-input,
+.posting-card-work-conditions__date-input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
+  transition: background-color 320ms ease;
+}
+
+.posting-card-work-conditions__input {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  overflow: hidden;
+  resize: none;
+}
+
+.posting-card-work-conditions__hours {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.posting-card-work-conditions__number {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.posting-card-work-conditions__number-sizing {
+  display: block;
+  visibility: hidden;
+  font: inherit;
+  line-height: 1.5;
+  letter-spacing: inherit;
+  white-space: pre;
+}
+
+.posting-card-work-conditions__hours-unit {
+  white-space: pre;
+}
+
+.posting-card-work-conditions__date,
+.posting-card-work-conditions__date-part {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.posting-card-work-conditions__date-number {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.posting-card-work-conditions__number-input,
+.posting-card-work-conditions__date-input {
+  position: absolute;
+  inset: 0;
+  height: 1.5em;
+}
+
+.posting-card-work-conditions__number-input {
+  appearance: textfield;
+}
+
+.posting-card-work-conditions__number-input::-webkit-inner-spin-button,
+.posting-card-work-conditions__number-input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.posting-card-work-conditions__input:hover:not(:disabled),
+.posting-card-work-conditions__number-input:hover:not(:disabled),
+.posting-card-work-conditions__date-input:hover:not(:disabled),
+.posting-card-work-conditions__input:focus-visible,
+.posting-card-work-conditions__number-input:focus-visible,
+.posting-card-work-conditions__date-input:focus-visible {
+  background-color: rgba(52, 53, 53, 0.04);
+}
+
+.posting-card-work-conditions__input:focus-visible,
+.posting-card-work-conditions__number-input:focus-visible,
+.posting-card-work-conditions__date-input:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 4px;
+}
+
+.posting-card-work-conditions__input::placeholder,
+.posting-card-work-conditions__number-input::placeholder,
+.posting-card-work-conditions__date-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.posting-card-work-conditions__input:disabled,
+.posting-card-work-conditions__number-input:disabled,
+.posting-card-work-conditions__date-input:disabled {
+  color: var(--color-text-secondary);
+  cursor: wait;
+}
+
+.posting-card-work-conditions__confirmation {
+  margin-top: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posting-card-work-conditions__input,
+  .posting-card-work-conditions__number-input,
+  .posting-card-work-conditions__date-input {
+    transition: none;
+  }
 }

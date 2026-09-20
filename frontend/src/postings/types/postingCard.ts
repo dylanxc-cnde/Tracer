@@ -23,6 +23,12 @@ export type UpdatePostingCardRequest = {
   role_summary: string | null
   responsibilities: string[]
   role_domains: string[]
+  weekly_hours_minimum: number | null
+  weekly_hours_maximum: number | null
+  schedule: string | null
+  travel_requirement: string | null
+  start_on: string | null
+  duration: string | null
   benefits: string[]
   vacation_days: number | null
   required_documents: string[]
