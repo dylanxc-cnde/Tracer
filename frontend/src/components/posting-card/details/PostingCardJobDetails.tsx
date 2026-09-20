@@ -11,7 +11,8 @@ import type {
   WorkMode,
 } from '../../../postings/types/postingDetails'
 import { formatEnumValue } from './PostingCardFormatters'
-import type { JobDetailsDraft } from './usePostingCardEditor'
+import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
+import type { JobDetailsDraft, TextItemDraft } from './usePostingCardEditor'
 
 const WORKLOAD_TYPES: { key: WorkloadType; label: string }[] = [
   { key: 'full_time', label: 'Full Time' },
@@ -68,6 +69,9 @@ type PostingCardJobDetailsProps = {
   isEditing: boolean
   isSavingCardChanges: boolean
   onChange: (draft: JobDetailsDraft) => void
+  onAddressCandidateAdd: () => void
+  onAddressCandidateChange: (id: string, value: string) => void
+  onAddressCandidateDelete: (id: string) => void
 }
 
 type JobDetailFieldProps = {
@@ -175,12 +179,120 @@ function JobDetailSelection({ label, value, isDisabled, children }: JobDetailSel
   )
 }
 
+type JobDetailAddressCandidatesProps = {
+  addresses: string[]
+  draft: TextItemDraft[]
+  isEditing: boolean
+  isSavingCardChanges: boolean
+  onAdd: () => void
+  onChange: (id: string, value: string) => void
+  onDelete: (id: string) => void
+}
+
+function JobDetailAddressCandidates({
+  addresses,
+  draft,
+  isEditing,
+  isSavingCardChanges,
+  onAdd,
+  onChange,
+  onDelete,
+}: JobDetailAddressCandidatesProps) {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const isEmpty = isEditing ? draft.length === 0 : addresses.length === 0
+
+  function handleDeleteAddress() {
+    if (pendingDeleteId === null || isSavingCardChanges) {
+      return
+    }
+    onDelete(pendingDeleteId)
+    setPendingDeleteId(null)
+  }
+
+  return (
+    <div className="posting-card-job-details__field--full-width posting-card-job-details__address-candidates">
+      <dt className="posting-card-job-details__address-heading">
+        Other address candidates
+        {isEditing && (
+          <button
+            className="posting-card-job-details__add-address button--primary"
+            type="button"
+            aria-label="Add address candidate"
+            title="Add address candidate"
+            disabled={isSavingCardChanges}
+            onClick={onAdd}
+          >
+            +
+          </button>
+        )}
+      </dt>
+      <dd>
+        {isEmpty ? (
+          <span className="posting-card-job-details__empty">None</span>
+        ) : (
+          <ul className="posting-card-job-details__address-list" role="list">
+            {isEditing ? draft.map((address, index) => (
+              <li key={address.id}>
+                <div className="posting-card-job-details__address-row">
+                  <div className="posting-card-job-details__editor">
+                    <span className="posting-card-job-details__value posting-card-job-details__sizing" aria-hidden="true">
+                      {address.value || 'Address'}
+                    </span>
+                    <textarea
+                      className="posting-card-job-details__input"
+                      aria-label={`Address candidate ${index + 1}`}
+                      value={address.value}
+                      placeholder="Address"
+                      disabled={isSavingCardChanges}
+                      onChange={(event) => onChange(address.id, event.target.value)}
+                    />
+                  </div>
+                  <button
+                    className="posting-card-job-details__delete-address"
+                    type="button"
+                    aria-label={`Delete address candidate ${index + 1}`}
+                    title="Delete address candidate"
+                    aria-expanded={pendingDeleteId === address.id}
+                    disabled={isSavingCardChanges}
+                    onClick={() => setPendingDeleteId(address.id)}
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </div>
+                {pendingDeleteId === address.id && (
+                  <div className="posting-card-job-details__address-confirmation">
+                    <PostingCardDeleteConfirmation
+                      message="Delete this address candidate?"
+                      isDisabled={isSavingCardChanges}
+                      onCancel={() => setPendingDeleteId(null)}
+                      onConfirm={handleDeleteAddress}
+                    />
+                  </div>
+                )}
+              </li>
+            )) : addresses.map((address, index) => (
+              <li key={index}>
+                <div className="posting-card-job-details__address-row">
+                  <span className="posting-card-job-details__value">{address}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </dd>
+    </div>
+  )
+}
+
 export function PostingCardJobDetails({
   posting,
   draft,
   isEditing,
   isSavingCardChanges,
   onChange,
+  onAddressCandidateAdd,
+  onAddressCandidateChange,
+  onAddressCandidateDelete,
 }: PostingCardJobDetailsProps) {
   const classification = posting.classification
   const workConditions = posting.work_conditions
@@ -324,11 +436,31 @@ export function PostingCardJobDetails({
         label="Primary address"
         value={workConditions.primary_address?.value ?? null}
         isFullWidth
-      />
-      <JobDetailField
-        label="Other address candidates"
-        value={workConditions.address_candidates.join('\n')}
-        isFullWidth
+      >
+        {isEditing && (
+          <div className="posting-card-job-details__editor">
+            <span className="posting-card-job-details__value posting-card-job-details__sizing" aria-hidden="true">
+              {draft.primaryAddress || 'None'}
+            </span>
+            <textarea
+              className="posting-card-job-details__input"
+              aria-label="Primary address"
+              value={draft.primaryAddress}
+              placeholder="None"
+              disabled={isSavingCardChanges}
+              onChange={(event) => onChange({ ...draft, primaryAddress: event.target.value })}
+            />
+          </div>
+        )}
+      </JobDetailField>
+      <JobDetailAddressCandidates
+        addresses={workConditions.address_candidates}
+        draft={draft.addressCandidates}
+        isEditing={isEditing}
+        isSavingCardChanges={isSavingCardChanges}
+        onAdd={onAddressCandidateAdd}
+        onChange={onAddressCandidateChange}
+        onDelete={onAddressCandidateDelete}
       />
 
       <JobDetailField

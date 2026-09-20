@@ -155,6 +155,7 @@ class UpdatePostingCardService:
         saved_work_conditions = card.posting.work_conditions
         original_work_conditions = original_card.posting.work_conditions
         work_condition_values = {
+            "primary_address": request.primary_address,
             "schedule": request.schedule,
             "travel_requirement": request.travel_requirement,
             "start_on": request.start_on,
@@ -177,6 +178,9 @@ class UpdatePostingCardService:
                     "value": value,
                     "origin": origin,
                 }
+
+        # Candidates are plain address strings, without per-item origin metadata.
+        payload["posting"]["work_conditions"]["address_candidates"] = request.address_candidates
 
         saved_hours = saved_work_conditions.weekly_hours
         saved_minimum = saved_hours.minimum if saved_hours is not None else None

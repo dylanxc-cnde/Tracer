@@ -74,6 +74,8 @@ class UpdatePostingCardRequest(BaseModel):
     contract_type: ContractType | None
     seniority: Seniority | None
     work_modes: tuple[WorkMode, ...]
+    primary_address: str | None
+    address_candidates: tuple[str, ...]
     internship_requirement: InternshipRequirement | None
     eligibility: str | None
     weekly_hours_minimum: float | None = Field(

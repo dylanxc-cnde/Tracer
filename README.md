@@ -69,7 +69,7 @@ stays unknown, and you review and select a posting before saving it as a Card.
 | Section | Editable content |
 | --- | --- |
 | What you'll do | Role summary, responsibilities, and role-domain pills |
-| Job details | Workload, job types, contract type, seniority, work modes, internship requirement, and eligibility |
+| Job details | Workload, job types, contract type, seniority, work modes, primary address, other address candidates, internship requirement, and eligibility |
 | Work conditions | Weekly hours, schedule, travel requirement, start date, and duration; add missing fields or remove existing ones |
 | Salary and benefits | Repeatable compensation entries, amounts, currency, period, pay basis, applicable groups, payment conditions, benefits, and vacation days |
 | Application | Channels, application URL, deadline, email subject, required documents, and special instructions |
@@ -78,9 +78,9 @@ stays unknown, and you review and select a posting before saving it as a Card.
 | My Card | Alias, tags, and notes |
 
 Requirements is the largest remaining editor, not the last read-only field in the
-whole Card. Identity, Posting info, and locations are still read-only.
+whole Card. Identity and Posting info are still read-only.
 Quick Facts remains a display-only summary of the saved Card: supported edits to
-classification, work modes, hours, deadline, and salary appear there
+classification, primary address, work modes, hours, deadline, and salary appear there
 after saving, not while typing in the draft.
 
 Job classification separates role category, full-time/part-time workload,
@@ -94,9 +94,10 @@ Eligibility is one text for education, fields of study, enrollment and other
 applicant conditions. Requirements focuses on capabilities, experience, languages
 and professional credentials instead of repeating those eligibility conditions.
 Job details edits use the same Card Save/Cancel; job types and work modes allow
-multiple selections. Address editing and choosing a different primary address
-are still to come. Deadline stays under Application and in the read-only Quick
-Facts summary, not in Job details.
+multiple selections. Each alternative address has its own editable box, with
+add and delete controls in edit mode. Choosing a primary address directly from the candidate list
+and confirming addresses are still to come. Deadline stays under Application
+and in the read-only Quick Facts summary, not in Job details.
 
 Card storage keeps two full JSON payloads in the same row: the initial saved
 Card and the current version. Save submits the supported editable fields;
@@ -218,8 +219,6 @@ a prerequisite for building the wider workspace:
   settle group editing before adding drag-and-drop;
 - keep Quick Facts read-only; give its underlying fields a detailed home and
   editing controls rather than duplicating their state;
-- add address editing and primary-address selection to Job details; deadline
-  keeps its existing Application editor;
 - add editing to the existing Identity/Posting info area separately, without
   duplicating the metadata already shown in the header;
 - add address review and selection before presenting a map destination as

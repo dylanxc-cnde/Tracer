@@ -357,6 +357,9 @@ export function PostingCardDetails({
             isEditing={editor.isEditing}
             isSavingCardChanges={editor.isSavingCardChanges}
             onChange={editor.updateDraftJobDetails}
+            onAddressCandidateAdd={editor.addDraftAddressCandidate}
+            onAddressCandidateChange={editor.updateDraftAddressCandidate}
+            onAddressCandidateDelete={editor.deleteDraftAddressCandidate}
           />
 
           <PostingCardSourceEvidence

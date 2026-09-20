@@ -35,6 +35,8 @@ export type JobDetailsDraft = {
   contractType: ContractType | null
   seniority: Seniority | null
   workModes: WorkMode[]
+  primaryAddress: string
+  addressCandidates: TextItemDraft[]
   internshipRequirement: InternshipRequirement | null
   eligibility: string
 }
@@ -146,6 +148,11 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
       contractType: classification.contract_type?.value ?? null,
       seniority: classification.seniority?.value ?? null,
       workModes: [...new Set(workConditions.work_modes?.value ?? [])],
+      primaryAddress: workConditions.primary_address?.value ?? '',
+      addressCandidates: workConditions.address_candidates.map((address) => ({
+        id: crypto.randomUUID(),
+        value: address,
+      })),
       internshipRequirement: classification.internship_requirement?.value ?? null,
       eligibility: classification.eligibility?.value ?? '',
     },
@@ -289,6 +296,8 @@ function createPostingCardUpdateRequest(
     contract_type: draft.jobDetails.contractType,
     seniority: draft.jobDetails.seniority,
     work_modes: draft.jobDetails.workModes,
+    primary_address: normalizeOptionalText(draft.jobDetails.primaryAddress),
+    address_candidates: normalizeTextItems(draft.jobDetails.addressCandidates),
     internship_requirement: draft.jobDetails.internshipRequirement,
     eligibility: normalizeOptionalText(draft.jobDetails.eligibility),
     weekly_hours_minimum: normalizeOptionalNumber(draft.workConditions.weeklyHours?.minimum ?? ''),
@@ -361,6 +370,11 @@ export function usePostingCardEditor(
     updateRequest.seniority !== (classification.seniority?.value ?? null) ||
     updateRequest.work_modes.length !== savedWorkModes.size ||
     updateRequest.work_modes.some((value) => !savedWorkModes.has(value)) ||
+    updateRequest.primary_address !== (card.posting.work_conditions.primary_address?.value ?? null) ||
+    updateRequest.address_candidates.length !== card.posting.work_conditions.address_candidates.length ||
+    updateRequest.address_candidates.some(
+      (value, index) => value !== card.posting.work_conditions.address_candidates[index],
+    ) ||
     updateRequest.internship_requirement !== (classification.internship_requirement?.value ?? null) ||
     updateRequest.eligibility !== (classification.eligibility?.value ?? null) ||
     updateRequest.weekly_hours_minimum !==
@@ -586,6 +600,54 @@ export function usePostingCardEditor(
       return
     }
     setDraft((currentDraft) => ({ ...currentDraft, jobDetails }))
+  }
+
+  function addDraftAddressCandidate() {
+    if (isSavingCardChanges) {
+      return
+    }
+    const address: TextItemDraft = {
+      id: crypto.randomUUID(),
+      value: '',
+    }
+
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      jobDetails: {
+        ...currentDraft.jobDetails,
+        addressCandidates: [...currentDraft.jobDetails.addressCandidates, address],
+      },
+    }))
+  }
+
+  function updateDraftAddressCandidate(id: string, value: string) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      jobDetails: {
+        ...currentDraft.jobDetails,
+        addressCandidates: currentDraft.jobDetails.addressCandidates.map((address) =>
+          address.id === id ? { ...address, value } : address,
+        ),
+      },
+    }))
+  }
+
+  function deleteDraftAddressCandidate(id: string) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      jobDetails: {
+        ...currentDraft.jobDetails,
+        addressCandidates: currentDraft.jobDetails.addressCandidates.filter(
+          (address) => address.id !== id,
+        ),
+      },
+    }))
   }
 
   function addDraftWorkCondition(field: WorkConditionField) {
@@ -910,6 +972,9 @@ export function usePostingCardEditor(
     updateDraftRoleDomain,
     deleteDraftRoleDomain,
     updateDraftJobDetails,
+    addDraftAddressCandidate,
+    updateDraftAddressCandidate,
+    deleteDraftAddressCandidate,
     addDraftWorkCondition,
     updateDraftWorkConditionText,
     updateDraftWeeklyHours,

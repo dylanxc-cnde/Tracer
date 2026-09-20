@@ -38,6 +38,79 @@
   grid-column: 1 / -1;
 }
 
+.posting-card-job-details__address-candidates {
+  min-width: 0;
+}
+
+.posting-card-job-details__address-heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding-right: 48px;
+}
+
+.posting-card-job-details__add-address {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.posting-card-job-details__address-list {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.posting-card-job-details__address-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-items: start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+}
+
+.posting-card-job-details__delete-address {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 1.5em;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.posting-card-job-details__delete-address > span {
+  font-size: 24px;
+  line-height: 1;
+  transform: translateY(-2px);
+}
+
+.posting-card-job-details__delete-address:hover:not(:disabled) {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+}
+
+.posting-card-job-details__address-confirmation {
+  margin-top: 8px;
+}
+
 .posting-card-job-details__editor {
   position: relative;
   min-width: 0;

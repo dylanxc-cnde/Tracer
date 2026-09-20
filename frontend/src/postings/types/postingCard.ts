@@ -51,6 +51,8 @@ export type UpdatePostingCardRequest = {
   contract_type: ContractType | null
   seniority: Seniority | null
   work_modes: WorkMode[]
+  primary_address: string | null
+  address_candidates: string[]
   internship_requirement: InternshipRequirement | null
   eligibility: string | null
   weekly_hours_minimum: number | null
