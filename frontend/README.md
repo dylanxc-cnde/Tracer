@@ -42,14 +42,15 @@ and Card creation and updates.
   are shown in the page.
 
 You can bring a posting in, save it, come back to it, and edit its role content,
-work conditions, compensation, application details, contact, company details,
-and personal fields. See [Editable today](../README.md#editable-today) for the
-exact scope. Requirements is the next major editor. Identity and Posting info,
-locations, work modes, and job classification also remain read-only.
+job classification, eligibility, work modes, work conditions, compensation,
+application details, contact, company details, and personal fields.
+See [Editable today](../README.md#editable-today) for the
+exact scope. Requirements is the next major editor. Identity, Posting info,
+and locations also remain read-only.
 
 Quick Facts is a read-only projection of the saved posting, not a separate
-draft: changes to editable hours, deadline, and salary appear there after a
-successful save.
+draft: changes to editable classification, work modes, hours, deadline, and
+salary appear there after a successful save.
 
 The original Card is its initial saved snapshot, not the latest version or a
 full edit history. It uses the same `PostingCard` response type. The Show
@@ -154,8 +155,8 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
 - reuse the existing Card-wide draft, validation, Save/Cancel, and error flow;
   keep component moves separate from editing behavior and leave drag-and-drop
   until group editing works;
-- keep Quick Facts as a read-only summary and scope the remaining identity,
-  location, work-mode, and classification editors separately;
+- keep Quick Facts as a read-only summary and scope the remaining identity
+  and location editors separately;
 - refine reading/editing geometry using the existing inline editor patterns;
 - keep the existing 960px maximum Details width; refine it and add the section
   navigation rail only when its interactions and stable section IDs are defined;

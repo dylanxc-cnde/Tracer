@@ -9,7 +9,13 @@ import type {
   CompensationEntry,
   CompensationPeriod,
   CompensationType,
+  ContractType,
+  InternshipRequirement,
   PayBasis,
+  RoleFamily,
+  Seniority,
+  WorkMode,
+  WorkloadType,
 } from '../../../postings/types/postingDetails'
 import {
   getCompensationValidationError,
@@ -21,6 +27,16 @@ import { getSafeHttpUrl } from './PostingCardSanitizers'
 export type TextItemDraft = {
   id: string
   value: string
+}
+
+export type JobDetailsDraft = {
+  workloadType: WorkloadType | null
+  roleFamilies: RoleFamily[]
+  contractType: ContractType | null
+  seniority: Seniority | null
+  workModes: WorkMode[]
+  internshipRequirement: InternshipRequirement | null
+  eligibility: string
 }
 
 export type WorkConditionsDraft = {
@@ -60,6 +76,7 @@ export type PostingCardUserDraft = {
   roleSummary: string
   responsibilities: TextItemDraft[]
   roleDomains: TextItemDraft[]
+  jobDetails: JobDetailsDraft
   workConditions: WorkConditionsDraft
   compensationEntries: CompensationEntryFields[]
   benefits: TextItemDraft[]
@@ -106,6 +123,7 @@ export function createCompensationEntryFields(
 }
 
 function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
+  const classification = card.posting.classification
   const workConditions = card.posting.work_conditions
   const weeklyHours = workConditions.weekly_hours
   const application = card.posting.application_instructions
@@ -122,6 +140,15 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
       id: crypto.randomUUID(),
       value: domain.value,
     })),
+    jobDetails: {
+      workloadType: classification.workload_type?.value ?? null,
+      roleFamilies: [...new Set(classification.role_families?.value ?? [])],
+      contractType: classification.contract_type?.value ?? null,
+      seniority: classification.seniority?.value ?? null,
+      workModes: [...new Set(workConditions.work_modes?.value ?? [])],
+      internshipRequirement: classification.internship_requirement?.value ?? null,
+      eligibility: classification.eligibility?.value ?? '',
+    },
     workConditions: {
       weeklyHours: weeklyHours === null || (
         weeklyHours.minimum === null && weeklyHours.maximum === null
@@ -257,6 +284,13 @@ function createPostingCardUpdateRequest(
     role_summary: normalizeOptionalText(draft.roleSummary),
     responsibilities: normalizeTextItems(draft.responsibilities),
     role_domains: normalizeTextItems(draft.roleDomains),
+    workload_type: draft.jobDetails.workloadType,
+    role_families: draft.jobDetails.roleFamilies,
+    contract_type: draft.jobDetails.contractType,
+    seniority: draft.jobDetails.seniority,
+    work_modes: draft.jobDetails.workModes,
+    internship_requirement: draft.jobDetails.internshipRequirement,
+    eligibility: normalizeOptionalText(draft.jobDetails.eligibility),
     weekly_hours_minimum: normalizeOptionalNumber(draft.workConditions.weeklyHours?.minimum ?? ''),
     weekly_hours_maximum: normalizeOptionalNumber(draft.workConditions.weeklyHours?.maximum ?? ''),
     schedule: normalizeOptionalText(draft.workConditions.schedule ?? ''),
@@ -297,6 +331,9 @@ export function usePostingCardEditor(
   const [draft, setDraft] = useState<PostingCardUserDraft>(() => createCardUserDraft(card))
   const updateRequest = createPostingCardUpdateRequest(draft)
   const originalTitle = card.posting.identity.position_title?.value ?? null
+  const classification = card.posting.classification
+  const savedRoleFamilies = new Set(classification.role_families?.value ?? [])
+  const savedWorkModes = new Set(card.posting.work_conditions.work_modes?.value ?? [])
   const application = card.posting.application_instructions
   const savedChannels = new Set(application.channels?.value ?? [])
   const displayedAlias = isEditing
@@ -317,6 +354,15 @@ export function usePostingCardEditor(
     updateRequest.role_domains.some(
       (value, index) => value !== card.posting.role_content.domains[index]?.value,
     ) ||
+    updateRequest.workload_type !== (classification.workload_type?.value ?? null) ||
+    updateRequest.role_families.length !== savedRoleFamilies.size ||
+    updateRequest.role_families.some((value) => !savedRoleFamilies.has(value)) ||
+    updateRequest.contract_type !== (classification.contract_type?.value ?? null) ||
+    updateRequest.seniority !== (classification.seniority?.value ?? null) ||
+    updateRequest.work_modes.length !== savedWorkModes.size ||
+    updateRequest.work_modes.some((value) => !savedWorkModes.has(value)) ||
+    updateRequest.internship_requirement !== (classification.internship_requirement?.value ?? null) ||
+    updateRequest.eligibility !== (classification.eligibility?.value ?? null) ||
     updateRequest.weekly_hours_minimum !==
       (card.posting.work_conditions.weekly_hours?.minimum ?? null) ||
     updateRequest.weekly_hours_maximum !==
@@ -533,6 +579,13 @@ export function usePostingCardEditor(
       ...currentDraft,
       roleDomains: currentDraft.roleDomains.filter((domain) => domain.id !== id),
     }))
+  }
+
+  function updateDraftJobDetails(jobDetails: JobDetailsDraft) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({ ...currentDraft, jobDetails }))
   }
 
   function addDraftWorkCondition(field: WorkConditionField) {
@@ -856,6 +909,7 @@ export function usePostingCardEditor(
     addDraftRoleDomain,
     updateDraftRoleDomain,
     deleteDraftRoleDomain,
+    updateDraftJobDetails,
     addDraftWorkCondition,
     updateDraftWorkConditionText,
     updateDraftWeeklyHours,

@@ -38,6 +38,148 @@
   grid-column: 1 / -1;
 }
 
+.posting-card-job-details__editor {
+  position: relative;
+  min-width: 0;
+}
+
+.posting-card-job-details__value,
+.posting-card-job-details__input,
+.posting-card-job-details__select,
+.posting-card-job-details__selection-trigger {
+  display: block;
+  min-height: 1.5em;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: 1.5;
+  letter-spacing: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Mirror the text height so entering edit mode does not add a form row. */
+.posting-card-job-details__sizing {
+  visibility: hidden;
+}
+
+.posting-card-job-details__value::after {
+  content: '\200b';
+}
+
+.posting-card-job-details__input,
+.posting-card-job-details__select,
+.posting-card-job-details__selection-trigger {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
+  box-shadow: none;
+  transition: background-color 320ms ease;
+}
+
+.posting-card-job-details__input,
+.posting-card-job-details__select {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+
+.posting-card-job-details__input {
+  overflow: hidden;
+  resize: none;
+}
+
+.posting-card-job-details__select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.posting-card-job-details__selection-trigger {
+  text-align: left;
+  cursor: pointer;
+}
+
+.posting-card-job-details__selection-trigger:active:not(:disabled) {
+  transform: none;
+}
+
+.posting-card-job-details__options {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 2;
+  display: grid;
+  width: max-content;
+  max-width: 100%;
+  padding: 6px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background-color: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(52, 53, 53, 0.16);
+}
+
+.posting-card-job-details__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.posting-card-job-details__option input {
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--color-action-primary);
+}
+
+.posting-card-job-details__option:hover,
+.posting-card-job-details__option:focus-within {
+  background-color: var(--color-surface-muted);
+}
+
+.posting-card-job-details__input:hover:not(:disabled),
+.posting-card-job-details__input:focus-visible,
+.posting-card-job-details__select:hover:not(:disabled),
+.posting-card-job-details__select:focus-visible,
+.posting-card-job-details__selection-trigger:hover:not(:disabled),
+.posting-card-job-details__selection-trigger:focus-visible {
+  background-color: rgba(52, 53, 53, 0.04);
+}
+
+.posting-card-job-details__input:focus-visible,
+.posting-card-job-details__select:focus-visible,
+.posting-card-job-details__selection-trigger:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 4px;
+}
+
+.posting-card-job-details__input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.posting-card-job-details__input:disabled,
+.posting-card-job-details__select:disabled,
+.posting-card-job-details__selection-trigger:disabled {
+  color: var(--color-text-secondary);
+  cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posting-card-job-details__input,
+  .posting-card-job-details__select,
+  .posting-card-job-details__selection-trigger {
+    transition: none;
+  }
+}
+
 @media (max-width: 720px) {
   .posting-card-job-details {
     grid-template-columns: minmax(0, 1fr);

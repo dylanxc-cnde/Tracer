@@ -351,7 +351,13 @@ export function PostingCardDetails({
         <section className="posting-card-details__section">
           <h3>Job details</h3>
 
-          <PostingCardJobDetails posting={posting} />
+          <PostingCardJobDetails
+            posting={posting}
+            draft={editor.draft.jobDetails}
+            isEditing={editor.isEditing}
+            isSavingCardChanges={editor.isSavingCardChanges}
+            onChange={editor.updateDraftJobDetails}
+          />
 
           <PostingCardSourceEvidence
             source={jobDetailsSource}

@@ -9,7 +9,13 @@ from tracer.postings.models.posting_details import (
     ApplicationChannel,
     CompensationPeriod,
     CompensationType,
+    ContractType,
+    InternshipRequirement,
     PayBasis,
+    RoleFamily,
+    Seniority,
+    WorkMode,
+    WorkloadType,
 )
 
 
@@ -63,6 +69,13 @@ class UpdatePostingCardRequest(BaseModel):
     role_summary: str | None
     responsibilities: tuple[str, ...]
     role_domains: tuple[str, ...]
+    workload_type: WorkloadType | None
+    role_families: tuple[RoleFamily, ...]
+    contract_type: ContractType | None
+    seniority: Seniority | None
+    work_modes: tuple[WorkMode, ...]
+    internship_requirement: InternshipRequirement | None
+    eligibility: str | None
     weekly_hours_minimum: float | None = Field(
         ..., ge=0, strict=True, allow_inf_nan=False
     )
@@ -102,6 +115,16 @@ class UpdatePostingCardRequest(BaseModel):
         if len(set(channels)) != len(channels):
             raise ValueError("Application channels must be unique")
         return channels
+
+    @field_validator("role_families", "work_modes")
+    @classmethod
+    def validate_job_detail_selections(
+        cls, values: tuple[RoleFamily, ...] | tuple[WorkMode, ...]
+    ) -> tuple[RoleFamily, ...] | tuple[WorkMode, ...]:
+        """Each job type or work mode can be selected at most once."""
+        if len(set(values)) != len(values):
+            raise ValueError("Job detail selections must be unique")
+        return values
 
     @model_validator(mode="after")
     def validate_weekly_hours_range(self) -> Self:
