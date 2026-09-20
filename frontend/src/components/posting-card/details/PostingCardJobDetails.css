@@ -1,0 +1,52 @@
+.posting-card-job-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 32px;
+  margin: 0;
+}
+
+.posting-card-job-details__field {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.posting-card-job-details dt {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-job-details dd {
+  min-width: 0;
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-job-details__empty {
+  color: var(--color-text-secondary);
+}
+
+.posting-card-job-details__field--full-width {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .posting-card-job-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 420px) {
+  .posting-card-job-details__field {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+}

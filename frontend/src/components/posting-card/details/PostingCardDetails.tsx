@@ -19,6 +19,7 @@ import { PostingCardRoleSummary } from './PostingCardRoleSummary'
 import { PostingCardResponsibilities } from './PostingCardResponsibilities'
 import { PostingCardRoleDomains } from './PostingCardRoleDomains'
 import { PostingCardRequirements } from './PostingCardRequirements'
+import { PostingCardJobDetails } from './PostingCardJobDetails'
 import {
   PostingCardWorkConditions,
   PostingCardWorkConditionAdd,
@@ -62,6 +63,16 @@ export function PostingCardDetails({
   } | null>(null)
   const editor = usePostingCardEditor(card, onUpdate, isReadOnly)
   const posting = card.posting
+  // Job details displays facts from three backend sections; their sources stay unchanged.
+  const jobDetailsSources = [
+    posting.classification.source,
+    posting.work_conditions.source,
+    posting.application_instructions.source,
+  ]
+  const jobDetailsSource = {
+    excerpts: [...new Set(jobDetailsSources.flatMap((source) => source.excerpts))],
+    source_urls: [...new Set(jobDetailsSources.flatMap((source) => source.source_urls))],
+  }
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -115,6 +126,30 @@ export function PostingCardDetails({
     // Compare whole saved sections so removal and empty values count as changes too.
     return JSON.stringify(posting[section]) !==
       JSON.stringify(sourceComparison.originalCard.posting[section])
+  }
+
+  function isJobDetailsModified(): boolean {
+    if (
+      isReadOnly ||
+      sourceComparison?.cardKey !== card.card_key ||
+      sourceComparison.originalCard === null
+    ) {
+      return false
+    }
+
+    const originalPosting = sourceComparison.originalCard.posting
+    // Hours and other Application fields are not displayed in Job details.
+    return (
+      isSectionModified('classification') ||
+      JSON.stringify(posting.work_conditions.primary_address) !==
+        JSON.stringify(originalPosting.work_conditions.primary_address) ||
+      JSON.stringify(posting.work_conditions.address_candidates) !==
+        JSON.stringify(originalPosting.work_conditions.address_candidates) ||
+      JSON.stringify(posting.work_conditions.work_modes) !==
+        JSON.stringify(originalPosting.work_conditions.work_modes) ||
+      JSON.stringify(posting.application_instructions.application_deadline) !==
+        JSON.stringify(originalPosting.application_instructions.application_deadline)
+    )
   }
 
   const hasPostingSourceDetails =
@@ -315,6 +350,18 @@ export function PostingCardDetails({
             />
           </section>
         )}
+
+        <section className="posting-card-details__section">
+          <h3>Job details</h3>
+
+          <PostingCardJobDetails posting={posting} />
+
+          <PostingCardSourceEvidence
+            source={jobDetailsSource}
+            areSourcesVisible={areSourcesVisible}
+            isModified={isJobDetailsModified()}
+          />
+        </section>
 
         <section className="posting-card-details__section">
           <div className="posting-card-work-conditions__heading">

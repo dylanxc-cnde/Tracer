@@ -83,10 +83,14 @@ of the saved Card: supported edits to hours, deadline, and salary appear there
 after saving, not while typing in the draft.
 
 Job classification separates role category, full-time/part-time workload,
-seniority, and contract type. Each location can hold a list of confirmed workplace
-addresses and a separate list of unconfirmed address candidates. Quick Facts stays compact
-and does not present those candidates as established workplaces; address review
-and editing are still to come.
+seniority, and contract type. A read-only Job details section, between Requirements
+and Work conditions, shows these fields alongside eligibility, work mode, deadline,
+and addresses. Each Card keeps one preferred address string and a list of
+alternatives, without separate city/region/country fields to keep in sync.
+Preferred means first choice for display and future map lookup, not verified.
+Quick Facts uses a shortened preview; Job details keeps the full text.
+Address review and Job details editing are still to come. Deadline keeps its
+existing editor under Application for now.
 
 Card storage keeps two full JSON payloads in the same row: the initial saved
 Card and the current version. Save submits the supported editable fields;
@@ -197,15 +201,15 @@ the repository.
   settle group editing before adding drag-and-drop;
 - keep Quick Facts read-only; give its underlying fields a detailed home and
   editing controls rather than duplicating their state;
-- add locations and work modes to Work conditions, and a compact job-details
-  area for job classification, contract type, seniority, and student/internship
-  eligibility; avoid repeating the same requirements in multiple sections;
+- add editing to the read-only Job details area for classification, eligibility,
+  locations, and work modes; settle the deadline editor's placement before moving
+  its existing Application control;
 - add editing to the existing Identity/Posting info area separately, without
   duplicating the metadata already shown in the header;
-- add review and confirmation for address candidates before using them as map
-  destinations; keep city-level locations explicitly approximate and never
-  substitute company headquarters for a work location. Geocoding and commute
-  estimates remain separate, later work;
+- add address review and selection before presenting a map destination as
+  confirmed; keep city-level locations explicitly approximate and never
+  substitute company headquarters for a work location. Coordinates, geocoding,
+  caching, and commute estimates remain separate, later work;
 - design a stable tag catalog and selection UI only when filtering and matching
   need more than the current string tags;
 - show the relationship between an Import and the Cards created from it;
