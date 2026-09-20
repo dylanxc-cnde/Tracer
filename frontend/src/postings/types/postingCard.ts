@@ -1,4 +1,5 @@
 import type {
+  ApplicationChannel,
   CompensationPeriod,
   CompensationType,
   PayBasis,
@@ -48,6 +49,10 @@ export type UpdatePostingCardRequest = {
   compensation_entries: UpdateCompensationEntryRequest[]
   benefits: string[]
   vacation_days: number | null
+  application_channels: ApplicationChannel[]
+  application_url: string | null
+  application_deadline: string | null
+  required_email_subject: string | null
   required_documents: string[]
   special_instructions: string[]
   contact_name: string | null

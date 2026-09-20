@@ -6,6 +6,7 @@
 }
 
 .posting-card-application-facts__field {
+  min-width: 0;
   padding: 14px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
@@ -30,4 +31,168 @@
 .posting-card-application-facts a {
   color: var(--color-action-primary);
   font-weight: 650;
+}
+
+.posting-card-application-facts__text,
+.posting-card-application-facts__channels,
+.posting-card-application-facts__date-number {
+  position: relative;
+  min-width: 0;
+}
+
+.posting-card-application-facts__value,
+.posting-card-application-facts__input,
+.posting-card-application-facts__date-input,
+.posting-card-application-facts__channel-trigger {
+  display: block;
+  min-height: 1.5em;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: 1.5;
+  letter-spacing: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-application-facts__value--sizing,
+.posting-card-application-facts__date-sizing {
+  visibility: hidden;
+}
+
+.posting-card-application-facts__value::after {
+  content: '\200b';
+}
+
+.posting-card-application-facts__input,
+.posting-card-application-facts__date-input,
+.posting-card-application-facts__channel-trigger {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
+  box-shadow: none;
+  transition: background-color 320ms ease;
+}
+
+.posting-card-application-facts__input {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  overflow: hidden;
+  resize: none;
+}
+
+/* The URL keeps the same text weight when its link becomes an input. */
+.posting-card-application-facts__field--applicationUrl .posting-card-application-facts__text {
+  color: var(--color-action-primary);
+  font-weight: 650;
+}
+
+.posting-card-application-facts__date,
+.posting-card-application-facts__date-part {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.posting-card-application-facts__date-number {
+  flex: 0 0 auto;
+}
+
+.posting-card-application-facts__date-sizing {
+  display: block;
+  white-space: pre;
+}
+
+.posting-card-application-facts__date-input {
+  position: absolute;
+  inset: 0;
+  height: 1.5em;
+}
+
+.posting-card-application-facts__channel-trigger {
+  text-align: left;
+  cursor: pointer;
+}
+
+.posting-card-application-facts__channel-trigger:active:not(:disabled) {
+  transform: none;
+}
+
+.posting-card-application-facts__channel-options {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 2;
+  display: grid;
+  width: max-content;
+  max-width: 100%;
+  min-width: 140px;
+  padding: 6px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background-color: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(52, 53, 53, 0.16);
+}
+
+.posting-card-application-facts__channel-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.posting-card-application-facts__channel-option input {
+  margin: 0;
+  accent-color: var(--color-action-primary);
+}
+
+.posting-card-application-facts__channel-option:hover,
+.posting-card-application-facts__channel-option:focus-within {
+  background-color: var(--color-surface-muted);
+}
+
+.posting-card-application-facts__input:hover:not(:disabled),
+.posting-card-application-facts__input:focus-visible,
+.posting-card-application-facts__date-input:hover:not(:disabled),
+.posting-card-application-facts__date-input:focus-visible,
+.posting-card-application-facts__channel-trigger:hover:not(:disabled),
+.posting-card-application-facts__channel-trigger:focus-visible {
+  background-color: rgba(52, 53, 53, 0.04);
+}
+
+.posting-card-application-facts__input:focus-visible,
+.posting-card-application-facts__date-input:focus-visible,
+.posting-card-application-facts__channel-trigger:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 4px;
+}
+
+.posting-card-application-facts__input::placeholder,
+.posting-card-application-facts__date-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.posting-card-application-facts__input:disabled,
+.posting-card-application-facts__date-input:disabled,
+.posting-card-application-facts__channel-trigger:disabled {
+  color: var(--color-text-secondary);
+  cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posting-card-application-facts__input,
+  .posting-card-application-facts__date-input,
+  .posting-card-application-facts__channel-trigger {
+    transition: none;
+  }
 }

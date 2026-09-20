@@ -2,10 +2,11 @@ from datetime import date
 from typing import Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from tracer.postings import PostingDetails
 from tracer.postings.models.posting_details import (
+    ApplicationChannel,
     CompensationPeriod,
     CompensationType,
     PayBasis,
@@ -75,6 +76,10 @@ class UpdatePostingCardRequest(BaseModel):
     compensation_entries: tuple[UpdateCompensationEntryRequest, ...]
     benefits: tuple[str, ...]
     vacation_days: int | None = Field(..., ge=0, strict=True)
+    application_channels: tuple[ApplicationChannel, ...]
+    application_url: AnyHttpUrl | None
+    application_deadline: date | None
+    required_email_subject: str | None
     required_documents: tuple[str, ...]
     special_instructions: tuple[str, ...]
     contact_name: str | None
@@ -87,6 +92,16 @@ class UpdatePostingCardRequest(BaseModel):
     posting_alias: str | None
     user_notes: str | None
     tags: tuple[str, ...]
+
+    @field_validator("application_channels")
+    @classmethod
+    def validate_application_channels(
+        cls, channels: tuple[ApplicationChannel, ...]
+    ) -> tuple[ApplicationChannel, ...]:
+        """Each application channel can be selected at most once."""
+        if len(set(channels)) != len(channels):
+            raise ValueError("Application channels must be unique")
+        return channels
 
     @model_validator(mode="after")
     def validate_weekly_hours_range(self) -> Self:

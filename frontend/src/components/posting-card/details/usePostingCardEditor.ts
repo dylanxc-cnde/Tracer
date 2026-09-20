@@ -5,6 +5,7 @@ import type {
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
 import type {
+  ApplicationChannel,
   CompensationEntry,
   CompensationPeriod,
   CompensationType,
@@ -15,6 +16,7 @@ import {
   hasDuplicateTags,
   isValidIsoDate,
 } from './PostingCardValidators'
+import { getSafeHttpUrl } from './PostingCardSanitizers'
 
 export type TextItemDraft = {
   id: string
@@ -44,6 +46,15 @@ export type CompensationEntryFields = {
   paymentConditions: string
 }
 
+export type ApplicationFactsDraft = {
+  channels: ApplicationChannel[]
+  applicationUrl: string
+  applicationDeadline: string
+  requiredEmailSubject: string
+}
+
+export type ApplicationTextField = Exclude<keyof ApplicationFactsDraft, 'channels'>
+
 // Type Definition: CardDraft
 export type PostingCardUserDraft = {
   roleSummary: string
@@ -53,6 +64,7 @@ export type PostingCardUserDraft = {
   compensationEntries: CompensationEntryFields[]
   benefits: TextItemDraft[]
   vacationDays: string
+  applicationFacts: ApplicationFactsDraft
   requiredDocuments: TextItemDraft[]
   specialInstructions: TextItemDraft[]
   contactName: string
@@ -96,6 +108,7 @@ export function createCompensationEntryFields(
 function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
   const workConditions = card.posting.work_conditions
   const weeklyHours = workConditions.weekly_hours
+  const application = card.posting.application_instructions
 
   return {
     roleSummary: card.posting.role_content.role_summary?.value ?? '',
@@ -131,6 +144,12 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
       value: benefit.value,
     })),
     vacationDays: card.posting.compensation.vacation_days?.value.toString() ?? '',
+    applicationFacts: {
+      channels: [...new Set(application.channels?.value ?? [])],
+      applicationUrl: application.application_url?.value ?? '',
+      applicationDeadline: application.application_deadline?.value ?? '',
+      requiredEmailSubject: application.required_email_subject?.value ?? '',
+    },
     requiredDocuments: card.posting.application_instructions.required_documents.map(
       (document) => ({
         id: crypto.randomUUID(),
@@ -247,6 +266,10 @@ function createPostingCardUpdateRequest(
     compensation_entries: normalizeCompensationEntries(draft.compensationEntries),
     benefits: normalizeTextItems(draft.benefits),
     vacation_days: normalizeOptionalNumber(draft.vacationDays),
+    application_channels: draft.applicationFacts.channels,
+    application_url: normalizeOptionalText(draft.applicationFacts.applicationUrl),
+    application_deadline: normalizeOptionalText(draft.applicationFacts.applicationDeadline),
+    required_email_subject: normalizeOptionalText(draft.applicationFacts.requiredEmailSubject),
     required_documents: normalizeTextItems(draft.requiredDocuments),
     special_instructions: normalizeTextItems(draft.specialInstructions),
     contact_name: normalizeOptionalText(draft.contactName),
@@ -274,6 +297,8 @@ export function usePostingCardEditor(
   const [draft, setDraft] = useState<PostingCardUserDraft>(() => createCardUserDraft(card))
   const updateRequest = createPostingCardUpdateRequest(draft)
   const originalTitle = card.posting.identity.position_title?.value ?? null
+  const application = card.posting.application_instructions
+  const savedChannels = new Set(application.channels?.value ?? [])
   const displayedAlias = isEditing
     ? updateRequest.posting_alias
     : card.posting_alias
@@ -308,6 +333,11 @@ export function usePostingCardEditor(
     ) ||
     updateRequest.vacation_days !==
       (card.posting.compensation.vacation_days?.value ?? null) ||
+    updateRequest.application_channels.length !== savedChannels.size ||
+    updateRequest.application_channels.some((channel) => !savedChannels.has(channel)) ||
+    updateRequest.application_url !== (application.application_url?.value ?? null) ||
+    updateRequest.application_deadline !== (application.application_deadline?.value ?? null) ||
+    updateRequest.required_email_subject !== (application.required_email_subject?.value ?? null) ||
     updateRequest.required_documents.length !==
       card.posting.application_instructions.required_documents.length ||
     updateRequest.required_documents.some(
@@ -401,6 +431,15 @@ export function usePostingCardEditor(
       (!Number.isSafeInteger(vacationDays) || vacationDays < 0)
     ) {
       setSaveError('Vacation days must be a non-negative whole number, or empty.')
+      return
+    }
+
+    if (updateRequest.application_url !== null && getSafeHttpUrl(updateRequest.application_url) === null) {
+      setSaveError('Application URL must be a valid http:// or https:// address, or empty.')
+      return
+    }
+    if (updateRequest.application_deadline !== null && !isValidIsoDate(updateRequest.application_deadline)) {
+      setSaveError('Application deadline must be a real date in YYYY-MM-DD format. Please check the year, month and day.')
       return
     }
 
@@ -621,6 +660,32 @@ export function usePostingCardEditor(
     setDraft((currentDraft) => ({ ...currentDraft, vacationDays }))
   }
 
+  function updateDraftApplicationChannel(channel: ApplicationChannel, isSelected: boolean) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => {
+      const channels = currentDraft.applicationFacts.channels.filter((value) => value !== channel)
+      if (isSelected) {
+        channels.push(channel)
+      }
+      return {
+        ...currentDraft,
+        applicationFacts: { ...currentDraft.applicationFacts, channels },
+      }
+    })
+  }
+
+  function updateDraftApplicationText(field: ApplicationTextField, value: string) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      applicationFacts: { ...currentDraft.applicationFacts, [field]: value },
+    }))
+  }
+
   function addDraftRequiredDocument() {
     const document: TextItemDraft = {
       id: crypto.randomUUID(),
@@ -802,6 +867,8 @@ export function usePostingCardEditor(
     updateDraftBenefit,
     deleteDraftBenefit,
     updateDraftVacationDays,
+    updateDraftApplicationChannel,
+    updateDraftApplicationText,
     addDraftRequiredDocument,
     updateDraftRequiredDocument,
     deleteDraftRequiredDocument,

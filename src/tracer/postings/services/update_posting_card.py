@@ -219,6 +219,49 @@ class UpdatePostingCardService:
                     "origin": origin,
                 }
 
+        saved_application = card.posting.application_instructions
+        original_application = original_card.posting.application_instructions
+        saved_channels = saved_application.channels
+        saved_channel_values = saved_channels.value if saved_channels is not None else ()
+        if set(request.application_channels) != set(saved_channel_values):
+            original_channels = original_application.channels
+            if (
+                original_channels is not None
+                and set(request.application_channels) == set(original_channels.value)
+            ):
+                channels_payload = original_channels.model_dump()
+            elif not request.application_channels:
+                channels_payload = None
+            else:
+                channels_payload = {
+                    "value": request.application_channels,
+                    "origin": FactOrigin.USER_DEFINED,
+                }
+            payload["posting"]["application_instructions"]["channels"] = channels_payload
+
+        application_values = {
+            "application_url": request.application_url,
+            "application_deadline": request.application_deadline,
+            "required_email_subject": request.required_email_subject,
+        }
+        for field, value in application_values.items():
+            saved_field = getattr(saved_application, field)
+            saved_value = saved_field.value if saved_field is not None else None
+            if value == saved_value:
+                continue
+
+            if value is None:
+                payload["posting"]["application_instructions"][field] = None
+            else:
+                original_field = getattr(original_application, field)
+                origin = FactOrigin.USER_DEFINED
+                if original_field is not None and value == original_field.value:
+                    origin = original_field.origin
+                payload["posting"]["application_instructions"][field] = {
+                    "value": value,
+                    "origin": origin,
+                }
+
         saved_documents = tuple(
             document.value
             for document in card.posting.application_instructions.required_documents

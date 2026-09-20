@@ -423,6 +423,11 @@ export function PostingCardDetails({
 
           <PostingCardApplicationFacts
             applicationInstructions={posting.application_instructions}
+            draft={editor.draft.applicationFacts}
+            isEditing={editor.isEditing}
+            isSavingCardChanges={editor.isSavingCardChanges}
+            onChannelChange={editor.updateDraftApplicationChannel}
+            onTextChange={editor.updateDraftApplicationText}
           />
 
           <div className="posting-card-details__application-field">
