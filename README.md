@@ -18,15 +18,15 @@ job URL or pasted text
 -> evidence, unknowns, and ambiguities
 -> user selects a posting
 -> confirmed Posting Card in SQLite
--> reopen, edit user fields, or view the original saved card
+-> reopen, edit supported posting fields and personal notes, or view the original
 ```
 
 ## Current Card UI
 
 Here's a look at the Card view: the job posting, broken into sections you can
 scan and check. These screenshots use a fictional posting, with no real
-employer or applicant data. A few newer controls, including Show original,
-aren't pictured yet. Click an image for a closer look.
+employer or applicant data. Newer controls, including Show original and the
+inline editors, aren't pictured yet. Click an image for a closer look.
 
 | Overview and quick facts | Structured requirements |
 | --- | --- |
@@ -46,15 +46,16 @@ aren't pictured yet. Click an image for a closer look.
 - a Card Details dialog with quick facts, role content, requirements,
   work conditions, compensation, application and contact details, company
   information, source excerpts, and creation metadata;
-- a global Card edit mode that saves a user-owned alias, string tags, and notes
-  back to SQLite while preserving posting facts and sources;
+- a global Card edit mode with inline text, list, pill, date, choice, and
+  compensation editors, sharing one draft and one Save/Cancel flow;
 - an initial Card snapshot alongside the current saved version, with a
   read-only Show original action in Card Library;
-- disabled user-field inputs and tag controls while saving, with the draft
-  retained if saving fails;
+- disabled editing controls while saving, with the draft retained if saving
+  fails and save errors shown over the Card rather than above the scroll area;
 - a responsive three-page application shell with class-based component styles;
 - selectable posting candidates with loading, error, and confirmation states;
-- section-level source excerpts and URLs for reviewing extracted facts;
+- section-level source excerpts and URLs, with a Modified by user notice when
+  a saved section differs from the original;
 - multiple posting candidates without mixing in recommended jobs;
 - compact requirement pills grouped by importance and displayed in
   `all_of -> any_of -> unknown` order, with examples on a separate row;
@@ -63,12 +64,34 @@ aren't pictured yet. Click an image for a closer look.
 The AI gives you a starting point, not the final word. Missing information
 stays unknown, and you review and select a posting before saving it as a Card.
 
+### Editable today
+
+| Section | Editable content |
+| --- | --- |
+| What you'll do | Role summary, responsibilities, and role-domain pills |
+| Work conditions | Weekly hours, schedule, travel requirement, start date, and duration; add missing fields or remove existing ones |
+| Salary and benefits | Repeatable compensation entries, amounts, currency, period, pay basis, applicable groups, payment conditions, benefits, and vacation days |
+| Application | Channels, application URL, deadline, email subject, required documents, and special instructions |
+| Contact | Name, role, email, and phone |
+| About the company | Company summary, industries, and company size |
+| My Card | Alias, tags, and notes |
+
+Requirements is the next major editor, not the last read-only field in the
+whole Card. Identity and Posting info, locations, work modes, and job
+classification are still read-only. Quick Facts remains a display-only summary
+of the saved Card: supported edits to hours, deadline, and salary appear there
+after saving, not while typing in the draft.
+
 Card storage keeps two full JSON payloads in the same row: the initial saved
-Card and the current version. Updates replace only the current version. The
-initial snapshot is not a web-page archive or a history of every edit, and
-deleting a Card removes both versions. Only alias, tags, and notes are editable
-today; structured posting facts remain read-only. For older records backfilled
-into this layout, the original snapshot starts at migration time, not before.
+Card and the current version. Save submits the supported editable fields;
+FastAPI/Pydantic validates them, and the backend replaces the current payload
+while preserving source excerpts, their URLs, and system metadata. The initial
+snapshot stays untouched. Changed facts are marked as user-defined; restoring
+their original values also restores their original provenance.
+
+The initial snapshot is not a web-page archive or a history of every edit, and
+deleting a Card removes both versions. For older records backfilled into this
+layout, the original snapshot starts at migration time, not before.
 
 ## Run the checks
 
@@ -159,28 +182,34 @@ the repository.
 
 ## Next
 
-- extend the existing Card Details section components one field shape and one
-  business section at a time; display extraction and requirement ordering are
-  already in place;
-- define each section's editable contract, then connect its draft, validation,
-  save, and reopen flow; keep any further component moves separate from behavior
-  changes so each step stays reviewable;
-- keep headers and Quick Facts as read-only projections while editing their
-  underlying structured fields;
-- build quiet inline editing surfaces and section-level add controls without
-  turning Card Details into one generic JSON form;
-- signal only unsaved draft changes in the UI while preserving the original
-  section-level source context;
+- review and merge the current inline-editing baseline before starting
+  Requirements editing in a separate branch;
+- build Requirements editing in small, reviewable steps: agree on the draft
+  and update contract, then connect validation, saving, and the UI; keep one
+  `all_of` group per importance level and each `any_of`/`unknown` group separate;
+- reuse the Card-wide Save/Cancel flow and preserve section-level sources;
+  settle group editing before adding drag-and-drop;
+- keep Quick Facts read-only; give its underlying fields a detailed home and
+  editing controls rather than duplicating their state;
+- add locations and work modes to Work conditions, and a compact job-details
+  area for job classification, contract type, seniority, and student/internship
+  eligibility; avoid repeating the same requirements in multiple sections;
+- add editing to the existing Identity/Posting info area separately, without
+  duplicating the metadata already shown in the header;
+- prepare location data for later maps by considering a full address-text
+  field when the source provides one; keep city-level locations explicitly
+  approximate and never substitute company headquarters for a work location.
+  Geocoding and commute estimates remain separate, later work;
 - design a stable tag catalog and selection UI only when filtering and matching
   need more than the current string tags;
 - show the relationship between an Import and the Cards created from it;
-- keep validation, not-found, concurrent-update, and storage failures visible
-  to the frontend rather than hiding them behind a generic success state.
+- refine the existing editing layout and error feedback without turning Card
+  Details into a generic JSON form.
 
 The editing UI is still an early version. Page refresh behavior and overlapping
-request handling are deferred until the relevant interactions are refined;
-automatic refresh alone will not prevent an old response from replacing newer
-UI state.
+request handling, along with frontend behavior tests, are deferred until the
+relevant interactions are refined; automatic refresh alone will not prevent an
+old response from replacing newer UI state.
 
 Deleting a Card does not delete its original Import. Deleting an Import does
 not delete saved Cards either: a Card keeps its `import_key` as historical

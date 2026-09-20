@@ -20,10 +20,14 @@ and Card creation and updates.
   and `PostingCardSummary`;
 - saved Cards reopen in a details dialog with a sticky title bar, quick facts,
   requirements, compensation, source excerpts, and company details;
-- the global Card edit mode updates alias, string tags, and notes through one
-  draft and Save action;
-- saving temporarily disables those inputs and tag controls; a failed save
-  keeps the draft available for correction or retry;
+- the global Card edit mode updates supported posting fields and My Card
+  through one draft and Save/Cancel flow;
+- inline text, repeated-list, pill, date, choice, and compensation editors
+  support the existing body sections outside Requirements;
+- saving temporarily disables editing controls; a failed save keeps the draft
+  available for correction or retry and displays an error over the Card;
+- Show sources reveals section-level evidence and a Modified by user notice
+  for saved sections that differ from the original;
 - Show original in Card Library fetches the initial saved Card and opens it
   in the same Details component without edit controls;
 - Requirements have their own display component: importance sections contain
@@ -37,9 +41,15 @@ and Card creation and updates.
 - loading, API errors, parse status, candidate count, and saved Card summaries
   are shown in the page.
 
-You can already bring a posting in, save it, come back to it, and add your own
-alias, tags, and notes. Editing the structured posting facts comes next; those
-are still read-only.
+You can bring a posting in, save it, come back to it, and edit its role content,
+work conditions, compensation, application details, contact, company details,
+and personal fields. See [Editable today](../README.md#editable-today) for the
+exact scope. Requirements is the next major editor. Identity and Posting info,
+locations, work modes, and job classification also remain read-only.
+
+Quick Facts is a read-only projection of the saved posting, not a separate
+draft: changes to editable hours, deadline, and salary appear there after a
+successful save.
 
 The original Card is its initial saved snapshot, not the latest version or a
 full edit history. It uses the same `PostingCard` response type. The Show
@@ -67,6 +77,11 @@ The Import session stays in its Provider across page switches. Library and
 History lists and open dialogs remain page-owned: those pages currently unmount
 when hidden, and their lists must be loaded again. Each Details instance owns
 its own editor draft; sharing a Hook definition does not share its state.
+
+Section components receive their draft values and callbacks from Card Details.
+The editor Hook owns changes and validation, normalizes the draft into an update
+request, and passes it to the page's save action. Cancel discards the draft;
+successful saving updates the page's Card state from the API response.
 
 ## Run it
 
@@ -116,7 +131,7 @@ Saved-record actions are independent, not one mandatory sequence:
 ```text
 Load cards       GET    /posting-cards
 Show original    GET    /posting-cards/{card_key}/original
-Save user fields PATCH  /posting-cards/{card_key}
+Save card edits  PATCH  /posting-cards/{card_key}
 Delete card      DELETE /posting-cards/{card_key}
 Load imports     GET    /posting-imports
 Delete import    DELETE /posting-imports/{import_key}
@@ -131,25 +146,20 @@ FastAPI currently allows the local Vite origins `http://localhost:5173` and
 
 ## Next steps
 
-- extend Card editing one field shape and one business section at a time;
-- build on the existing section components; do not repeat the completed
-  Requirements extraction or ordering work, and keep further structural moves
-  separate from new editing behavior;
-- prototype an inline text editor whose reading and editing geometry stays
-  visually stable, then reuse that proven pattern;
-- keep Quick Facts and header summaries read-only and derive them from the
-  current edit draft;
-- add section-level controls for missing supported fields without opening a
-  second modal dialog;
-- show a subtle signal only for unsaved changes and keep saved content visually
-  quiet;
-- leave Requirements until the simpler scalar, repeated-text, pill, enum, date,
-  and compensation editors have established the shared patterns;
+- review and merge the existing inline editors, then work on Requirements in
+  a separate branch, one small change at a time;
+- build on the existing Requirements display and ordering: agree on the draft
+  and update contract before connecting editing; preserve the distinction
+  between importance and group rules, with separate `any_of`/`unknown` groups;
+- reuse the existing Card-wide draft, validation, Save/Cancel, and error flow;
+  keep component moves separate from editing behavior and leave drag-and-drop
+  until group editing works;
+- keep Quick Facts as a read-only summary and scope the remaining identity,
+  location, work-mode, and classification editors separately;
+- refine reading/editing geometry using the existing inline editor patterns;
 - keep the existing 960px maximum Details width; refine it and add the section
   navigation rail only when its interactions and stable section IDs are defined;
 - show which saved Cards came from each Import;
-- extend the current save/error flow to structured fields without losing the
-  unsaved draft;
 - revisit page-entry refresh, page-state retention, overlapping requests, and
   frontend component/API tests when refining those interactions; these are
   deferred rather than immediate prerequisites;
