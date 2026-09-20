@@ -158,6 +158,28 @@ class UpdatePostingCardService:
                     "origin": origin,
                 }
 
+        saved_entries = [
+            entry.model_dump(exclude={"origin"})
+            for entry in card.posting.compensation.entries
+        ]
+        requested_entries = [
+            entry.model_dump() for entry in request.compensation_entries
+        ]
+        if requested_entries != saved_entries:
+            updated_entries = []
+            original_entries = original_card.posting.compensation.entries
+
+            for entry in requested_entries:
+                origin = FactOrigin.USER_DEFINED
+                for original_entry in original_entries:
+                    if entry == original_entry.model_dump(exclude={"origin"}):
+                        origin = original_entry.origin
+                        break
+
+                updated_entries.append({**entry, "origin": origin})
+
+            payload["posting"]["compensation"]["entries"] = updated_entries
+
         saved_benefits = tuple(
             benefit.value for benefit in card.posting.compensation.benefits
         )

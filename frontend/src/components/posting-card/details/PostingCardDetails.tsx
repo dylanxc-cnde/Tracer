@@ -23,7 +23,10 @@ import {
   PostingCardWorkConditions,
   PostingCardWorkConditionAdd,
 } from './PostingCardWorkConditions'
-import { PostingCardCompensation } from './PostingCardCompensation'
+import {
+  PostingCardCompensation,
+  PostingCardCompensationAdd,
+} from './PostingCardCompensation'
 import { PostingCardBenefits } from './PostingCardBenefits'
 import { PostingCardVacation } from './PostingCardVacation'
 import { PostingCardApplicationFacts } from './PostingCardApplicationFacts'
@@ -347,10 +350,24 @@ export function PostingCardDetails({
           <h3>Salary and benefits</h3>
 
           <div className="posting-card-details__field">
-            <h4>Salary</h4>
+            <div className="posting-card-compensation__heading">
+              <h4>Salary</h4>
+              {editor.isEditing && (
+                <PostingCardCompensationAdd
+                  isSavingCardChanges={editor.isSavingCardChanges}
+                  onAdd={editor.addDraftCompensationEntry}
+                />
+              )}
+            </div>
 
             <PostingCardCompensation
+              key={editor.isEditing ? 'editing' : 'reading'}
               entries={posting.compensation.entries}
+              draft={editor.draft.compensationEntries}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onEntryChange={editor.updateDraftCompensationEntry}
+              onEntryDelete={editor.deleteDraftCompensationEntry}
             />
           </div>
 

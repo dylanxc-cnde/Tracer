@@ -1,3 +1,26 @@
+import type { UpdateCompensationEntryRequest } from '../../../postings/types/postingCard'
+
+export function getCompensationValidationError(
+  entries: UpdateCompensationEntryRequest[],
+): string | null {
+  for (const [index, entry] of entries.entries()) {
+    const minimum = entry.minimum_amount
+    const maximum = entry.maximum_amount
+    const label = `Salary entry ${index + 1}`
+
+    if (
+      (minimum !== null && (!Number.isFinite(minimum) || minimum < 0)) ||
+      (maximum !== null && (!Number.isFinite(maximum) || maximum < 0))
+    ) {
+      return `${label}: amounts must be non-negative decimal numbers, or empty.`
+    }
+    if (minimum !== null && maximum !== null && minimum > maximum) {
+      return `${label}: minimum amount must not exceed maximum amount.`
+    }
+  }
+  return null
+}
+
 export function hasDuplicateTags(tags: readonly string[]): boolean {
   const normalizedTags = tags.map((tag) => tag.trim().toLowerCase())
   const uniqueTags = new Set(normalizedTags)

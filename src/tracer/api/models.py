@@ -5,6 +5,11 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from tracer.postings import PostingDetails
+from tracer.postings.models.posting_details import (
+    CompensationPeriod,
+    CompensationType,
+    PayBasis,
+)
 
 
 class CreatePostingCardRequest(BaseModel):
@@ -17,6 +22,36 @@ class CreatePostingCardRequest(BaseModel):
     posting_alias: str | None = None
     user_notes: str | None = None
     tags: tuple[str, ...] = ()
+
+
+class UpdateCompensationEntryRequest(BaseModel):
+    """Editable values for one compensation entry, without source metadata."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    compensation_type: CompensationType
+    minimum_amount: float | None = Field(
+        ..., ge=0, strict=True, allow_inf_nan=False
+    )
+    maximum_amount: float | None = Field(
+        ..., ge=0, strict=True, allow_inf_nan=False
+    )
+    currency: str | None
+    period: CompensationPeriod | None
+    pay_basis: PayBasis
+    applicable_groups: tuple[str, ...]
+    payment_conditions: str | None
+
+    @model_validator(mode="after")
+    def validate_amount_range(self) -> Self:
+        """Keep user-entered compensation bounds in ascending order."""
+        if (
+            self.minimum_amount is not None
+            and self.maximum_amount is not None
+            and self.minimum_amount > self.maximum_amount
+        ):
+            raise ValueError("Minimum compensation must not exceed maximum")
+        return self
 
 
 class UpdatePostingCardRequest(BaseModel):
@@ -37,6 +72,7 @@ class UpdatePostingCardRequest(BaseModel):
     travel_requirement: str | None
     start_on: date | None
     duration: str | None
+    compensation_entries: tuple[UpdateCompensationEntryRequest, ...]
     benefits: tuple[str, ...]
     vacation_days: int | None = Field(..., ge=0, strict=True)
     required_documents: tuple[str, ...]

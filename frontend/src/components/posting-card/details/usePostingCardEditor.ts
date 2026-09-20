@@ -1,9 +1,20 @@
 import { useState } from 'react'
 import type {
   PostingCard,
+  UpdateCompensationEntryRequest,
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
-import { hasDuplicateTags, isValidIsoDate } from './PostingCardValidators'
+import type {
+  CompensationEntry,
+  CompensationPeriod,
+  CompensationType,
+  PayBasis,
+} from '../../../postings/types/postingDetails'
+import {
+  getCompensationValidationError,
+  hasDuplicateTags,
+  isValidIsoDate,
+} from './PostingCardValidators'
 
 export type TextItemDraft = {
   id: string
@@ -21,12 +32,25 @@ export type WorkConditionsDraft = {
 export type WorkConditionField = keyof WorkConditionsDraft
 export type WorkConditionTextField = Exclude<WorkConditionField, 'weeklyHours'>
 
+export type CompensationEntryFields = {
+  id: string
+  compensationType: CompensationType
+  minimumAmount: string
+  maximumAmount: string
+  currency: string
+  period: CompensationPeriod | null
+  payBasis: PayBasis
+  applicableGroups: TextItemDraft[]
+  paymentConditions: string
+}
+
 // Type Definition: CardDraft
 export type PostingCardUserDraft = {
   roleSummary: string
   responsibilities: TextItemDraft[]
   roleDomains: TextItemDraft[]
   workConditions: WorkConditionsDraft
+  compensationEntries: CompensationEntryFields[]
   benefits: TextItemDraft[]
   vacationDays: string
   requiredDocuments: TextItemDraft[]
@@ -48,6 +72,26 @@ type PostingCardUpdateCallback = (
   cardKey: string,
   request: UpdatePostingCardRequest,
 ) => Promise<PostingCard>
+
+export function createCompensationEntryFields(
+  entry: CompensationEntry,
+  id: string,
+): CompensationEntryFields {
+  return {
+    id,
+    compensationType: entry.compensation_type,
+    minimumAmount: entry.minimum_amount?.toString() ?? '',
+    maximumAmount: entry.maximum_amount?.toString() ?? '',
+    currency: entry.currency ?? '',
+    period: entry.period,
+    payBasis: entry.pay_basis,
+    applicableGroups: entry.applicable_groups.map((value, index) => ({
+      id: `${id}-group-${index}`,
+      value,
+    })),
+    paymentConditions: entry.payment_conditions ?? '',
+  }
+}
 
 function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
   const workConditions = card.posting.work_conditions
@@ -79,6 +123,9 @@ function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
       startOn: workConditions.start_on?.value ?? null,
       duration: workConditions.duration?.value ?? null,
     },
+    compensationEntries: card.posting.compensation.entries.map((entry) =>
+      createCompensationEntryFields(entry, crypto.randomUUID()),
+    ),
     benefits: card.posting.compensation.benefits.map((benefit) => ({
       id: crypto.randomUUID(),
       value: benefit.value,
@@ -134,6 +181,55 @@ function normalizeTextItems(items: TextItemDraft[]): string[] {
     .filter((value) => value.length > 0)
 }
 
+function normalizeCompensationAmount(value: string): number | null {
+  const amount = value.trim().replace(',', '.')
+  if (amount.length === 0) {
+    return null
+  }
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(amount)) {
+    return Number.NaN
+  }
+  return Number(amount)
+}
+
+function normalizeCompensationEntries(
+  entries: CompensationEntryFields[],
+): UpdateCompensationEntryRequest[] {
+  return entries.map((entry) => ({
+    compensation_type: entry.compensationType,
+    minimum_amount: normalizeCompensationAmount(entry.minimumAmount),
+    maximum_amount: normalizeCompensationAmount(entry.maximumAmount),
+    currency: normalizeOptionalText(entry.currency),
+    period: entry.period,
+    pay_basis: entry.payBasis,
+    applicable_groups: normalizeTextItems(entry.applicableGroups),
+    payment_conditions: normalizeOptionalText(entry.paymentConditions),
+  }))
+}
+
+function hasCompensationChanges(
+  entries: UpdateCompensationEntryRequest[],
+  savedEntries: CompensationEntry[],
+): boolean {
+  if (entries.length !== savedEntries.length) {
+    return true
+  }
+  return entries.some((entry, index) => {
+    const saved = savedEntries[index]
+    return entry.compensation_type !== saved.compensation_type ||
+      entry.minimum_amount !== saved.minimum_amount ||
+      entry.maximum_amount !== saved.maximum_amount ||
+      entry.currency !== saved.currency ||
+      entry.period !== saved.period ||
+      entry.pay_basis !== saved.pay_basis ||
+      entry.payment_conditions !== saved.payment_conditions ||
+      entry.applicable_groups.length !== saved.applicable_groups.length ||
+      entry.applicable_groups.some((group, groupIndex) =>
+        group !== saved.applicable_groups[groupIndex],
+      )
+  })
+}
+
 // Create Update Card Request using one draft.
 function createPostingCardUpdateRequest(
   draft: PostingCardUserDraft,
@@ -148,6 +244,7 @@ function createPostingCardUpdateRequest(
     travel_requirement: normalizeOptionalText(draft.workConditions.travelRequirement ?? ''),
     start_on: normalizeOptionalText(draft.workConditions.startOn ?? ''),
     duration: normalizeOptionalText(draft.workConditions.duration ?? ''),
+    compensation_entries: normalizeCompensationEntries(draft.compensationEntries),
     benefits: normalizeTextItems(draft.benefits),
     vacation_days: normalizeOptionalNumber(draft.vacationDays),
     required_documents: normalizeTextItems(draft.requiredDocuments),
@@ -204,6 +301,7 @@ export function usePostingCardEditor(
       (card.posting.work_conditions.travel_requirement?.value ?? null) ||
     updateRequest.start_on !== (card.posting.work_conditions.start_on?.value ?? null) ||
     updateRequest.duration !== (card.posting.work_conditions.duration?.value ?? null) ||
+    hasCompensationChanges(updateRequest.compensation_entries, card.posting.compensation.entries) ||
     updateRequest.benefits.length !== card.posting.compensation.benefits.length ||
     updateRequest.benefits.some(
       (value, index) => value !== card.posting.compensation.benefits[index]?.value,
@@ -288,6 +386,12 @@ export function usePostingCardEditor(
 
     if (updateRequest.start_on !== null && !isValidIsoDate(updateRequest.start_on)) {
       setSaveError('Start date must be a real date in YYYY-MM-DD format. Please check the year, month and day.')
+      return
+    }
+
+    const compensationError = getCompensationValidationError(updateRequest.compensation_entries)
+    if (compensationError !== null) {
+      setSaveError(compensationError)
       return
     }
 
@@ -439,6 +543,49 @@ export function usePostingCardEditor(
     setDraft((currentDraft) => ({
       ...currentDraft,
       workConditions: { ...currentDraft.workConditions, [field]: null },
+    }))
+  }
+
+  function addDraftCompensationEntry(compensationType: CompensationType) {
+    if (isSavingCardChanges) {
+      return
+    }
+    const entry: CompensationEntryFields = {
+      id: crypto.randomUUID(),
+      compensationType,
+      minimumAmount: '',
+      maximumAmount: '',
+      currency: '',
+      period: null,
+      payBasis: 'unknown',
+      applicableGroups: [],
+      paymentConditions: '',
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      compensationEntries: [...currentDraft.compensationEntries, entry],
+    }))
+  }
+
+  function updateDraftCompensationEntry(updatedEntry: CompensationEntryFields) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      compensationEntries: currentDraft.compensationEntries.map((entry) =>
+        entry.id === updatedEntry.id ? updatedEntry : entry,
+      ),
+    }))
+  }
+
+  function deleteDraftCompensationEntry(id: string) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      compensationEntries: currentDraft.compensationEntries.filter((entry) => entry.id !== id),
     }))
   }
 
@@ -648,6 +795,9 @@ export function usePostingCardEditor(
     updateDraftWorkConditionText,
     updateDraftWeeklyHours,
     deleteDraftWorkCondition,
+    addDraftCompensationEntry,
+    updateDraftCompensationEntry,
+    deleteDraftCompensationEntry,
     addDraftBenefit,
     updateDraftBenefit,
     deleteDraftBenefit,

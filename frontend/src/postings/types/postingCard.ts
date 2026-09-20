@@ -1,4 +1,9 @@
-import type { PostingDetails } from './postingDetails'
+import type {
+  CompensationPeriod,
+  CompensationType,
+  PayBasis,
+  PostingDetails,
+} from './postingDetails'
 
 export type CreatePostingCardRequest = {
   import_key: string
@@ -19,6 +24,17 @@ export type PostingCard = {
   tags: string[]
 }
 
+export type UpdateCompensationEntryRequest = {
+  compensation_type: CompensationType
+  minimum_amount: number | null
+  maximum_amount: number | null
+  currency: string | null
+  period: CompensationPeriod | null
+  pay_basis: PayBasis
+  applicable_groups: string[]
+  payment_conditions: string | null
+}
+
 export type UpdatePostingCardRequest = {
   role_summary: string | null
   responsibilities: string[]
@@ -29,6 +45,7 @@ export type UpdatePostingCardRequest = {
   travel_requirement: string | null
   start_on: string | null
   duration: string | null
+  compensation_entries: UpdateCompensationEntryRequest[]
   benefits: string[]
   vacation_days: number | null
   required_documents: string[]
