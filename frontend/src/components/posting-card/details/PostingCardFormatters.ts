@@ -54,10 +54,17 @@ export function formatCompensationEntry(entry: CompensationEntry) {
     return null
   }
 
+  let period: string | null = null
+  if (entry.period === 'one_time') {
+    period = 'one-time'
+  } else if (entry.period !== null) {
+    period = `per ${entry.period}`
+  }
+
   const compensation = [
     amount,
     entry.currency,
-    entry.period === null ? null : `per ${entry.period}`,
+    period,
     entry.pay_basis === 'unknown' ? null : entry.pay_basis,
   ]
     .filter((part): part is string => part !== null)

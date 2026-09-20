@@ -8,4 +8,53 @@
 .posting-card-role-summary > p {
   margin: 0;
   line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-role-summary__input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 1.6em;
+  field-sizing: content;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
+  font: inherit;
+  line-height: 1.6;
+  letter-spacing: inherit;
+  overflow-wrap: anywhere;
+  resize: vertical;
+  transition: background-color 320ms ease;
+}
+
+.posting-card-role-summary__input:hover:not(:disabled),
+.posting-card-role-summary__input:focus-visible {
+  background-color: rgba(52, 53, 53, 0.04);
+}
+
+.posting-card-role-summary__input:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 4px;
+}
+
+.posting-card-role-summary__input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.posting-card-role-summary__input:disabled {
+  color: var(--color-text-secondary);
+  cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posting-card-role-summary__input {
+    transition: none;
+  }
 }

@@ -5,21 +5,32 @@ import { getSafeHttpUrl } from './PostingCardSanitizers'
 type PostingCardSourceEvidenceProps = {
   source: PostingSource
   areSourcesVisible: boolean
+  isModified: boolean
 }
 
 export function PostingCardSourceEvidence({
   source,
   areSourcesVisible,
+  isModified,
 }: PostingCardSourceEvidenceProps) {
   if (!areSourcesVisible) {
     return null
   }
 
+  const modificationNotice = isModified ? (
+    <p className="posting-card-source-evidence__modification-notice">
+      Modified by user.
+    </p>
+  ) : null
+
   if (source.excerpts.length === 0 && source.source_urls.length === 0) {
     return (
-      <p className="posting-card-source-evidence__unavailable">
-        No source available
-      </p>
+      <>
+        <p className="posting-card-source-evidence__unavailable">
+          No source available
+        </p>
+        {modificationNotice}
+      </>
     )
   }
 
@@ -64,6 +75,8 @@ export function PostingCardSourceEvidence({
           </ul>
         </div>
       )}
+
+      {modificationNotice}
     </details>
   )
 }

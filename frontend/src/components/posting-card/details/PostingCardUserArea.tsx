@@ -1,5 +1,6 @@
-import { useEffect, useState, type SubmitEvent } from 'react'
+import { useState } from 'react'
 import './PostingCardUserArea.css'
+import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
 import type { PostingCardUserDraft } from './usePostingCardEditor'
 
 type PostingCardUserAreaProps = {
@@ -7,7 +8,9 @@ type PostingCardUserAreaProps = {
   isEditing: boolean
   isSavingCardChanges: boolean
   onAliasChange: (postingAlias: string) => void
-  onTagsChange: (tags: string[]) => void
+  onTagAdd: () => void
+  onTagChange: (id: string, value: string) => void
+  onTagDelete: (id: string) => void
   onNotesChange: (userNotes: string) => void
 }
 
@@ -16,36 +19,21 @@ export function PostingCardUserArea({
   isEditing,
   isSavingCardChanges,
   onAliasChange,
-  onTagsChange,
+  onTagAdd,
+  onTagChange,
+  onTagDelete,
   onNotesChange,
 }: PostingCardUserAreaProps) {
-  const [pendingTag, setPendingTag] = useState('')
+  const [pendingDeleteTagId, setPendingDeleteTagId] = useState<string | null>(null)
+  const pendingDeleteTag = draft.tags.find((tag) => tag.id === pendingDeleteTagId)
 
-  useEffect(() => {
-    if (!isEditing) {
-      setPendingTag('')
-    }
-  }, [isEditing])
-
-  function handleAddTag(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const tag = pendingTag.trim()
-
-    if (
-      tag.length === 0 ||
-      draft.tags.some(
-        (existingTag) => existingTag.toLowerCase() === tag.toLowerCase(),
-      )
-    ) {
+  function handleDeleteTag(id: string) {
+    if (isSavingCardChanges) {
       return
     }
 
-    onTagsChange([...draft.tags, tag])
-    setPendingTag('')
-  }
-
-  function handleRemoveTag(tagIndex: number) {
-    onTagsChange(draft.tags.filter((_, index) => index !== tagIndex))
+    onTagDelete(id)
+    setPendingDeleteTagId(null)
   }
 
   return (
@@ -54,93 +42,137 @@ export function PostingCardUserArea({
 
       <div className="posting-card-user-area__field">
         <label htmlFor="posting-card-alias">Alias</label>
-        {isEditing ? (
-          <input
-            id="posting-card-alias"
-            type="text"
-            value={draft.postingAlias}
-            disabled={isSavingCardChanges}
-            placeholder="Add your own name for this posting"
-            onChange={(event) => onAliasChange(event.target.value)}
-          />
-        ) : (
-          <p className={!draft.postingAlias ? 'is-empty' : undefined}>
-            {draft.postingAlias || 'No alias yet'}
-          </p>
-        )}
+        <div className="posting-card-user-area__text">
+          {isEditing ? (
+            <>
+              <span
+                className={`posting-card-user-area__value posting-card-user-area__value--sizing${!draft.postingAlias ? ' is-empty' : ''}`}
+                aria-hidden="true"
+              >
+                {draft.postingAlias || 'No alias yet'}
+              </span>
+              <textarea
+                id="posting-card-alias"
+                className="posting-card-user-area__input"
+                value={draft.postingAlias}
+                disabled={isSavingCardChanges}
+                placeholder="Add an alias"
+                onChange={(event) => onAliasChange(event.target.value)}
+              />
+            </>
+          ) : (
+            <p className={`posting-card-user-area__value${!draft.postingAlias ? ' is-empty' : ''}`}>
+              {draft.postingAlias || 'No alias yet'}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="posting-card-user-area__field">
-        <span className="posting-card-user-area__label">Tags</span>
+      <div className="posting-card-user-area__field posting-card-user-area__field--tags">
+        <div className="posting-card-user-area__tag-heading">
+          <span className="posting-card-user-area__label">Tags</span>
+
+          {isEditing && (
+            <button
+              className="posting-card-user-area__add-tag button--primary"
+              type="button"
+              aria-label="Add tag"
+              title="Add tag"
+              disabled={isSavingCardChanges}
+              onClick={onTagAdd}
+            >
+              +
+            </button>
+          )}
+        </div>
 
         {draft.tags.length > 0 ? (
           <div className="posting-card-user-area__tags">
-            {draft.tags.map((tag, index) =>
-              isEditing ? (
-                <button
-                  className="posting-card-user-area__tag posting-card-user-area__tag--removable"
-                  type="button"
-                  aria-label={`Remove tag ${tag}`}
-                  disabled={isSavingCardChanges}
-                  onClick={() => handleRemoveTag(index)}
-                  key={`${tag}-${index}`}
-                >
-                  <span>{tag}</span>
-                  <span aria-hidden="true">×</span>
-                </button>
-              ) : (
-                <span
-                  className="posting-card-user-area__tag"
-                  key={`${tag}-${index}`}
-                >
-                  {tag}
+            {draft.tags.map((tag, index) => (
+              <span className="posting-card-user-area__tag" key={tag.id}>
+                <span className="posting-card-user-area__tag-text">
+                  {isEditing ? (
+                    <>
+                      <span
+                        className="posting-card-user-area__tag-value posting-card-user-area__tag-value--sizing"
+                        aria-hidden="true"
+                      >
+                        {tag.value || 'New tag'}
+                      </span>
+                      <input
+                        className="posting-card-user-area__tag-input"
+                        type="text"
+                        aria-label={`Tag ${index + 1}`}
+                        value={tag.value}
+                        disabled={isSavingCardChanges}
+                        placeholder="New tag"
+                        autoFocus={tag.value.length === 0}
+                        onChange={(event) => onTagChange(tag.id, event.target.value)}
+                      />
+                    </>
+                  ) : (
+                    <span className="posting-card-user-area__tag-value">{tag.value}</span>
+                  )}
                 </span>
-              ),
-            )}
+
+                {isEditing && (
+                  <button
+                    className="posting-card-user-area__delete-tag-button"
+                    type="button"
+                    aria-label={`Delete tag ${index + 1}`}
+                    title="Delete tag"
+                    aria-expanded={pendingDeleteTagId === tag.id}
+                    disabled={isSavingCardChanges}
+                    onClick={() => setPendingDeleteTagId(tag.id)}
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
+              </span>
+            ))}
           </div>
         ) : (
           <p className="is-empty">No tags yet</p>
         )}
 
-        {isEditing && (
-          <form
-            className="posting-card-user-area__tag-form"
-            onSubmit={handleAddTag}
-          >
-            <input
-              type="text"
-              value={pendingTag}
-              disabled={isSavingCardChanges}
-              aria-label="New tag"
-              placeholder="Add a tag"
-              onChange={(event) => setPendingTag(event.target.value)}
+        {isEditing && pendingDeleteTag !== undefined && (
+          <div className="posting-card-user-area__delete-confirmation">
+            <PostingCardDeleteConfirmation
+              message={`Delete “${pendingDeleteTag.value || 'New tag'}”?`}
+              isDisabled={isSavingCardChanges}
+              onCancel={() => setPendingDeleteTagId(null)}
+              onConfirm={() => handleDeleteTag(pendingDeleteTag.id)}
             />
-            <button
-              type="submit"
-              disabled={isSavingCardChanges || pendingTag.trim().length === 0}
-            >
-              Add
-            </button>
-          </form>
+          </div>
         )}
       </div>
 
       <div className="posting-card-user-area__field">
         <label htmlFor="posting-card-notes">Notes</label>
-        {isEditing ? (
-          <textarea
-            id="posting-card-notes"
-            value={draft.userNotes}
-            disabled={isSavingCardChanges}
-            rows={5}
-            placeholder="Add notes for this posting"
-            onChange={(event) => onNotesChange(event.target.value)}
-          />
-        ) : (
-          <p className={!draft.userNotes ? 'is-empty' : undefined}>
-            {draft.userNotes || 'No notes yet'}
-          </p>
-        )}
+        <div className="posting-card-user-area__text">
+          {isEditing ? (
+            <>
+              <span
+                className={`posting-card-user-area__value posting-card-user-area__value--sizing${!draft.userNotes ? ' is-empty' : ''}`}
+                aria-hidden="true"
+              >
+                {draft.userNotes || 'No notes yet'}
+              </span>
+              <textarea
+                id="posting-card-notes"
+                className="posting-card-user-area__input"
+                value={draft.userNotes}
+                disabled={isSavingCardChanges}
+                placeholder="Add notes"
+                onChange={(event) => onNotesChange(event.target.value)}
+              />
+            </>
+          ) : (
+            <p className={`posting-card-user-area__value${!draft.userNotes ? ' is-empty' : ''}`}>
+              {draft.userNotes || 'No notes yet'}
+            </p>
+          )}
+        </div>
       </div>
     </section>
   )

@@ -1,0 +1,59 @@
+.posting-card-save-error {
+  position: fixed;
+  z-index: 5;
+  inset-inline: 0;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100dvh - 48px);
+  margin-inline: auto;
+  padding: 16px;
+  overflow-y: auto;
+  border: 1px solid var(--color-danger);
+  border-radius: 16px;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow);
+  font-size: 14px;
+}
+
+.posting-card-save-error__content {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-save-error__title,
+.posting-card-save-error__message,
+.posting-card-save-error__hint {
+  margin: 0;
+}
+
+.posting-card-save-error__title {
+  color: var(--color-danger-pressed);
+  font-weight: 700;
+}
+
+.posting-card-save-error__hint {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.posting-card-save-error__dismiss {
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .posting-card-save-error {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .posting-card-save-error__dismiss {
+    align-self: flex-end;
+  }
+}

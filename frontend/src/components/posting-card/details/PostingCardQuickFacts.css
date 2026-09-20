@@ -5,7 +5,7 @@
   margin: 12px 0 0;
 }
 
-.posting-card-quick-facts > div {
+.posting-card-quick-facts__fact {
   display: flex;
   align-items: baseline;
   gap: 6px;
@@ -34,7 +34,7 @@
     display: grid;
   }
 
-  .posting-card-quick-facts > div {
+  .posting-card-quick-facts__fact {
     justify-content: space-between;
   }
 }
