@@ -63,11 +63,10 @@ export function PostingCardDetails({
   } | null>(null)
   const editor = usePostingCardEditor(card, onUpdate, isReadOnly)
   const posting = card.posting
-  // Job details displays facts from three backend sections; their sources stay unchanged.
+  // Job details combines classification and location/work-mode facts.
   const jobDetailsSources = [
     posting.classification.source,
     posting.work_conditions.source,
-    posting.application_instructions.source,
   ]
   const jobDetailsSource = {
     excerpts: [...new Set(jobDetailsSources.flatMap((source) => source.excerpts))],
@@ -138,7 +137,7 @@ export function PostingCardDetails({
     }
 
     const originalPosting = sourceComparison.originalCard.posting
-    // Hours and other Application fields are not displayed in Job details.
+    // Hours and Application fields are not displayed in Job details.
     return (
       isSectionModified('classification') ||
       JSON.stringify(posting.work_conditions.primary_address) !==
@@ -146,9 +145,7 @@ export function PostingCardDetails({
       JSON.stringify(posting.work_conditions.address_candidates) !==
         JSON.stringify(originalPosting.work_conditions.address_candidates) ||
       JSON.stringify(posting.work_conditions.work_modes) !==
-        JSON.stringify(originalPosting.work_conditions.work_modes) ||
-      JSON.stringify(posting.application_instructions.application_deadline) !==
-        JSON.stringify(originalPosting.application_instructions.application_deadline)
+        JSON.stringify(originalPosting.work_conditions.work_modes)
     )
   }
 

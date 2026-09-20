@@ -76,7 +76,7 @@ stays unknown, and you review and select a posting before saving it as a Card.
 | About the company | Company summary, industries, and company size |
 | My Card | Alias, tags, and notes |
 
-Requirements is the next major editor, not the last read-only field in the
+Requirements is the largest remaining editor, not the last read-only field in the
 whole Card. Identity and Posting info, locations, work modes, and job
 classification are still read-only. Quick Facts remains a display-only summary
 of the saved Card: supported edits to hours, deadline, and salary appear there
@@ -84,13 +84,16 @@ after saving, not while typing in the draft.
 
 Job classification separates role category, full-time/part-time workload,
 seniority, and contract type. A read-only Job details section, between Requirements
-and Work conditions, shows these fields alongside eligibility, work mode, deadline,
+and Work conditions, shows these fields alongside eligibility, work mode,
 and addresses. Each Card keeps one preferred address string and a list of
 alternatives, without separate city/region/country fields to keep in sync.
 Preferred means first choice for display and future map lookup, not verified.
 Quick Facts uses a shortened preview; Job details keeps the full text.
-Address review and Job details editing are still to come. Deadline keeps its
-existing editor under Application for now.
+Eligibility is one text for education, fields of study, enrollment and other
+applicant conditions. Requirements focuses on capabilities, experience, languages
+and professional credentials instead of repeating those eligibility conditions.
+Address review and Job details editing are still to come. Deadline stays under
+Application and in the read-only Quick Facts summary, not in Job details.
 
 Card storage keeps two full JSON payloads in the same row: the initial saved
 Card and the current version. Save submits the supported editable fields;
@@ -192,8 +195,19 @@ the repository.
 
 ## Next
 
-- review and merge the current inline-editing baseline before starting
-  Requirements editing in a separate branch;
+The next focus is the workspace as a whole: build out Home, the dashboard view,
+and Settings in small steps, with clear navigation and useful basic flows.
+Their exact scope—and whether Home and the dashboard need separate pages—will
+be settled as each area is added. These pages are planned, not available yet.
+
+Once the main pieces are in place, bring their layouts, controls, and motion
+into one consistent interface language, including revisiting Card Details.
+The current layout is a working baseline, not a design we have to keep forever;
+basic usability and reliable saving still matter along the way.
+
+Remaining Card work stays on the roadmap, without making every field editor
+a prerequisite for building the wider workspace:
+
 - build Requirements editing in small, reviewable steps: agree on the draft
   and update contract, then connect validation, saving, and the UI; keep one
   `all_of` group per importance level and each `any_of`/`unknown` group separate;

@@ -107,7 +107,6 @@ class RequirementImportance(StrEnum):
 class RequirementCategory(StrEnum):
     SKILL = "skill"
     EXPERIENCE = "experience"
-    EDUCATION = "education"
     LANGUAGE = "language"
     CERTIFICATION = "certification"
     LICENSE = "license"
@@ -174,7 +173,7 @@ class CompanyInfo(_PostingDetailsModel):
 
 
 class PostingClassification(_PostingDetailsModel):
-    """Separate role, workload, contract and seniority classifications."""
+    """Role classifications and source-stated applicant eligibility."""
 
     source: PostingSource
     role_families: ParsedValue[tuple[RoleFamily, ...]] | None
@@ -182,10 +181,7 @@ class PostingClassification(_PostingDetailsModel):
     contract_type: ParsedValue[ContractType] | None
     seniority: ParsedValue[Seniority] | None
     internship_requirement: ParsedValue[InternshipRequirement] | None
-    eligible_groups: ParsedValue[tuple[str, ...]] | None
-    study_fields: ParsedValue[tuple[str, ...]] | None
-    student_status_required: ParsedValue[bool] | None
-    target_semester: ParsedValue[str] | None
+    eligibility: ParsedValue[str] | None
 
 
 class WeeklyHours(_PostingDetailsModel):
@@ -221,7 +217,7 @@ class RoleDescription(_PostingDetailsModel):
 
 
 class RequirementItem(_PostingDetailsModel):
-    """One independently matchable item in a job requirement."""
+    """One matchable capability, not an applicant's identity or education status."""
 
     name: str
     category: RequirementCategory

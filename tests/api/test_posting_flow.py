@@ -69,10 +69,7 @@ def make_posting_details() -> PostingDetails:
             "contract_type": None,
             "seniority": None,
             "internship_requirement": None,
-            "eligible_groups": None,
-            "study_fields": None,
-            "student_status_required": None,
-            "target_semester": None,
+            "eligibility": None,
         },
         work_conditions={
             "source": empty_source,
@@ -1733,6 +1730,35 @@ def test_http_requires_application_facts_in_card_update(tmp_path, field):
             for error in response.json()["detail"]
         )
     assert store.get_by_card_key(card.card_key) == card
+    assert store.get_original_by_card_key(card.card_key) == card
+
+
+@pytest.mark.parametrize("origin", ["source", "user_defined"])
+def test_http_reads_and_preserves_eligibility_when_updating_other_fields(tmp_path, origin):
+    database_path = tmp_path / "tracer.db"
+    payload = make_posting_details().model_dump(mode="json")
+    payload["classification"]["eligibility"] = {
+        "value": "Enrollment required; Computer Science or a related degree.",
+        "origin": origin,
+    }
+    card = PostingCard(import_key=uuid4(), posting=PostingDetails.model_validate(payload))
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    request["user_notes"] = "Review eligibility before applying."
+
+    with TestClient(create_app(database_path=database_path)) as client:
+        for suffix in ("", "/original"):
+            response = client.get(f"/posting-cards/{card.card_key}{suffix}")
+            assert response.status_code == 200
+            assert response.json()["posting"]["classification"] == payload["classification"]
+
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 200
+        assert response.json()["posting"]["classification"] == payload["classification"]
+        assert response.json()["user_notes"] == request["user_notes"]
+
+    assert store.get_by_card_key(card.card_key).posting.classification == card.posting.classification
     assert store.get_original_by_card_key(card.card_key) == card
 
 

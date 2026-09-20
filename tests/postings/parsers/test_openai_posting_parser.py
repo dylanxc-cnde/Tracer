@@ -55,6 +55,21 @@ def test_shared_prompt_defines_every_parse_status_and_refinement_reason():
     assert "Never set origin to user_defined" in POSTING_PARSE_PROMPT
 
 
+def test_shared_prompt_separates_eligibility_from_capabilities():
+    prompt = " ".join(POSTING_PARSE_PROMPT.split())
+
+    assert "PostingClassification.eligibility is one concise text" in prompt
+    assert "enrollment or student status, target semester" in prompt
+    assert "A mentioned study field is not automatically a mandatory qualification" in prompt
+    assert "do not infer student-status requirements from role_families or seniority alone" in prompt
+    assert "Keep supporting passages and URLs in PostingClassification.source" in prompt
+    assert "PostingRequirements.groups is limited to what a candidate can do" in prompt
+    assert "A work permit is eligibility, not a capability license" in prompt
+    assert "Do not duplicate a condition in eligibility and requirements" in prompt
+    assert "keep the complete alternative clause in eligibility" in prompt
+    assert "negations, thresholds and timing" in prompt
+
+
 def test_shared_prompt_uses_requirement_strategy_without_scenarios():
     prompt = " ".join(POSTING_PARSE_PROMPT.split())
 

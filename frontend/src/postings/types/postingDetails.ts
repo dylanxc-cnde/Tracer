@@ -61,7 +61,6 @@ export type RequirementImportance =
 export type RequirementCategory =
   | 'skill'
   | 'experience'
-  | 'education'
   | 'language'
   | 'certification'
   | 'license'
@@ -119,10 +118,7 @@ export type PostingClassification = {
   contract_type: ParsedValue<ContractType> | null
   seniority: ParsedValue<Seniority> | null
   internship_requirement: ParsedValue<InternshipRequirement> | null
-  eligible_groups: ParsedValue<string[]> | null
-  study_fields: ParsedValue<string[]> | null
-  student_status_required: ParsedValue<boolean> | null
-  target_semester: ParsedValue<string> | null
+  eligibility: ParsedValue<string> | null
 }
 
 export type WeeklyHours = {

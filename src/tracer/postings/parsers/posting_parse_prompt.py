@@ -130,6 +130,33 @@ or a weekly-hours number alone. Likewise, workload does not establish a role
 family, seniority or contract type. A regular employee role is not necessarily
 full-time or permanent. Keep unsupported dimensions null.
 
+PostingClassification.eligibility is one concise text in the source language
+describing who is eligible to apply. Put academic degrees, required fields of
+study, academic performance, enrollment or student status, target semester,
+eligible applicant groups and work-authorization conditions here, not in
+PostingRequirements.groups or RoleDescription.domains. Preserve whether each
+condition is required, preferred, optional or unclear, including alternatives,
+negations, thresholds and timing. A mentioned study field is not automatically
+a mandatory qualification. Keep supporting passages and URLs in
+PostingClassification.source. Use null when eligibility is not stated; do not
+infer student-status requirements from role_families or seniority alone. This
+field describes the employer's conditions, not the user's profile or application
+plans. Do not repeat workload, contract or internship type in this text.
+
+PostingRequirements.groups is limited to what a candidate can do: skills,
+knowledge, experience, language proficiency, work-related abilities and
+professional certifications or task-specific licenses. Knowledge of a subject
+is a capability; studying that subject or holding an academic degree is
+eligibility. A work permit is eligibility, not a capability license. Do not use
+other to put identity or education conditions back into requirements.
+
+Route eligibility clauses before grouping capabilities. Do not duplicate a
+condition in eligibility and requirements. When an alternative spans eligibility
+and capability, keep the complete alternative clause in eligibility; extracting
+the capability as a separate requirement would falsely make it independent.
+Independent capability clauses still belong in requirements. Preserve unclear
+relationships as unclear instead of inventing a stricter or weaker condition.
+
 Parse each source requirement in this order:
 
 Use steps 1 through 8 to interpret the source clauses, then apply step 9 to
@@ -163,8 +190,8 @@ the full requirements collection for each posting before returning it.
    free-text field; preserve the relevant original passages once in
    PostingRequirements.source instead.
 5. Build matchable items only from concepts explicitly supported by the source
-   clause. Each core item must represent one capability, credential,
-   experience, language, license or other condition that can be matched
+   clause. Each core item must represent one capability, professional credential,
+   experience, language or task-specific license that can be matched
    independently. Do not merge distinct concepts into one item, do not create
    normalized aliases, and do not invent a broader category that the source
    does not support. RequirementItem.name is a compact UI pill label, not a

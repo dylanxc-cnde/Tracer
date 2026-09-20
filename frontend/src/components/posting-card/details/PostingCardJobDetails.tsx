@@ -28,7 +28,6 @@ export function PostingCardJobDetails({ posting }: PostingCardJobDetailsProps) {
   const workConditions = posting.work_conditions
   const workloadType = classification.workload_type?.value ?? null
   const internshipRequirement = classification.internship_requirement?.value ?? null
-  const studentStatusRequired = classification.student_status_required?.value ?? null
 
   let workload: string | null = null
   if (workloadType !== null) {
@@ -42,11 +41,6 @@ export function PostingCardJobDetails({ posting }: PostingCardJobDetailsProps) {
     internship = internshipRequirement === 'either'
       ? 'Mandatory / Voluntary'
       : formatEnumValue(internshipRequirement)
-  }
-
-  let studentStatus: string | null = null
-  if (studentStatusRequired !== null) {
-    studentStatus = studentStatusRequired ? 'Yes' : 'No'
   }
 
   return (
@@ -75,10 +69,6 @@ export function PostingCardJobDetails({ posting }: PostingCardJobDetailsProps) {
         label="Work mode"
         value={workConditions.work_modes?.value.map(formatEnumValue).join(' · ') ?? null}
       />
-      <JobDetailField
-        label="Deadline"
-        value={posting.application_instructions.application_deadline?.value ?? null}
-      />
 
       <JobDetailField
         label="Primary address"
@@ -96,20 +86,9 @@ export function PostingCardJobDetails({ posting }: PostingCardJobDetailsProps) {
         value={internship}
       />
       <JobDetailField
-        label="Eligible groups"
-        value={classification.eligible_groups?.value.join(' · ') ?? null}
-      />
-      <JobDetailField
-        label="Study fields"
-        value={classification.study_fields?.value.join(' · ') ?? null}
-      />
-      <JobDetailField
-        label="Student status required"
-        value={studentStatus}
-      />
-      <JobDetailField
-        label="Target semester"
-        value={classification.target_semester?.value ?? null}
+        label="Eligibility"
+        value={classification.eligibility?.value ?? null}
+        isFullWidth
       />
     </dl>
   )

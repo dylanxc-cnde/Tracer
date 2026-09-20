@@ -56,10 +56,7 @@ def make_posting_details(
             "contract_type": None,
             "seniority": None,
             "internship_requirement": None,
-            "eligible_groups": None,
-            "study_fields": None,
-            "student_status_required": None,
-            "target_semester": None,
+            "eligibility": None,
         },
         work_conditions={
             "source": empty_source,
