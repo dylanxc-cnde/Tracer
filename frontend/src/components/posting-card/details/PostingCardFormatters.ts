@@ -13,9 +13,13 @@ export function formatEnumValue(value: string) {
 }
 
 export function formatLocation(location: PostingLocation) {
-  return [location.city, location.region, location.country]
-    .filter((part): part is string => part !== null && part.trim().length > 0)
-    .join(', ')
+  for (const part of [location.city, location.region, location.country]) {
+    if (part !== null && part.trim().length > 0) {
+      return part.trim()
+    }
+  }
+
+  return ''
 }
 
 export function formatWeeklyHours(weeklyHours: WeeklyHours) {
