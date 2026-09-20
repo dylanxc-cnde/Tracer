@@ -1,6 +1,5 @@
 import type {
   CompensationEntry,
-  PostingLocation,
   Requirement,
   WeeklyHours,
 } from '../../../postings/types/postingDetails'
@@ -12,14 +11,14 @@ export function formatEnumValue(value: string) {
     .join(' ')
 }
 
-export function formatLocation(location: PostingLocation) {
-  for (const part of [location.city, location.region, location.country]) {
-    if (part !== null && part.trim().length > 0) {
-      return part.trim()
-    }
+export function formatAddressPreview(address: string | null): string | null {
+  const text = address?.trim().replace(/\s+/g, ' ') ?? ''
+  if (text.length === 0) {
+    return null
   }
 
-  return ''
+  // Shorten only the preview; do not try to extract a city from free text.
+  return text.length > 80 ? `${text.slice(0, 79)}…` : text
 }
 
 export function formatWeeklyHours(weeklyHours: WeeklyHours) {

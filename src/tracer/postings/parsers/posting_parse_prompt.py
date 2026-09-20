@@ -36,7 +36,7 @@ Use null for unknown single values and empty arrays for repeated values
 with no results.
 
 Set origin to source for every source-backed fact produced during parsing.
-This applies to ParsedValue, PostingLocation, WeeklyHours, Requirement,
+This applies to ParsedValue, WeeklyHours, Requirement,
 CompensationEntry and PostingContact. Never set origin to user_defined while
 parsing; user_defined is reserved for values changed by the user after the
 posting has been parsed.
@@ -233,36 +233,40 @@ uncertainty. A broad flexibility or mobility label that does not establish a
 specific available work mode must leave work_modes null and create a parse
 ambiguity for work_conditions.work_modes.
 
-WorkConditions.locations contains separate work locations supported by the
-posting. PostingLocation.address_text is a list of confirmed detailed workplace
-addresses. During parsing, only workplace addresses explicitly stated in the
-posting may enter address_text; confidence in an inference is not confirmation.
-Do not claim user confirmation on the user's behalf. Keep each address as its
-own string, never combine several addresses into one string. A location may
-contain multiple confirmed addresses in the same city. Keep city, region and
-country separate for compact display; workplaces in different cities belong in
-separate location entries. Use an empty address_text array when no detailed
-workplace address is explicitly stated; city-only information does not establish
-a street address. Do not guess missing address parts, look up coordinates, or
-substitute a company's headquarters, registered office or application mailing
-address for the workplace.
+WorkConditions.primary_address is one preferred location string, wrapped in
+ParsedValue with origin=source. It is the first candidate for display and future
+map lookup, not a claim that the workplace has been verified or is the only
+available location. Store one location per string; never concatenate separate
+workplaces into primary_address. Do not output a locations collection or separate
+city, region, country or detailed-address fields.
 
-PostingLocation.address_candidates is a list of unconfirmed detailed address
-strings, not a list of additional established workplaces. Preserve plausible
-addresses found in sources for the confidently identified employer and matching
-the posting's known location constraints when their connection to this exact
-workplace cannot be confirmed. Do not invent addresses or collect unrelated
-offices, similar-company addresses or arbitrary search results. Addresses found
-through additional employer research without explicit workplace evidence must
-stay in address_candidates, even if they seem likely. Keep candidates
-separate from address_text and never copy candidate-only city, region or country
-information into the confirmed location fields. An address-only candidate can
-have an empty address_text array and null city, region and country. Use an empty
-candidates array when none are supported. Do not also repeat an established address as a
-candidate. If the actual workplace is ambiguous, preserve supported facts and
-record a parse ambiguity with field_path work_conditions.locations. Keep the
-supporting passages and URLs in WorkConditions.source; no per-candidate source
-model or inferred map coordinates are required.
+Choose the location explicitly identified as primary in the posting. If several
+explicit workplaces are equally suitable, use the first one in source order and
+keep the rest as alternatives. Prefer a posting-supported location, even if only
+a city or region is known, over a more precise but unconfirmed office address.
+Only when the posting provides no usable location may a supported employer
+research candidate become primary. It must match the confidently identified
+employer and must not conflict with any known workplace constraints; record the
+unconfirmed workplace connection as a parse ambiguity with field_path
+work_conditions.primary_address. Do not invent an address to fill this field.
+
+Keep each location as concise, readable address text in the source language,
+including only supported street, postal code, city, region and country information.
+Avoid repeating the same place name within a string. A city-only or region-only
+string is valid; do not guess missing address parts or coordinates. Use null when
+no supported location is available. Remote work belongs in work_modes and is not
+a physical address. Never treat a headquarters, registered office or application
+mailing address as a workplace merely because it belongs to the employer.
+
+WorkConditions.address_candidates contains the other location strings, excluding
+primary_address and duplicates. These can include other explicitly offered
+workplaces and supported but unconfirmed alternatives; candidate does not mean
+incorrect, and primary does not mean confirmed. Preserve source order within
+equally supported alternatives and use an empty array when none exist. Do not
+collect unrelated offices, similarly named employers or arbitrary search results.
+Record unresolved workplace relationships in parse ambiguities, and retain the
+supporting passages and URLs in WorkConditions.source without per-address source
+models. Do not claim user confirmation, perform geocoding or generate coordinates.
 
 For each section, copy a small number of useful, exact and contiguous source
 passages into PostingSource.excerpts. An excerpt must appear verbatim in the

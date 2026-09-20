@@ -106,16 +106,8 @@ def make_posting_details() -> PostingDetails:
                 "Mobiles Arbeiten Region München",
                 "Bereitschaft zur Reisetätigkeit",
             ),
-            "locations": [
-                {
-                    "origin": "source",
-                    "address_text": [],
-                    "address_candidates": [],
-                    "city": "München",
-                    "region": "Bayern",
-                    "country": "Germany",
-                }
-            ],
+            "primary_address": value("München, Bayern, Germany"),
+            "address_candidates": [],
             "work_modes": value(["field_based"]),
             "weekly_hours": None,
             "schedule": None,
@@ -271,8 +263,8 @@ def test_posting_details_accept_detailed_job_data():
     assert posting.classification.contract_type.value is ContractType.PERMANENT
     assert posting.work_conditions.work_modes is not None
     assert posting.work_conditions.work_modes.value == (WorkMode.FIELD_BASED,)
-    assert posting.work_conditions.locations[0].address_text == ()
-    assert posting.work_conditions.locations[0].address_candidates == ()
+    assert posting.work_conditions.primary_address.value == "München, Bayern, Germany"
+    assert posting.work_conditions.address_candidates == ()
 
     requirement = posting.requirements.groups[0]
     assert requirement.importance is RequirementImportance.REQUIRED
@@ -327,62 +319,56 @@ def test_classification_rejects_the_removed_employment_description():
         PostingDetails.model_validate(payload)
 
 
-def test_locations_keep_workplace_addresses_and_unconfirmed_candidates_separate():
+@pytest.mark.parametrize("origin", ["source", "user_defined"])
+@pytest.mark.parametrize(
+    "address",
+    ["Aachen", "Nordrhein-Westfalen", "Example Street 1, 52062 Aachen, Germany", None],
+)
+def test_work_conditions_keep_one_primary_address_and_other_candidates(address, origin):
     payload = make_posting_details().model_dump(mode="json")
-    locations = [
-        {
-            "origin": "source",
-            "address_text": [
-                "Example Street 1, Example City",
-                "Example Street 2, Example City",
-            ],
-            "address_candidates": [],
-            "city": "Example City",
-            "region": None,
-            "country": None,
-        },
-        {
-            "origin": "source",
-            "address_text": ["Example Street 5, Second City"],
-            "address_candidates": [],
-            "city": "Second City",
-            "region": None,
-            "country": None,
-        },
-        {
-            "origin": "source",
-            "address_text": [],
-            "address_candidates": ["Candidate Street 3", "Candidate Street 4"],
-            "city": None,
-            "region": None,
-            "country": None,
-        },
-    ]
-    payload["work_conditions"]["locations"] = locations
+    conditions = payload["work_conditions"]
+    conditions["primary_address"] = (
+        {"origin": origin, "value": address} if address is not None else None
+    )
+    conditions["address_candidates"] = ["Berlin, Germany", "Candidate Street 2, Aachen"]
 
     posting = PostingDetails.model_validate(payload)
-    first, second, candidate = posting.work_conditions.locations
-
-    assert first.address_text == (
-        "Example Street 1, Example City",
-        "Example Street 2, Example City",
+    if address is None:
+        assert posting.work_conditions.primary_address is None
+    else:
+        assert posting.work_conditions.primary_address.value == address
+        assert posting.work_conditions.primary_address.origin == origin
+    assert posting.work_conditions.address_candidates == (
+        "Berlin, Germany", "Candidate Street 2, Aachen"
     )
-    assert second.address_text == ("Example Street 5, Second City",)
-    assert first.city == "Example City"
-    assert second.city == "Second City"
-    assert first.address_candidates == ()
-    assert candidate.address_text == ()
-    assert candidate.city is None
-    assert candidate.address_candidates == ("Candidate Street 3", "Candidate Street 4")
+    assert posting.work_conditions.source == make_posting_details().work_conditions.source
     assert PostingDetails.model_validate_json(posting.model_dump_json()) == posting
 
 
-@pytest.mark.parametrize("address_text", [None, "Example Street 1, Example City"])
-def test_location_requires_a_collection_of_confirmed_addresses(address_text):
+@pytest.mark.parametrize("address", [["Aachen", "Berlin"], {"city": "Aachen"}, None])
+def test_primary_address_value_must_be_a_string(address):
     payload = make_posting_details().model_dump(mode="json")
-    payload["work_conditions"]["locations"][0]["address_text"] = address_text
+    payload["work_conditions"]["primary_address"] = value(address)
 
-    with pytest.raises(ValidationError, match="address_text"):
+    with pytest.raises(ValidationError, match="primary_address"):
+        PostingDetails.model_validate(payload)
+
+
+@pytest.mark.parametrize("field", ["locations", "city", "region", "country", "address_text"])
+def test_work_conditions_reject_removed_location_fields(field):
+    payload = make_posting_details().model_dump(mode="json")
+    payload["work_conditions"][field] = [] if field == "locations" else "Old address"
+
+    with pytest.raises(ValidationError, match=field):
+        PostingDetails.model_validate(payload)
+
+
+@pytest.mark.parametrize("candidates", [None, "Aachen", [{"city": "Aachen"}]])
+def test_address_candidates_require_a_collection_of_strings(candidates):
+    payload = make_posting_details().model_dump(mode="json")
+    payload["work_conditions"]["address_candidates"] = candidates
+
+    with pytest.raises(ValidationError, match="address_candidates"):
         PostingDetails.model_validate(payload)
 
 

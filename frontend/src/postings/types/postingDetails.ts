@@ -125,15 +125,6 @@ export type PostingClassification = {
   target_semester: ParsedValue<string> | null
 }
 
-export type PostingLocation = {
-  origin: FactOrigin
-  address_text: string[]
-  address_candidates: string[]
-  city: string | null
-  region: string | null
-  country: string | null
-}
-
 export type WeeklyHours = {
   origin: FactOrigin
   minimum: number | null
@@ -142,7 +133,8 @@ export type WeeklyHours = {
 
 export type WorkConditions = {
   source: PostingSource
-  locations: PostingLocation[]
+  primary_address: ParsedValue<string> | null
+  address_candidates: string[]
   work_modes: ParsedValue<WorkMode[]> | null
   weekly_hours: WeeklyHours | null
   schedule: ParsedValue<string> | null

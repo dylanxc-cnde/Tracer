@@ -1,4 +1,5 @@
 import type { ParsedPosting } from '../../postings/types/postingParse'
+import { formatAddressPreview } from '../posting-card/details/PostingCardFormatters'
 
 type PostingCandidateCardProps = {
   posting: ParsedPosting
@@ -17,12 +18,9 @@ export function PostingCandidateCard({
   const company =
     posting.details.identity.company_name?.value ?? 'Unknown company'
 
-  const firstLocation = posting.details.work_conditions.locations[0]
-
-  const location =
-    firstLocation?.city ??
-    firstLocation?.country ??
-    'Unknown location'
+  const location = formatAddressPreview(
+    posting.details.work_conditions.primary_address?.value ?? null,
+  ) ?? 'Unknown location'
 
   const workModes =
     posting.details.work_conditions.work_modes?.value.join(', ') ??

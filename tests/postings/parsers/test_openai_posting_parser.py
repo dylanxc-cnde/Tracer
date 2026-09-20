@@ -96,17 +96,22 @@ def test_shared_prompt_separates_classification_dimensions():
     assert "original wording in PostingClassification.source.excerpts" in prompt
 
 
-def test_shared_prompt_distinguishes_workplaces_and_address_candidates():
+def test_shared_prompt_uses_one_primary_address_and_other_candidates():
     prompt = " ".join(POSTING_PARSE_PROMPT.split())
 
-    assert "address_text is a list of confirmed detailed workplace addresses" in prompt
-    assert "only workplace addresses explicitly stated in the posting may enter address_text" in prompt
-    assert "multiple confirmed addresses in the same city" in prompt
-    assert "Use an empty address_text array when no detailed workplace address is explicitly stated" in prompt
-    assert "address_candidates is a list of unconfirmed detailed address strings" in prompt
-    assert "must stay in address_candidates, even if they seem likely" in prompt
-    assert "never copy candidate-only city, region or country" in prompt
-    assert "field_path work_conditions.locations" in prompt
+    assert "primary_address is one preferred location string" in prompt
+    assert "not a claim that the workplace has been verified" in prompt
+    assert "never concatenate separate workplaces into primary_address" in prompt
+    assert "use the first one in source order" in prompt
+    assert "Prefer a posting-supported location" in prompt
+    assert "Only when the posting provides no usable location" in prompt
+    assert "field_path work_conditions.primary_address" in prompt
+    assert "A city-only or region-only string is valid" in prompt
+    assert "Use null when no supported location is available" in prompt
+    assert "address_candidates contains the other location strings" in prompt
+    assert "candidate does not mean incorrect, and primary does not mean confirmed" in prompt
+    assert "Do not claim user confirmation, perform geocoding or generate coordinates" in prompt
+    assert "PostingLocation" not in prompt
 
 
 def test_parser_sends_text_import_with_shared_prompt():

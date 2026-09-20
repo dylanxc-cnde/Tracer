@@ -76,7 +76,8 @@ def make_posting_details() -> PostingDetails:
         },
         work_conditions={
             "source": empty_source,
-            "locations": [],
+            "primary_address": None,
+            "address_candidates": [],
             "work_modes": None,
             "weekly_hours": None,
             "schedule": None,
@@ -1924,16 +1925,10 @@ def test_http_work_condition_text_add_edit_delete_and_restore(
         "excerpts": ["Original work conditions."],
         "source_urls": ["https://example.com/jobs/conditions"],
     }
-    conditions["locations"] = [
-        {
-            "origin": "source",
-            "address_text": ["Example Street 1, Aachen"],
-            "address_candidates": ["Candidate Street 2, Aachen"],
-            "city": "Aachen",
-            "region": None,
-            "country": "Germany",
-        }
-    ]
+    conditions["primary_address"] = {
+        "origin": "source", "value": "Example Street 1, Aachen, Germany"
+    }
+    conditions["address_candidates"] = ["Candidate Street 2, Aachen"]
     conditions["work_modes"] = {"value": ["hybrid"], "origin": "source"}
     conditions[field_name] = (
         {"value": original_value, "origin": original_origin} if has_original_value else None

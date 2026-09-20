@@ -188,17 +188,6 @@ class PostingClassification(_PostingDetailsModel):
     target_semester: ParsedValue[str] | None
 
 
-class PostingLocation(_PostingDetailsModel):
-    """A work location with confirmed addresses and separate unconfirmed candidates."""
-
-    origin: FactOrigin
-    address_text: tuple[str, ...]
-    address_candidates: tuple[str, ...]
-    city: str | None
-    region: str | None
-    country: str | None
-
-
 class WeeklyHours(_PostingDetailsModel):
     """A normalized weekly-hours range."""
 
@@ -211,7 +200,9 @@ class WorkConditions(_PostingDetailsModel):
     """Location, schedule and timing information for the job."""
 
     source: PostingSource
-    locations: tuple[PostingLocation, ...]
+    # Primary means preferred for display and future lookup, not verified.
+    primary_address: ParsedValue[str] | None
+    address_candidates: tuple[str, ...]
     work_modes: ParsedValue[tuple[WorkMode, ...]] | None
     weekly_hours: WeeklyHours | None
     schedule: ParsedValue[str] | None

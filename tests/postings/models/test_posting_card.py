@@ -46,7 +46,8 @@ def make_posting_details() -> PostingDetails:
         },
         work_conditions={
             "source": empty_source,
-            "locations": [],
+            "primary_address": None,
+            "address_candidates": [],
             "work_modes": None,
             "weekly_hours": None,
             "schedule": None,
