@@ -54,10 +54,16 @@ class RoleFamily(StrEnum):
     WORKING_STUDENT = "working_student"
     STUDENT_ASSISTANT = "student_assistant"
     THESIS = "thesis"
-    FULL_TIME = "full_time"
-    PART_TIME = "part_time"
+    REGULAR_EMPLOYMENT = "regular_employment"
     APPRENTICESHIP = "apprenticeship"
     GRADUATE = "graduate"
+    OTHER = "other"
+
+
+class WorkloadType(StrEnum):
+    FULL_TIME = "full_time"
+    PART_TIME = "part_time"
+    EITHER = "either"
     OTHER = "other"
 
 
@@ -168,11 +174,11 @@ class CompanyInfo(_PostingDetailsModel):
 
 
 class PostingClassification(_PostingDetailsModel):
-    """Normalized job and student-role classifications."""
+    """Separate role, workload, contract and seniority classifications."""
 
     source: PostingSource
     role_families: ParsedValue[tuple[RoleFamily, ...]] | None
-    original_employment_type: ParsedValue[str] | None
+    workload_type: ParsedValue[WorkloadType] | None
     contract_type: ParsedValue[ContractType] | None
     seniority: ParsedValue[Seniority] | None
     internship_requirement: ParsedValue[InternshipRequirement] | None
@@ -183,9 +189,11 @@ class PostingClassification(_PostingDetailsModel):
 
 
 class PostingLocation(_PostingDetailsModel):
-    """One work location stated by the posting."""
+    """A work location with confirmed addresses and separate unconfirmed candidates."""
 
     origin: FactOrigin
+    address_text: tuple[str, ...]
+    address_candidates: tuple[str, ...]
     city: str | None
     region: str | None
     country: str | None

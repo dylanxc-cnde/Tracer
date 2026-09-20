@@ -14,15 +14,20 @@ Use a separate company search when the employer can be identified confidently.
 First try to find the exact original posting. Then find an official company
 website or official company profile that belongs to the same employer. If the
 exact posting cannot be found but the supplied text still identifies one usable
-target posting, continue the company search and use it only to enrich
-CompanyInfo. A company page alone never proves that a job exists and must not
+target posting, continue the company search for CompanyInfo and explicitly
+unconfirmed address candidates under the location rules below. A company page
+alone never proves that a job exists and must not
 provide job-specific identity, responsibilities, requirements, work conditions
-or application instructions. If the employer identity is ambiguous, do not
+or application instructions as established facts. An employer address may be
+kept only as an explicitly unconfirmed address candidate under the location
+rules below. If the employer identity is ambiguous, do not
 merge information from a merely similar or same-named company.
 
 Do not merge information from merely similar jobs.
 If a web result cannot be confidently matched to the supplied posting,
-do not use it as evidence.
+do not use it as evidence of established job-specific facts. CompanyInfo and
+unconfirmed address candidates may use confidently matched employer sources
+only under their respective rules.
 
 Extract only facts supported by the pasted text or a confidently matched
 web source. Do not guess missing information.
@@ -104,6 +109,26 @@ company source is available, use the posting only when it explicitly states a
 company-wide fact. Do not turn responsibilities, requirements, the role's
 technical domain or a recruiting slogan into the company summary. Cite the
 supporting company passages and pages once in CompanyInfo.source.
+
+Keep PostingClassification.role_families, workload_type, seniority and
+contract_type independent. Split a source description across the supported
+dimensions instead of keeping a combined employment-type description. Preserve
+the original wording in PostingClassification.source.excerpts.
+
+role_families describes the kind of role, not its workload or contract length.
+Use regular_employment for an explicitly identified ordinary employee role,
+not as a fallback whenever a student or training role is absent. Do not add it
+merely because an internship, working-student or other special role also has an
+employment contract. Multiple explicitly supported role families may coexist.
+
+workload_type is one value: full_time, part_time, either or other. Use either
+only when the posting explicitly offers both full-time and part-time work as
+alternatives, not when sources conflict. Use other only for an explicitly
+stated workload arrangement outside those choices. Missing or uncertain
+workload stays null. Do not infer workload from a role family, a contract type
+or a weekly-hours number alone. Likewise, workload does not establish a role
+family, seniority or contract type. A regular employee role is not necessarily
+full-time or permanent. Keep unsupported dimensions null.
 
 Parse each source requirement in this order:
 
@@ -207,6 +232,37 @@ outside the available enum values. Never use other as a fallback for
 uncertainty. A broad flexibility or mobility label that does not establish a
 specific available work mode must leave work_modes null and create a parse
 ambiguity for work_conditions.work_modes.
+
+WorkConditions.locations contains separate work locations supported by the
+posting. PostingLocation.address_text is a list of confirmed detailed workplace
+addresses. During parsing, only workplace addresses explicitly stated in the
+posting may enter address_text; confidence in an inference is not confirmation.
+Do not claim user confirmation on the user's behalf. Keep each address as its
+own string, never combine several addresses into one string. A location may
+contain multiple confirmed addresses in the same city. Keep city, region and
+country separate for compact display; workplaces in different cities belong in
+separate location entries. Use an empty address_text array when no detailed
+workplace address is explicitly stated; city-only information does not establish
+a street address. Do not guess missing address parts, look up coordinates, or
+substitute a company's headquarters, registered office or application mailing
+address for the workplace.
+
+PostingLocation.address_candidates is a list of unconfirmed detailed address
+strings, not a list of additional established workplaces. Preserve plausible
+addresses found in sources for the confidently identified employer and matching
+the posting's known location constraints when their connection to this exact
+workplace cannot be confirmed. Do not invent addresses or collect unrelated
+offices, similar-company addresses or arbitrary search results. Addresses found
+through additional employer research without explicit workplace evidence must
+stay in address_candidates, even if they seem likely. Keep candidates
+separate from address_text and never copy candidate-only city, region or country
+information into the confirmed location fields. An address-only candidate can
+have an empty address_text array and null city, region and country. Use an empty
+candidates array when none are supported. Do not also repeat an established address as a
+candidate. If the actual workplace is ambiguous, preserve supported facts and
+record a parse ambiguity with field_path work_conditions.locations. Keep the
+supporting passages and URLs in WorkConditions.source; no per-candidate source
+model or inferred map coordinates are required.
 
 For each section, copy a small number of useful, exact and contiguous source
 passages into PostingSource.excerpts. An excerpt must appear verbatim in the

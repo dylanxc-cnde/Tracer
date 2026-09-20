@@ -40,7 +40,7 @@ def make_posting_details() -> PostingDetails:
         classification={
             "source": empty_source,
             "role_families": None,
-            "original_employment_type": None,
+            "workload_type": None,
             "contract_type": None,
             "seniority": None,
             "internship_requirement": None,

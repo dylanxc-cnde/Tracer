@@ -15,10 +15,15 @@ export type RoleFamily =
   | 'working_student'
   | 'student_assistant'
   | 'thesis'
-  | 'full_time'
-  | 'part_time'
+  | 'regular_employment'
   | 'apprenticeship'
   | 'graduate'
+  | 'other'
+
+export type WorkloadType =
+  | 'full_time'
+  | 'part_time'
+  | 'either'
   | 'other'
 
 export type ContractType =
@@ -110,7 +115,7 @@ export type CompanyInfo = {
 export type PostingClassification = {
   source: PostingSource
   role_families: ParsedValue<RoleFamily[]> | null
-  original_employment_type: ParsedValue<string> | null
+  workload_type: ParsedValue<WorkloadType> | null
   contract_type: ParsedValue<ContractType> | null
   seniority: ParsedValue<Seniority> | null
   internship_requirement: ParsedValue<InternshipRequirement> | null
@@ -122,6 +127,8 @@ export type PostingClassification = {
 
 export type PostingLocation = {
   origin: FactOrigin
+  address_text: string[]
+  address_candidates: string[]
   city: string | null
   region: string | null
   country: string | null

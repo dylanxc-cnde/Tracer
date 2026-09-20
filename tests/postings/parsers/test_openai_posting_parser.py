@@ -86,6 +86,29 @@ def test_shared_prompt_uses_one_source_bundle_per_section():
     assert "SourceExcerpt" not in POSTING_PARSE_PROMPT
 
 
+def test_shared_prompt_separates_classification_dimensions():
+    prompt = " ".join(POSTING_PARSE_PROMPT.split())
+
+    assert "role_families, workload_type, seniority and contract_type independent" in prompt
+    assert "Use regular_employment for an explicitly identified ordinary employee role" in prompt
+    assert "workload_type is one value: full_time, part_time, either or other" in prompt
+    assert "Do not infer workload from a role family" in prompt
+    assert "original wording in PostingClassification.source.excerpts" in prompt
+
+
+def test_shared_prompt_distinguishes_workplaces_and_address_candidates():
+    prompt = " ".join(POSTING_PARSE_PROMPT.split())
+
+    assert "address_text is a list of confirmed detailed workplace addresses" in prompt
+    assert "only workplace addresses explicitly stated in the posting may enter address_text" in prompt
+    assert "multiple confirmed addresses in the same city" in prompt
+    assert "Use an empty address_text array when no detailed workplace address is explicitly stated" in prompt
+    assert "address_candidates is a list of unconfirmed detailed address strings" in prompt
+    assert "must stay in address_candidates, even if they seem likely" in prompt
+    assert "never copy candidate-only city, region or country" in prompt
+    assert "field_path work_conditions.locations" in prompt
+
+
 def test_parser_sends_text_import_with_shared_prompt():
     expected_result = make_result()
     client = FakeOpenAI(expected_result)

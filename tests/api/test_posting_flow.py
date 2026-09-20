@@ -65,7 +65,7 @@ def make_posting_details() -> PostingDetails:
         classification={
             "source": empty_source,
             "role_families": None,
-            "original_employment_type": None,
+            "workload_type": None,
             "contract_type": None,
             "seniority": None,
             "internship_requirement": None,
@@ -1925,7 +1925,14 @@ def test_http_work_condition_text_add_edit_delete_and_restore(
         "source_urls": ["https://example.com/jobs/conditions"],
     }
     conditions["locations"] = [
-        {"city": "Aachen", "region": None, "country": "Germany", "origin": "source"}
+        {
+            "origin": "source",
+            "address_text": ["Example Street 1, Aachen"],
+            "address_candidates": ["Candidate Street 2, Aachen"],
+            "city": "Aachen",
+            "region": None,
+            "country": "Germany",
+        }
     ]
     conditions["work_modes"] = {"value": ["hybrid"], "origin": "source"}
     conditions[field_name] = (

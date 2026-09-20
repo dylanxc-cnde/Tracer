@@ -82,6 +82,12 @@ classification are still read-only. Quick Facts remains a display-only summary
 of the saved Card: supported edits to hours, deadline, and salary appear there
 after saving, not while typing in the draft.
 
+Job classification separates role category, full-time/part-time workload,
+seniority, and contract type. Each location can hold a list of confirmed workplace
+addresses and a separate list of unconfirmed address candidates. Quick Facts stays compact
+and does not present those candidates as established workplaces; address review
+and editing are still to come.
+
 Card storage keeps two full JSON payloads in the same row: the initial saved
 Card and the current version. Save submits the supported editable fields;
 FastAPI/Pydantic validates them, and the backend replaces the current payload
@@ -196,10 +202,10 @@ the repository.
   eligibility; avoid repeating the same requirements in multiple sections;
 - add editing to the existing Identity/Posting info area separately, without
   duplicating the metadata already shown in the header;
-- prepare location data for later maps by considering a full address-text
-  field when the source provides one; keep city-level locations explicitly
-  approximate and never substitute company headquarters for a work location.
-  Geocoding and commute estimates remain separate, later work;
+- add review and confirmation for address candidates before using them as map
+  destinations; keep city-level locations explicitly approximate and never
+  substitute company headquarters for a work location. Geocoding and commute
+  estimates remain separate, later work;
 - design a stable tag catalog and selection UI only when filtering and matching
   need more than the current string tags;
 - show the relationship between an Import and the Cards created from it;

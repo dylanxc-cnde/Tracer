@@ -35,12 +35,18 @@ function createQuickFacts(posting: PostingDetails) {
     })
   }
 
-  if (posting.classification.original_employment_type !== null) {
+  if (posting.classification.workload_type !== null) {
+    const workloadType = posting.classification.workload_type.value
+
     facts.push({
-      label: 'Job type',
-      value: posting.classification.original_employment_type.value,
+      label: 'Workload',
+      value: workloadType === 'either'
+        ? 'Full time / Part time'
+        : formatEnumValue(workloadType),
     })
-  } else if (posting.classification.role_families !== null) {
+  }
+
+  if (posting.classification.role_families !== null) {
     facts.push({
       label: 'Job type',
       value: posting.classification.role_families.value
