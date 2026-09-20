@@ -49,6 +49,13 @@ function createQuickFacts(posting: PostingDetails) {
     })
   }
 
+  if (posting.classification.contract_type !== null) {
+    facts.push({
+      label: 'Contract type',
+      value: formatEnumValue(posting.classification.contract_type.value),
+    })
+  }
+
   if (posting.work_conditions.weekly_hours !== null) {
     const weeklyHours = formatWeeklyHours(
       posting.work_conditions.weekly_hours,
