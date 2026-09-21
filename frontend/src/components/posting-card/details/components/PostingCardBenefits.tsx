@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import './PostingCardBenefits.css'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
-import type { Compensation } from '../../../postings/types/postingDetails'
-import type { TextItemDraft } from './PostingCardDraft'
+import type { Compensation } from '../../../../postings/types/postingDetails'
+import type { TextItemDraft } from '../editor/PostingCardDraft'
 
 type PostingCardBenefitsProps = {
   benefits: Compensation['benefits']

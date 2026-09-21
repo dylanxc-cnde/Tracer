@@ -1,4 +1,4 @@
-import type { UpdateCompensationEntryRequest } from '../../../postings/types/postingCard'
+import type { UpdateCompensationEntryRequest } from '../../../../postings/types/postingCard'
 
 export function getCompensationValidationError(
   entries: UpdateCompensationEntryRequest[],

@@ -1,11 +1,11 @@
 import './PostingCardQuickFacts.css'
-import type { PostingDetails } from '../../../postings/types/postingDetails'
+import type { PostingDetails } from '../../../../postings/types/postingDetails'
 import {
   formatCompensationEntry,
   formatEnumValue,
   formatAddressPreview,
   formatWeeklyHours,
-} from './PostingCardFormatters'
+} from '../PostingCardFormatters'
 
 type PostingCardQuickFact = {
   label: string

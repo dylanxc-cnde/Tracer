@@ -2,12 +2,12 @@ import './PostingCardRequirements.css'
 import type {
   Requirement,
   RequirementImportance,
-} from '../../../postings/types/postingDetails'
+} from '../../../../postings/types/postingDetails'
 import {
   formatEnumValue,
   formatRequirementItemRuleConnector,
   formatRequirementItemRuleLabel,
-} from './PostingCardFormatters'
+} from '../PostingCardFormatters'
 
 type PostingCardRequirementsProps = {
   groups: Requirement[]

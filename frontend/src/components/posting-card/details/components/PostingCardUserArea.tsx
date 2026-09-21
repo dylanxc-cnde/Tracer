@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './PostingCardUserArea.css'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
-import type { PostingCardUserDraft } from './PostingCardDraft'
+import type { PostingCardUserDraft } from '../editor/PostingCardDraft'
 
 type PostingCardUserAreaProps = {
   draft: PostingCardUserDraft

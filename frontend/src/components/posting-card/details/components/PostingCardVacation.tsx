@@ -1,5 +1,5 @@
 import './PostingCardVacation.css'
-import type { Compensation } from '../../../postings/types/postingDetails'
+import type { Compensation } from '../../../../postings/types/postingDetails'
 
 type PostingCardVacationProps = {
   vacationDays: Compensation['vacation_days']

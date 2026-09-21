@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import './PostingCardSpecialInstructions.css'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
-import type { ApplicationInstructions } from '../../../postings/types/postingDetails'
-import type { TextItemDraft } from './PostingCardDraft'
+import type { ApplicationInstructions } from '../../../../postings/types/postingDetails'
+import type { TextItemDraft } from '../editor/PostingCardDraft'
 
 type PostingCardSpecialInstructionsProps = {
   specialInstructions: ApplicationInstructions['special_instructions']

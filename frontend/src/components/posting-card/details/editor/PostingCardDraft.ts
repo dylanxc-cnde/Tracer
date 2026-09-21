@@ -9,7 +9,7 @@ import type {
   Seniority,
   WorkMode,
   WorkloadType,
-} from '../../../postings/types/postingDetails'
+} from '../../../../postings/types/postingDetails'
 
 export type TextItemDraft = {
   id: string

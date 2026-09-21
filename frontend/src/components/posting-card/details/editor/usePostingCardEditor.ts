@@ -3,12 +3,12 @@ import type {
   PostingCard,
   UpdateCompensationEntryRequest,
   UpdatePostingCardRequest,
-} from '../../../postings/types/postingCard'
+} from '../../../../postings/types/postingCard'
 import type {
   ApplicationChannel,
   CompensationEntry,
   CompensationType,
-} from '../../../postings/types/postingDetails'
+} from '../../../../postings/types/postingDetails'
 import type {
   ApplicationTextField,
   CompensationEntryFields,
@@ -23,7 +23,7 @@ import {
   hasDuplicateTags,
   isValidIsoDate,
 } from './PostingCardValidators'
-import { getSafeHttpUrl } from './PostingCardSanitizers'
+import { getSafeHttpUrl } from '../PostingCardSanitizers'
 
 // Card key and Update Request
 type PostingCardUpdateCallback = (

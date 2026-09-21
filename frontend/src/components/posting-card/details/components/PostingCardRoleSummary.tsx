@@ -1,5 +1,5 @@
 import './PostingCardRoleSummary.css'
-import type { RoleDescription } from '../../../postings/types/postingDetails'
+import type { RoleDescription } from '../../../../postings/types/postingDetails'
 
 type PostingCardRoleSummaryProps = {
   summary: RoleDescription['role_summary']
