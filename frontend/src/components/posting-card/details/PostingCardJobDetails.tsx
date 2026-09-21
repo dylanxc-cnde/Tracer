@@ -12,7 +12,7 @@ import type {
 } from '../../../postings/types/postingDetails'
 import { formatEnumValue } from './PostingCardFormatters'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
-import type { JobDetailsDraft, TextItemDraft } from './usePostingCardEditor'
+import type { JobDetailsDraft, TextItemDraft } from './PostingCardDraft'
 
 const WORKLOAD_TYPES: { key: WorkloadType; label: string }[] = [
   { key: 'full_time', label: 'Full Time' },

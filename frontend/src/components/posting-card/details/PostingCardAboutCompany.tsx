@@ -2,7 +2,7 @@ import { useState } from 'react'
 import './PostingCardAboutCompany.css'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
 import type { CompanyInfo } from '../../../postings/types/postingDetails'
-import type { TextItemDraft } from './usePostingCardEditor'
+import type { TextItemDraft } from './PostingCardDraft'
 
 type PostingCardAboutCompanyProps = {
   company: CompanyInfo

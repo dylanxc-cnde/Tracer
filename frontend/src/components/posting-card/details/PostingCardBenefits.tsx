@@ -2,7 +2,7 @@ import { useState } from 'react'
 import './PostingCardBenefits.css'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
 import type { Compensation } from '../../../postings/types/postingDetails'
-import type { TextItemDraft } from './usePostingCardEditor'
+import type { TextItemDraft } from './PostingCardDraft'
 
 type PostingCardBenefitsProps = {
   benefits: Compensation['benefits']

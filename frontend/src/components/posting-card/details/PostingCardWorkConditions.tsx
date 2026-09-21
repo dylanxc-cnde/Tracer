@@ -8,7 +8,7 @@ import type {
   WorkConditionField,
   WorkConditionTextField,
   WorkConditionsDraft,
-} from './usePostingCardEditor'
+} from './PostingCardDraft'
 
 const WORK_CONDITION_FIELDS: { key: WorkConditionField; label: string }[] = [
   { key: 'weeklyHours', label: 'Weekly hours' },

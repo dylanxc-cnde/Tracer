@@ -4,7 +4,7 @@ import './PostingCardApplicationFacts.css'
 import type { ApplicationChannel, ApplicationInstructions } from '../../../postings/types/postingDetails'
 import { formatEnumValue } from './PostingCardFormatters'
 import { getSafeHttpUrl } from './PostingCardSanitizers'
-import type { ApplicationFactsDraft, ApplicationTextField } from './usePostingCardEditor'
+import type { ApplicationFactsDraft, ApplicationTextField } from './PostingCardDraft'
 
 const APPLICATION_CHANNELS: { key: ApplicationChannel; label: string }[] = [
   { key: 'portal', label: 'Portal' },
