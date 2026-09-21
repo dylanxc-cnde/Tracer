@@ -1,6 +1,6 @@
 import './PostingCardPostingInfo.css'
-import type { PostingIdentity } from '../../../postings/types/postingDetails'
-import { getSafeHttpUrl } from './PostingCardSanitizers'
+import type { PostingIdentity } from '../../../../postings/types/postingDetails'
+import { getSafeHttpUrl } from '../PostingCardSanitizers'
 
 type PostingCardPostingInfoProps = {
   identity: PostingIdentity

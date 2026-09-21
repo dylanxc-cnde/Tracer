@@ -1,14 +1,14 @@
 import { useState, type ReactNode } from 'react'
 import './PostingCardWorkConditions.css'
-import type { WorkConditions } from '../../../postings/types/postingDetails'
-import { formatWeeklyHours } from './PostingCardFormatters'
+import type { WorkConditions } from '../../../../postings/types/postingDetails'
+import { formatWeeklyHours } from '../PostingCardFormatters'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
 import { PostingCardAddFieldMenu } from './PostingCardAddFieldMenu'
 import type {
   WorkConditionField,
   WorkConditionTextField,
   WorkConditionsDraft,
-} from './usePostingCardEditor'
+} from '../editor/PostingCardDraft'
 
 const WORK_CONDITION_FIELDS: { key: WorkConditionField; label: string }[] = [
   { key: 'weeklyHours', label: 'Weekly hours' },

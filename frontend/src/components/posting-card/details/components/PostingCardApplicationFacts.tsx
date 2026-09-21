@@ -1,10 +1,10 @@
 import { useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import './PostingCardApplicationFacts.css'
-import type { ApplicationChannel, ApplicationInstructions } from '../../../postings/types/postingDetails'
-import { formatEnumValue } from './PostingCardFormatters'
-import { getSafeHttpUrl } from './PostingCardSanitizers'
-import type { ApplicationFactsDraft, ApplicationTextField } from './usePostingCardEditor'
+import type { ApplicationChannel, ApplicationInstructions } from '../../../../postings/types/postingDetails'
+import { formatEnumValue } from '../PostingCardFormatters'
+import { getSafeHttpUrl } from '../PostingCardSanitizers'
+import type { ApplicationFactsDraft, ApplicationTextField } from '../editor/PostingCardDraft'
 
 const APPLICATION_CHANNELS: { key: ApplicationChannel; label: string }[] = [
   { key: 'portal', label: 'Portal' },

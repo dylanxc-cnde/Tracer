@@ -1,5 +1,5 @@
 import './PostingCardContact.css'
-import type { PostingContact } from '../../../postings/types/postingDetails'
+import type { PostingContact } from '../../../../postings/types/postingDetails'
 
 type PostingCardContactProps = {
   contact: PostingContact | null

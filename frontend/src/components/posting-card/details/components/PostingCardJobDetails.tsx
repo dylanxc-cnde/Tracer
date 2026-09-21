@@ -9,10 +9,10 @@ import type {
   Seniority,
   WorkloadType,
   WorkMode,
-} from '../../../postings/types/postingDetails'
-import { formatEnumValue } from './PostingCardFormatters'
+} from '../../../../postings/types/postingDetails'
+import { formatEnumValue } from '../PostingCardFormatters'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
-import type { JobDetailsDraft, TextItemDraft } from './usePostingCardEditor'
+import type { JobDetailsDraft, TextItemDraft } from '../editor/PostingCardDraft'
 
 const WORKLOAD_TYPES: { key: WorkloadType; label: string }[] = [
   { key: 'full_time', label: 'Full Time' },

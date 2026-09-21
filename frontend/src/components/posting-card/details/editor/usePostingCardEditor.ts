@@ -1,332 +1,36 @@
 import { useState } from 'react'
 import type {
   PostingCard,
-  UpdateCompensationEntryRequest,
   UpdatePostingCardRequest,
-} from '../../../postings/types/postingCard'
+} from '../../../../postings/types/postingCard'
 import type {
   ApplicationChannel,
-  CompensationEntry,
-  CompensationPeriod,
   CompensationType,
-  ContractType,
-  InternshipRequirement,
-  PayBasis,
-  RoleFamily,
-  Seniority,
-  WorkMode,
-  WorkloadType,
-} from '../../../postings/types/postingDetails'
+} from '../../../../postings/types/postingDetails'
+import type {
+  ApplicationTextField,
+  CompensationEntryFields,
+  JobDetailsDraft,
+  PostingCardUserDraft,
+  TextItemDraft,
+  WorkConditionField,
+  WorkConditionTextField,
+} from './PostingCardDraft'
 import {
   getCompensationValidationError,
   hasDuplicateTags,
   isValidIsoDate,
-} from './PostingCardValidators'
-import { getSafeHttpUrl } from './PostingCardSanitizers'
-
-export type TextItemDraft = {
-  id: string
-  value: string
-}
-
-export type JobDetailsDraft = {
-  workloadType: WorkloadType | null
-  roleFamilies: RoleFamily[]
-  contractType: ContractType | null
-  seniority: Seniority | null
-  workModes: WorkMode[]
-  primaryAddress: string
-  addressCandidates: TextItemDraft[]
-  internshipRequirement: InternshipRequirement | null
-  eligibility: string
-}
-
-export type WorkConditionsDraft = {
-  weeklyHours: { minimum: string; maximum: string } | null
-  schedule: string | null
-  travelRequirement: string | null
-  startOn: string | null
-  duration: string | null
-}
-
-export type WorkConditionField = keyof WorkConditionsDraft
-export type WorkConditionTextField = Exclude<WorkConditionField, 'weeklyHours'>
-
-export type CompensationEntryFields = {
-  id: string
-  compensationType: CompensationType
-  minimumAmount: string
-  maximumAmount: string
-  currency: string
-  period: CompensationPeriod | null
-  payBasis: PayBasis
-  applicableGroups: TextItemDraft[]
-  paymentConditions: string
-}
-
-export type ApplicationFactsDraft = {
-  channels: ApplicationChannel[]
-  applicationUrl: string
-  applicationDeadline: string
-  requiredEmailSubject: string
-}
-
-export type ApplicationTextField = Exclude<keyof ApplicationFactsDraft, 'channels'>
-
-// Type Definition: CardDraft
-export type PostingCardUserDraft = {
-  roleSummary: string
-  responsibilities: TextItemDraft[]
-  roleDomains: TextItemDraft[]
-  jobDetails: JobDetailsDraft
-  workConditions: WorkConditionsDraft
-  compensationEntries: CompensationEntryFields[]
-  benefits: TextItemDraft[]
-  vacationDays: string
-  applicationFacts: ApplicationFactsDraft
-  requiredDocuments: TextItemDraft[]
-  specialInstructions: TextItemDraft[]
-  contactName: string
-  contactRole: string
-  contactEmail: string
-  contactPhone: string
-  companySummary: string
-  industryTags: TextItemDraft[]
-  employeeRange: string
-  postingAlias: string
-  tags: TextItemDraft[]
-  userNotes: string
-}
+} from './PostingCardDraftValidators'
+import { createPostingCardUpdateRequest } from './PostingCardDraftRequest'
+import { hasPostingCardDraftChanges } from './PostingCardDraftChanges'
+import { createCardUserDraft } from './PostingCardDraftCreator'
+import { getSafeHttpUrl } from '../PostingCardSanitizers'
 
 // Card key and Update Request
 type PostingCardUpdateCallback = (
   cardKey: string,
   request: UpdatePostingCardRequest,
 ) => Promise<PostingCard>
-
-export function createCompensationEntryFields(
-  entry: CompensationEntry,
-  id: string,
-): CompensationEntryFields {
-  return {
-    id,
-    compensationType: entry.compensation_type,
-    minimumAmount: entry.minimum_amount?.toString() ?? '',
-    maximumAmount: entry.maximum_amount?.toString() ?? '',
-    currency: entry.currency ?? '',
-    period: entry.period,
-    payBasis: entry.pay_basis,
-    applicableGroups: entry.applicable_groups.map((value, index) => ({
-      id: `${id}-group-${index}`,
-      value,
-    })),
-    paymentConditions: entry.payment_conditions ?? '',
-  }
-}
-
-function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
-  const classification = card.posting.classification
-  const workConditions = card.posting.work_conditions
-  const weeklyHours = workConditions.weekly_hours
-  const application = card.posting.application_instructions
-
-  return {
-    roleSummary: card.posting.role_content.role_summary?.value ?? '',
-    responsibilities: card.posting.role_content.responsibilities.map(
-      (responsibility) => ({
-        id: crypto.randomUUID(),
-        value: responsibility.value,
-      }),
-    ),
-    roleDomains: card.posting.role_content.domains.map((domain) => ({
-      id: crypto.randomUUID(),
-      value: domain.value,
-    })),
-    jobDetails: {
-      workloadType: classification.workload_type?.value ?? null,
-      roleFamilies: [...new Set(classification.role_families?.value ?? [])],
-      contractType: classification.contract_type?.value ?? null,
-      seniority: classification.seniority?.value ?? null,
-      workModes: [...new Set(workConditions.work_modes?.value ?? [])],
-      primaryAddress: workConditions.primary_address?.value ?? '',
-      addressCandidates: workConditions.address_candidates.map((address) => ({
-        id: crypto.randomUUID(),
-        value: address,
-      })),
-      internshipRequirement: classification.internship_requirement?.value ?? null,
-      eligibility: classification.eligibility?.value ?? '',
-    },
-    workConditions: {
-      weeklyHours: weeklyHours === null || (
-        weeklyHours.minimum === null && weeklyHours.maximum === null
-      )
-        ? null
-        : {
-            minimum: weeklyHours.minimum?.toString() ?? '',
-            maximum: weeklyHours.maximum?.toString() ?? '',
-          },
-      schedule: workConditions.schedule?.value ?? null,
-      travelRequirement: workConditions.travel_requirement?.value ?? null,
-      startOn: workConditions.start_on?.value ?? null,
-      duration: workConditions.duration?.value ?? null,
-    },
-    compensationEntries: card.posting.compensation.entries.map((entry) =>
-      createCompensationEntryFields(entry, crypto.randomUUID()),
-    ),
-    benefits: card.posting.compensation.benefits.map((benefit) => ({
-      id: crypto.randomUUID(),
-      value: benefit.value,
-    })),
-    vacationDays: card.posting.compensation.vacation_days?.value.toString() ?? '',
-    applicationFacts: {
-      channels: [...new Set(application.channels?.value ?? [])],
-      applicationUrl: application.application_url?.value ?? '',
-      applicationDeadline: application.application_deadline?.value ?? '',
-      requiredEmailSubject: application.required_email_subject?.value ?? '',
-    },
-    requiredDocuments: card.posting.application_instructions.required_documents.map(
-      (document) => ({
-        id: crypto.randomUUID(),
-        value: document.value,
-      }),
-    ),
-    specialInstructions: card.posting.application_instructions.special_instructions.map(
-      (instruction) => ({
-        id: crypto.randomUUID(),
-        value: instruction.value,
-      }),
-    ),
-    contactName: card.posting.contact?.name ?? '',
-    contactRole: card.posting.contact?.role ?? '',
-    contactEmail: card.posting.contact?.email ?? '',
-    contactPhone: card.posting.contact?.phone ?? '',
-    companySummary: card.posting.company.company_summary?.value ?? '',
-    industryTags: card.posting.company.industry_tags.map((industry) => ({
-      id: crypto.randomUUID(),
-      value: industry.value,
-    })),
-    employeeRange: card.posting.company.employee_range?.value ?? '',
-    postingAlias: card.posting_alias ?? '',
-    tags: card.tags.map((tag) => ({
-      id: crypto.randomUUID(),
-      value: tag,
-    })),
-    userNotes: card.user_notes ?? '',
-  }
-}
-
-// Normalize Text: trim, decide if the value is null. 
-function normalizeOptionalText(value: string) {
-  const normalizedValue = value.trim()
-
-  return normalizedValue.length > 0 ? normalizedValue : null
-}
-
-function normalizeOptionalNumber(value: string): number | null {
-  const normalizedValue = value.trim()
-
-  return normalizedValue.length > 0 ? Number(normalizedValue) : null
-}
-
-function normalizeTextItems(items: TextItemDraft[]): string[] {
-  return items
-    .map((item) => item.value.trim())
-    .filter((value) => value.length > 0)
-}
-
-function normalizeCompensationAmount(value: string): number | null {
-  const amount = value.trim().replace(',', '.')
-  if (amount.length === 0) {
-    return null
-  }
-  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(amount)) {
-    return Number.NaN
-  }
-  return Number(amount)
-}
-
-function normalizeCompensationEntries(
-  entries: CompensationEntryFields[],
-): UpdateCompensationEntryRequest[] {
-  return entries.map((entry) => ({
-    compensation_type: entry.compensationType,
-    minimum_amount: normalizeCompensationAmount(entry.minimumAmount),
-    maximum_amount: normalizeCompensationAmount(entry.maximumAmount),
-    currency: normalizeOptionalText(entry.currency),
-    period: entry.period,
-    pay_basis: entry.payBasis,
-    applicable_groups: normalizeTextItems(entry.applicableGroups),
-    payment_conditions: normalizeOptionalText(entry.paymentConditions),
-  }))
-}
-
-function hasCompensationChanges(
-  entries: UpdateCompensationEntryRequest[],
-  savedEntries: CompensationEntry[],
-): boolean {
-  if (entries.length !== savedEntries.length) {
-    return true
-  }
-  return entries.some((entry, index) => {
-    const saved = savedEntries[index]
-    return entry.compensation_type !== saved.compensation_type ||
-      entry.minimum_amount !== saved.minimum_amount ||
-      entry.maximum_amount !== saved.maximum_amount ||
-      entry.currency !== saved.currency ||
-      entry.period !== saved.period ||
-      entry.pay_basis !== saved.pay_basis ||
-      entry.payment_conditions !== saved.payment_conditions ||
-      entry.applicable_groups.length !== saved.applicable_groups.length ||
-      entry.applicable_groups.some((group, groupIndex) =>
-        group !== saved.applicable_groups[groupIndex],
-      )
-  })
-}
-
-// Create Update Card Request using one draft.
-function createPostingCardUpdateRequest(
-  draft: PostingCardUserDraft,
-): UpdatePostingCardRequest {
-  return {
-    role_summary: normalizeOptionalText(draft.roleSummary),
-    responsibilities: normalizeTextItems(draft.responsibilities),
-    role_domains: normalizeTextItems(draft.roleDomains),
-    workload_type: draft.jobDetails.workloadType,
-    role_families: draft.jobDetails.roleFamilies,
-    contract_type: draft.jobDetails.contractType,
-    seniority: draft.jobDetails.seniority,
-    work_modes: draft.jobDetails.workModes,
-    primary_address: normalizeOptionalText(draft.jobDetails.primaryAddress),
-    address_candidates: normalizeTextItems(draft.jobDetails.addressCandidates),
-    internship_requirement: draft.jobDetails.internshipRequirement,
-    eligibility: normalizeOptionalText(draft.jobDetails.eligibility),
-    weekly_hours_minimum: normalizeOptionalNumber(draft.workConditions.weeklyHours?.minimum ?? ''),
-    weekly_hours_maximum: normalizeOptionalNumber(draft.workConditions.weeklyHours?.maximum ?? ''),
-    schedule: normalizeOptionalText(draft.workConditions.schedule ?? ''),
-    travel_requirement: normalizeOptionalText(draft.workConditions.travelRequirement ?? ''),
-    start_on: normalizeOptionalText(draft.workConditions.startOn ?? ''),
-    duration: normalizeOptionalText(draft.workConditions.duration ?? ''),
-    compensation_entries: normalizeCompensationEntries(draft.compensationEntries),
-    benefits: normalizeTextItems(draft.benefits),
-    vacation_days: normalizeOptionalNumber(draft.vacationDays),
-    application_channels: draft.applicationFacts.channels,
-    application_url: normalizeOptionalText(draft.applicationFacts.applicationUrl),
-    application_deadline: normalizeOptionalText(draft.applicationFacts.applicationDeadline),
-    required_email_subject: normalizeOptionalText(draft.applicationFacts.requiredEmailSubject),
-    required_documents: normalizeTextItems(draft.requiredDocuments),
-    special_instructions: normalizeTextItems(draft.specialInstructions),
-    contact_name: normalizeOptionalText(draft.contactName),
-    contact_role: normalizeOptionalText(draft.contactRole),
-    contact_email: normalizeOptionalText(draft.contactEmail),
-    contact_phone: normalizeOptionalText(draft.contactPhone),
-    company_summary: normalizeOptionalText(draft.companySummary),
-    industry_tags: normalizeTextItems(draft.industryTags),
-    employee_range: normalizeOptionalText(draft.employeeRange),
-    posting_alias: normalizeOptionalText(draft.postingAlias),
-    user_notes: normalizeOptionalText(draft.userNotes),
-    tags: normalizeTextItems(draft.tags),
-  }
-}
 
 // Editor which serves card detail component.
 export function usePostingCardEditor(
@@ -340,92 +44,12 @@ export function usePostingCardEditor(
   const [draft, setDraft] = useState<PostingCardUserDraft>(() => createCardUserDraft(card))
   const updateRequest = createPostingCardUpdateRequest(draft)
   const originalTitle = card.posting.identity.position_title?.value ?? null
-  const classification = card.posting.classification
-  const savedRoleFamilies = new Set(classification.role_families?.value ?? [])
-  const savedWorkModes = new Set(card.posting.work_conditions.work_modes?.value ?? [])
-  const application = card.posting.application_instructions
-  const savedChannels = new Set(application.channels?.value ?? [])
   const displayedAlias = isEditing
     ? updateRequest.posting_alias
     : card.posting_alias
   const displayedTitle =
     displayedAlias ?? originalTitle ?? 'Unknown Position'
-  const hasChanges =
-    updateRequest.role_summary !==
-      (card.posting.role_content.role_summary?.value ?? null) ||
-    updateRequest.responsibilities.length !==
-      card.posting.role_content.responsibilities.length ||
-    updateRequest.responsibilities.some(
-      (value, index) =>
-        value !== card.posting.role_content.responsibilities[index]?.value,
-    ) ||
-    updateRequest.role_domains.length !== card.posting.role_content.domains.length ||
-    updateRequest.role_domains.some(
-      (value, index) => value !== card.posting.role_content.domains[index]?.value,
-    ) ||
-    updateRequest.workload_type !== (classification.workload_type?.value ?? null) ||
-    updateRequest.role_families.length !== savedRoleFamilies.size ||
-    updateRequest.role_families.some((value) => !savedRoleFamilies.has(value)) ||
-    updateRequest.contract_type !== (classification.contract_type?.value ?? null) ||
-    updateRequest.seniority !== (classification.seniority?.value ?? null) ||
-    updateRequest.work_modes.length !== savedWorkModes.size ||
-    updateRequest.work_modes.some((value) => !savedWorkModes.has(value)) ||
-    updateRequest.primary_address !== (card.posting.work_conditions.primary_address?.value ?? null) ||
-    updateRequest.address_candidates.length !== card.posting.work_conditions.address_candidates.length ||
-    updateRequest.address_candidates.some(
-      (value, index) => value !== card.posting.work_conditions.address_candidates[index],
-    ) ||
-    updateRequest.internship_requirement !== (classification.internship_requirement?.value ?? null) ||
-    updateRequest.eligibility !== (classification.eligibility?.value ?? null) ||
-    updateRequest.weekly_hours_minimum !==
-      (card.posting.work_conditions.weekly_hours?.minimum ?? null) ||
-    updateRequest.weekly_hours_maximum !==
-      (card.posting.work_conditions.weekly_hours?.maximum ?? null) ||
-    updateRequest.schedule !== (card.posting.work_conditions.schedule?.value ?? null) ||
-    updateRequest.travel_requirement !==
-      (card.posting.work_conditions.travel_requirement?.value ?? null) ||
-    updateRequest.start_on !== (card.posting.work_conditions.start_on?.value ?? null) ||
-    updateRequest.duration !== (card.posting.work_conditions.duration?.value ?? null) ||
-    hasCompensationChanges(updateRequest.compensation_entries, card.posting.compensation.entries) ||
-    updateRequest.benefits.length !== card.posting.compensation.benefits.length ||
-    updateRequest.benefits.some(
-      (value, index) => value !== card.posting.compensation.benefits[index]?.value,
-    ) ||
-    updateRequest.vacation_days !==
-      (card.posting.compensation.vacation_days?.value ?? null) ||
-    updateRequest.application_channels.length !== savedChannels.size ||
-    updateRequest.application_channels.some((channel) => !savedChannels.has(channel)) ||
-    updateRequest.application_url !== (application.application_url?.value ?? null) ||
-    updateRequest.application_deadline !== (application.application_deadline?.value ?? null) ||
-    updateRequest.required_email_subject !== (application.required_email_subject?.value ?? null) ||
-    updateRequest.required_documents.length !==
-      card.posting.application_instructions.required_documents.length ||
-    updateRequest.required_documents.some(
-      (value, index) =>
-        value !== card.posting.application_instructions.required_documents[index]?.value,
-    ) ||
-    updateRequest.special_instructions.length !==
-      card.posting.application_instructions.special_instructions.length ||
-    updateRequest.special_instructions.some(
-      (value, index) =>
-        value !== card.posting.application_instructions.special_instructions[index]?.value,
-    ) ||
-    updateRequest.contact_name !== (card.posting.contact?.name ?? null) ||
-    updateRequest.contact_role !== (card.posting.contact?.role ?? null) ||
-    updateRequest.contact_email !== (card.posting.contact?.email ?? null) ||
-    updateRequest.contact_phone !== (card.posting.contact?.phone ?? null) ||
-    updateRequest.company_summary !==
-      (card.posting.company.company_summary?.value ?? null) ||
-    updateRequest.industry_tags.length !== card.posting.company.industry_tags.length ||
-    updateRequest.industry_tags.some(
-      (value, index) => value !== card.posting.company.industry_tags[index]?.value,
-    ) ||
-    updateRequest.employee_range !==
-      (card.posting.company.employee_range?.value ?? null) ||
-    updateRequest.posting_alias !== card.posting_alias ||
-    updateRequest.user_notes !== card.user_notes ||
-    updateRequest.tags.length !== card.tags.length ||
-    updateRequest.tags.some((tag, index) => tag !== card.tags[index])
+  const hasChanges = hasPostingCardDraftChanges(updateRequest, card)
 
   function startEditing() {
     if (isReadOnly) {

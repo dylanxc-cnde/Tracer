@@ -5,12 +5,10 @@ import type {
   CompensationPeriod,
   CompensationType,
   PayBasis,
-} from '../../../postings/types/postingDetails'
-import {
-  createCompensationEntryFields,
-  type CompensationEntryFields,
-} from './usePostingCardEditor'
-import { formatEnumValue } from './PostingCardFormatters'
+} from '../../../../postings/types/postingDetails'
+import { createCompensationEntryFields } from '../editor/PostingCardDraftCreator'
+import type { CompensationEntryFields } from '../editor/PostingCardDraft'
+import { formatEnumValue } from '../PostingCardFormatters'
 import { PostingCardAddFieldMenu } from './PostingCardAddFieldMenu'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
 

@@ -8,35 +8,35 @@ import type { PostingDetails } from '../../../postings/types/postingDetails'
 import { getOriginalPostingCard } from '../../../postings/api/postings'
 import {
   PostingCardUserArea,
-} from './PostingCardUserArea'
+} from './components/PostingCardUserArea'
 import {
   PostingCardQuickFacts,
-} from './PostingCardQuickFacts'
-import { PostingCardDetailsTopbar } from './PostingCardDetailsTopbar'
-import { usePostingCardEditor } from './usePostingCardEditor'
-import { PostingCardPostingInfo } from './PostingCardPostingInfo'
-import { PostingCardRoleSummary } from './PostingCardRoleSummary'
-import { PostingCardResponsibilities } from './PostingCardResponsibilities'
-import { PostingCardRoleDomains } from './PostingCardRoleDomains'
-import { PostingCardRequirements } from './PostingCardRequirements'
-import { PostingCardJobDetails } from './PostingCardJobDetails'
+} from './components/PostingCardQuickFacts'
+import { PostingCardDetailsTopbar } from './components/PostingCardDetailsTopbar'
+import { usePostingCardEditor } from './editor/usePostingCardEditor'
+import { PostingCardPostingInfo } from './components/PostingCardPostingInfo'
+import { PostingCardRoleSummary } from './components/PostingCardRoleSummary'
+import { PostingCardResponsibilities } from './components/PostingCardResponsibilities'
+import { PostingCardRoleDomains } from './components/PostingCardRoleDomains'
+import { PostingCardRequirements } from './components/PostingCardRequirements'
+import { PostingCardJobDetails } from './components/PostingCardJobDetails'
 import {
   PostingCardWorkConditions,
   PostingCardWorkConditionAdd,
-} from './PostingCardWorkConditions'
+} from './components/PostingCardWorkConditions'
 import {
   PostingCardCompensation,
   PostingCardCompensationAdd,
-} from './PostingCardCompensation'
-import { PostingCardBenefits } from './PostingCardBenefits'
-import { PostingCardVacation } from './PostingCardVacation'
-import { PostingCardApplicationFacts } from './PostingCardApplicationFacts'
-import { PostingCardRequiredDocuments } from './PostingCardRequiredDocuments'
-import { PostingCardSpecialInstructions } from './PostingCardSpecialInstructions'
-import { PostingCardContact } from './PostingCardContact'
-import { PostingCardAboutCompany } from './PostingCardAboutCompany'
-import { PostingCardSourceEvidence } from './PostingCardSourceEvidence'
-import { PostingCardSaveError } from './PostingCardSaveError'
+} from './components/PostingCardCompensation'
+import { PostingCardBenefits } from './components/PostingCardBenefits'
+import { PostingCardVacation } from './components/PostingCardVacation'
+import { PostingCardApplicationFacts } from './components/PostingCardApplicationFacts'
+import { PostingCardRequiredDocuments } from './components/PostingCardRequiredDocuments'
+import { PostingCardSpecialInstructions } from './components/PostingCardSpecialInstructions'
+import { PostingCardContact } from './components/PostingCardContact'
+import { PostingCardAboutCompany } from './components/PostingCardAboutCompany'
+import { PostingCardSourceEvidence } from './components/PostingCardSourceEvidence'
+import { PostingCardSaveError } from './components/PostingCardSaveError'
 
 type PostingCardDetailsProps = {
   card: PostingCard

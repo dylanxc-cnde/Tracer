@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import './PostingCardRoleDomains.css'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
-import type { RoleDescription } from '../../../postings/types/postingDetails'
-import type { TextItemDraft } from './usePostingCardEditor'
+import type { RoleDescription } from '../../../../postings/types/postingDetails'
+import type { TextItemDraft } from '../editor/PostingCardDraft'
 
 type PostingCardRoleDomainsProps = {
   domains: RoleDescription['domains']

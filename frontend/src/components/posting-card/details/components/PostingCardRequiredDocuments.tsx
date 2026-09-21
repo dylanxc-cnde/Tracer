@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import './PostingCardRequiredDocuments.css'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
-import type { ApplicationInstructions } from '../../../postings/types/postingDetails'
-import type { TextItemDraft } from './usePostingCardEditor'
+import type { ApplicationInstructions } from '../../../../postings/types/postingDetails'
+import type { TextItemDraft } from '../editor/PostingCardDraft'
 
 type PostingCardRequiredDocumentsProps = {
   requiredDocuments: ApplicationInstructions['required_documents']

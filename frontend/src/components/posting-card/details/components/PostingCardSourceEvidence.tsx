@@ -1,6 +1,6 @@
 import './PostingCardSourceEvidence.css'
-import type { PostingSource } from '../../../postings/types/postingDetails'
-import { getSafeHttpUrl } from './PostingCardSanitizers'
+import type { PostingSource } from '../../../../postings/types/postingDetails'
+import { getSafeHttpUrl } from '../PostingCardSanitizers'
 
 type PostingCardSourceEvidenceProps = {
   source: PostingSource
