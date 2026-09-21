@@ -6,7 +6,7 @@ import type {
   CompensationType,
   PayBasis,
 } from '../../../../postings/types/postingDetails'
-import { createCompensationEntryFields } from '../editor/usePostingCardEditor'
+import { createCompensationEntryFields } from '../editor/PostingCardDraftCreator'
 import type { CompensationEntryFields } from '../editor/PostingCardDraft'
 import { formatEnumValue } from '../PostingCardFormatters'
 import { PostingCardAddFieldMenu } from './PostingCardAddFieldMenu'
