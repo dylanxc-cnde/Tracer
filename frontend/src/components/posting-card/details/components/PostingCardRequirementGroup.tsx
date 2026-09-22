@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import './PostingCardRequirementGroup.css'
 import type {
   RequirementItem,
@@ -14,27 +14,48 @@ import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
 
 type RequirementPillProps = {
   item: RequirementItem
+  itemId: string
   isEditing: boolean
   isSavingCardChanges: boolean
   isDeletePending: boolean
   onChange: (name: string) => void
+  onExampleToggle: () => void
   onDelete: (button: HTMLButtonElement) => void
 }
 
-// Core and example pills share the same input/delete controls.
+// Core and example pills share the same input, toggle and delete controls.
 function RequirementPill({
   item,
+  itemId,
   isEditing,
   isSavingCardChanges,
   isDeletePending,
   onChange,
+  onExampleToggle,
   onDelete,
 }: RequirementPillProps) {
+  const toggleLabel = item.is_example ? 'Convert to requirement' : 'Convert to example'
+
   return (
     <span
       className={`posting-card-requirements__pill${item.is_example ? ' posting-card-requirements__pill--example' : ''}`}
       title={formatEnumValue(item.category)}
     >
+      {isEditing && (
+        <button
+          className="posting-card-requirements__pill-toggle"
+          type="button"
+          data-item-toggle-id={itemId}
+          aria-label={`${toggleLabel}: ${item.name || 'new skill'}`}
+          title={toggleLabel}
+          disabled={isSavingCardChanges}
+          onClick={onExampleToggle}
+        >
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M16 7a6.5 6.5 0 0 0-11-2L3 7m0-4v4h4M4 13a6.5 6.5 0 0 0 11 2l2-2m0 4v-4h-4" />
+          </svg>
+        </button>
+      )}
       {item.is_example && <span className="posting-card-requirements__example-prefix">e.g.</span>}
       <span className="posting-card-requirements__pill-text">
         {/* Invisible text sizes the input so switching modes doesn't move the label. */}
@@ -84,6 +105,7 @@ type PostingCardRequirementGroupProps = {
   isSavingCardChanges: boolean
   onItemAdd: () => void
   onItemChange: (itemId: string, name: string) => void
+  onItemExampleToggle: (itemId: string) => void
   onItemDelete: (itemId: string) => void
 }
 
@@ -95,12 +117,15 @@ export function PostingCardRequirementGroup({
   isSavingCardChanges,
   onItemAdd,
   onItemChange,
+  onItemExampleToggle,
   onItemDelete,
 }: PostingCardRequirementGroupProps) {
   // Only the confirmation lives here; actual item changes go back to the editor hook.
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const addButtonRef = useRef<HTMLButtonElement>(null)
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
+  const groupRef = useRef<HTMLElement>(null)
+  const toggledItemIdRef = useRef<string | null>(null)
   const pendingDeleteItem = draft.find((item) => item.id === pendingDeleteId)
   const itemRuleLabel = formatRequirementItemRuleLabel(itemRule)
   // AND/OR comes from the group's rule; it isn't a saved item.
@@ -108,6 +133,26 @@ export function PostingCardRequirementGroup({
   const displayedItems = isEditing ? draft : items.map((item, index) => ({ ...item, id: `item-${index}` }))
   const coreItems = displayedItems.filter((item) => !item.is_example)
   const exampleItems = displayedItems.filter((item) => item.is_example)
+
+  useLayoutEffect(() => {
+    const itemId = toggledItemIdRef.current
+    if (itemId === null) {
+      return
+    }
+    // Switching rows remounts the pill; keep keyboard focus on its new toggle button.
+    groupRef.current?.querySelector<HTMLButtonElement>(`[data-item-toggle-id="${itemId}"]`)
+      ?.focus({ preventScroll: true })
+    toggledItemIdRef.current = null
+  }, [draft])
+
+  function handleToggleItemExample(itemId: string) {
+    if (!isEditing || isSavingCardChanges) {
+      return
+    }
+    setPendingDeleteId(null)
+    toggledItemIdRef.current = itemId
+    onItemExampleToggle(itemId)
+  }
 
   function handleCancelDelete() {
     setPendingDeleteId(null)
@@ -126,6 +171,7 @@ export function PostingCardRequirementGroup({
 
   return (
     <article
+      ref={groupRef}
       className={`posting-card-requirements__requirement posting-card-requirements__requirement--${itemRule.replace('_', '-')}`}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && pendingDeleteItem !== undefined) {
@@ -174,10 +220,12 @@ export function PostingCardRequirementGroup({
 
                 <RequirementPill
                   item={item}
+                  itemId={item.id}
                   isEditing={isEditing}
                   isSavingCardChanges={isSavingCardChanges}
                   isDeletePending={pendingDeleteId === item.id}
                   onChange={(name) => onItemChange(item.id, name)}
+                  onExampleToggle={() => handleToggleItemExample(item.id)}
                   onDelete={(button) => {
                     deleteButtonRef.current = button
                     setPendingDeleteId(item.id)
@@ -194,10 +242,12 @@ export function PostingCardRequirementGroup({
               <RequirementPill
                 key={item.id}
                 item={item}
+                itemId={item.id}
                 isEditing={isEditing}
                 isSavingCardChanges={isSavingCardChanges}
                 isDeletePending={pendingDeleteId === item.id}
                 onChange={(name) => onItemChange(item.id, name)}
+                onExampleToggle={() => handleToggleItemExample(item.id)}
                 onDelete={(button) => {
                   deleteButtonRef.current = button
                   setPendingDeleteId(item.id)

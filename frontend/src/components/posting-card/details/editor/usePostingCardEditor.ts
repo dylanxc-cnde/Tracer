@@ -286,7 +286,7 @@ export function usePostingCardEditor(
     if (isReadOnly || !isEditing || isSavingCardChanges) {
       return
     }
-    // Start with a plain skill; category/example controls are a later step.
+    // New items start as plain skills; the user can turn them into examples afterwards.
     const item: RequirementItemDraft = {
       id: crypto.randomUUID(),
       name: '',
@@ -320,6 +320,30 @@ export function usePostingCardEditor(
           return {
             ...group,
             items: group.items.map((item) => item.id === itemId ? { ...item, name } : item),
+          }
+        }),
+      })),
+    }))
+  }
+
+  function toggleDraftRequirementItemExample(groupId: string, itemId: string) {
+    if (isReadOnly || !isEditing || isSavingCardChanges) {
+      return
+    }
+    // Flip only the example flag; keep the same pill, position and owning group.
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      requirements: currentDraft.requirements.map((section) => ({
+        ...section,
+        groups: section.groups.map((group) => {
+          if (group.id !== groupId) {
+            return group
+          }
+          return {
+            ...group,
+            items: group.items.map((item) =>
+              item.id === itemId ? { ...item, is_example: !item.is_example } : item,
+            ),
           }
         }),
       })),
@@ -725,6 +749,7 @@ export function usePostingCardEditor(
     addDraftRequirementGroup,
     addDraftRequirementItem,
     updateDraftRequirementItem,
+    toggleDraftRequirementItemExample,
     deleteDraftRequirementItem,
     updateDraftJobDetails,
     addDraftAddressCandidate,

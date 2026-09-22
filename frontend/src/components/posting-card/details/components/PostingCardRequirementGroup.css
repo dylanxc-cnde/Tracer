@@ -157,10 +157,11 @@
   cursor: wait;
 }
 
+/* Both controls fit in the pill's existing side padding, including in reading mode. */
+.posting-card-requirements__pill-toggle,
 .posting-card-requirements__pill-delete {
   position: absolute;
   inset-block: 0;
-  right: 4px;
   display: grid;
   place-items: center;
   width: 24px;
@@ -173,12 +174,28 @@
   background-color: transparent;
 }
 
+.posting-card-requirements__pill-toggle {
+  left: 4px;
+  color: var(--color-text-secondary);
+}
+
+.posting-card-requirements__pill-delete {
+  right: 4px;
+}
+
+.posting-card-requirements__pill-toggle:hover:not(:disabled) {
+  border-color: var(--color-information);
+  color: var(--color-action-primary);
+  background-color: var(--color-surface);
+}
+
 .posting-card-requirements__pill-delete:hover:not(:disabled) {
   border-color: var(--color-danger);
   color: var(--color-danger);
   background-color: var(--color-danger-soft);
 }
 
+.posting-card-requirements__pill-toggle:focus-visible,
 .posting-card-requirements__pill-delete:focus-visible {
   outline: 2px solid var(--color-action-primary);
   outline-offset: 2px;

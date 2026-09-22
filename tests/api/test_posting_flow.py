@@ -1850,6 +1850,42 @@ def test_http_requirement_item_edits_persist_and_restore_original(tmp_path):
         assert restored.json() == card.model_dump(mode="json")
 
 
+@pytest.mark.parametrize("group_index", [1, 5])
+def test_http_requirement_example_toggle_persists_and_restores_original(tmp_path, group_index):
+    database_path = tmp_path / "tracer.db"
+    card = make_requirement_card()
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    request["requirement_groups"] = [
+        group.model_dump(mode="json", exclude={"origin"})
+        for group in card.posting.requirements.groups
+    ]
+    # Exercise both directions without moving the item or changing its other fields.
+    item = request["requirement_groups"][group_index]["items"][0]
+    item["is_example"] = not item["is_example"]
+    expected = card.model_dump(mode="json")
+    expected_group = expected["posting"]["requirements"]["groups"][group_index]
+    expected_group["items"][0]["is_example"] = item["is_example"]
+    expected_group["origin"] = "user_defined"
+
+    with TestClient(create_app(database_path=database_path)) as client:
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 200
+        assert response.json() == expected
+        assert client.get(f"/posting-cards/{card.card_key}").json() == expected
+        reopened_store = PostingCardStore(database_path)
+        assert reopened_store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
+        assert reopened_store.get_original_by_card_key(card.card_key) == card
+
+        # Toggling back restores the original group origin as well as its contents.
+        item["is_example"] = not item["is_example"]
+        restored = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert restored.status_code == 200
+        assert restored.json() == card.model_dump(mode="json")
+        assert reopened_store.get_original_by_card_key(card.card_key) == card
+
+
 def test_http_requires_requirement_groups_and_cleans_empty_additions(tmp_path):
     database_path = tmp_path / "tracer.db"
     card = PostingCard(import_key=uuid4(), posting=make_posting_details())

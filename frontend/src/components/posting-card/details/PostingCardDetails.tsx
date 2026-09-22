@@ -357,6 +357,7 @@ export function PostingCardDetails({
               onSectionDelete={editor.deleteDraftRequirementSection}
               onItemAdd={editor.addDraftRequirementItem}
               onItemChange={editor.updateDraftRequirementItem}
+              onItemExampleToggle={editor.toggleDraftRequirementItemExample}
               onItemDelete={editor.deleteDraftRequirementItem}
             />
 

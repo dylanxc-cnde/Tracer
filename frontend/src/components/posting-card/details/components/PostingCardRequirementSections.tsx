@@ -57,6 +57,7 @@ type PostingCardRequirementSectionsProps = {
   onSectionDelete: (importance: RequirementImportance) => void
   onItemAdd: (groupId: string) => void
   onItemChange: (groupId: string, itemId: string, name: string) => void
+  onItemExampleToggle: (groupId: string, itemId: string) => void
   onItemDelete: (groupId: string, itemId: string) => void
 }
 
@@ -71,6 +72,7 @@ type RequirementSectionProps = {
   onDelete: (importance: RequirementImportance) => void
   onItemAdd: (groupId: string) => void
   onItemChange: (groupId: string, itemId: string, name: string) => void
+  onItemExampleToggle: (groupId: string, itemId: string) => void
   onItemDelete: (groupId: string, itemId: string) => void
 }
 
@@ -85,6 +87,7 @@ function RequirementSection({
   onDelete,
   onItemAdd,
   onItemChange,
+  onItemExampleToggle,
   onItemDelete,
 }: RequirementSectionProps) {
   const [isDeletePending, setIsDeletePending] = useState(false)
@@ -191,6 +194,7 @@ function RequirementSection({
             isSavingCardChanges={isSavingCardChanges}
             onItemAdd={() => onItemAdd(requirement.id)}
             onItemChange={(itemId, name) => onItemChange(requirement.id, itemId, name)}
+            onItemExampleToggle={(itemId) => onItemExampleToggle(requirement.id, itemId)}
             onItemDelete={(itemId) => onItemDelete(requirement.id, itemId)}
           />
         ))}
@@ -208,6 +212,7 @@ export function PostingCardRequirementSections({
   onSectionDelete,
   onItemAdd,
   onItemChange,
+  onItemExampleToggle,
   onItemDelete,
 }: PostingCardRequirementSectionsProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -233,6 +238,7 @@ export function PostingCardRequirementSections({
           onDelete={handleDeleteSection}
           onItemAdd={onItemAdd}
           onItemChange={onItemChange}
+          onItemExampleToggle={onItemExampleToggle}
           onItemDelete={onItemDelete}
         />
       ))}
