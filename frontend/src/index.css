@@ -29,11 +29,9 @@
     rgba(52, 53, 53, 0.1) 0 10px 24px -8px,
     rgba(52, 53, 53, 0.06) 0 4px 10px -4px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --font-family: 'PT Serif', serif;
 
-  font: 16px/1.5 var(--sans);
+  font: 16px/1.5 var(--font-family);
   letter-spacing: 0.08px;
   color-scheme: light;
   color: var(--color-text-primary);
@@ -48,6 +46,20 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+/* Keep controls and code text on the same font as the rest of the page. */
+button,
+input,
+select,
+textarea,
+optgroup,
+option,
+pre,
+code,
+kbd,
+samp {
+  font-family: inherit;
 }
 
 html {
@@ -71,7 +83,7 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: var(--heading);
+  font-family: var(--font-family);
   color: var(--color-text-primary);
 }
 
@@ -102,5 +114,5 @@ code {
   border-radius: 4px;
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
-  font: 15px/1.35 var(--mono);
+  font: 15px/1.35 var(--font-family);
 }

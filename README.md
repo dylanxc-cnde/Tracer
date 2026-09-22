@@ -72,6 +72,10 @@ The stack is React + TypeScript + Vite, FastAPI + Pydantic, and SQLite.
 Parsing uses the OpenAI Responses API. A fictional parser example lives in
 [examples/try_posting_parse.py](examples/try_posting_parse.py).
 
+The interface uses [PT Serif](https://fonts.google.com/specimen/PT+Serif),
+bundled locally via [Fontsource](https://fontsource.org/fonts/pt-serif).
+Characters outside its coverage, including Chinese, fall back to system fonts.
+
 Run backend checks from the repository root:
 
 ```bash
