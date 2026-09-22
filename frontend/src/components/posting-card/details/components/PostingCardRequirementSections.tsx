@@ -55,6 +55,9 @@ type PostingCardRequirementSectionsProps = {
   isSavingCardChanges: boolean
   onGroupAdd: (importance: RequirementImportance, itemRule: 'all_of' | 'any_of') => void
   onSectionDelete: (importance: RequirementImportance) => void
+  onItemAdd: (groupId: string) => void
+  onItemChange: (groupId: string, itemId: string, name: string) => void
+  onItemDelete: (groupId: string, itemId: string) => void
 }
 
 type RequirementSectionProps = {
@@ -66,6 +69,9 @@ type RequirementSectionProps = {
   isSavingCardChanges: boolean
   onGroupAdd: (importance: RequirementImportance, itemRule: 'all_of' | 'any_of') => void
   onDelete: (importance: RequirementImportance) => void
+  onItemAdd: (groupId: string) => void
+  onItemChange: (groupId: string, itemId: string, name: string) => void
+  onItemDelete: (groupId: string, itemId: string) => void
 }
 
 function RequirementSection({
@@ -77,6 +83,9 @@ function RequirementSection({
   isSavingCardChanges,
   onGroupAdd,
   onDelete,
+  onItemAdd,
+  onItemChange,
+  onItemDelete,
 }: RequirementSectionProps) {
   const [isDeletePending, setIsDeletePending] = useState(false)
   const deleteButtonRef = useRef<HTMLButtonElement>(null)
@@ -85,11 +94,20 @@ function RequirementSection({
     return null
   }
 
-  const displayedGroups = isEditing ? draft?.groups ?? [] : requirements.map((group, index) => ({
-    id: `${importance}-${index}`,
-    itemRule: group.item_rule,
-    items: group.items,
-  }))
+  // Read saved items in view mode and the hook's item drafts in edit mode.
+  const displayedGroups = isEditing
+    ? (draft?.groups ?? []).map((group) => ({
+        id: group.id,
+        itemRule: group.itemRule,
+        items: [],
+        draft: group.items,
+      }))
+    : requirements.map((group, index) => ({
+        id: `${importance}-${index}`,
+        itemRule: group.item_rule,
+        items: group.items,
+        draft: [],
+      }))
   const allOfRequirements = displayedGroups.filter(
     (requirement) => requirement.itemRule === 'all_of',
   )
@@ -162,11 +180,18 @@ function RequirementSection({
           />
         )}
         {orderedRequirements.length === 0 && <p className="posting-card-details__empty">None</p>}
+        {/* Bind the box ID here; Group only needs to report which pill changed. */}
         {orderedRequirements.map((requirement) => (
           <PostingCardRequirementGroup
             key={requirement.id}
             itemRule={requirement.itemRule}
             items={requirement.items}
+            draft={requirement.draft}
+            isEditing={isEditing}
+            isSavingCardChanges={isSavingCardChanges}
+            onItemAdd={() => onItemAdd(requirement.id)}
+            onItemChange={(itemId, name) => onItemChange(requirement.id, itemId, name)}
+            onItemDelete={(itemId) => onItemDelete(requirement.id, itemId)}
           />
         ))}
       </div>
@@ -181,6 +206,9 @@ export function PostingCardRequirementSections({
   isSavingCardChanges,
   onGroupAdd,
   onSectionDelete,
+  onItemAdd,
+  onItemChange,
+  onItemDelete,
 }: PostingCardRequirementSectionsProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -203,6 +231,9 @@ export function PostingCardRequirementSections({
           isSavingCardChanges={isSavingCardChanges}
           onGroupAdd={onGroupAdd}
           onDelete={handleDeleteSection}
+          onItemAdd={onItemAdd}
+          onItemChange={onItemChange}
+          onItemDelete={onItemDelete}
         />
       ))}
     </div>

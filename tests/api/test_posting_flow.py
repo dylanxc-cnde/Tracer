@@ -1806,6 +1806,50 @@ def test_http_rejects_invalid_requirement_updates_without_writing(tmp_path, inva
     assert store.get_original_by_card_key(card.card_key) == card
 
 
+def test_http_requirement_item_edits_persist_and_restore_original(tmp_path):
+    database_path = tmp_path / "tracer.db"
+    card = make_requirement_card()
+    store = PostingCardStore(database_path)
+    store.add(card)
+    request = make_card_update_request()
+    original_groups = [
+        group.model_dump(mode="json", exclude={"origin"})
+        for group in card.posting.requirements.groups
+    ]
+    request["requirement_groups"] = [
+        group.model_dump(mode="json", exclude={"origin"})
+        for group in card.posting.requirements.groups
+    ]
+    groups = request["requirement_groups"]
+    groups[1]["items"][0]["name"] = "Advanced Python"
+    groups[1]["items"].pop(1)  # Delete SQL without changing the other groups.
+    groups[1]["items"].append({"name": "TypeScript", "category": "skill", "is_example": False})
+    groups[5]["items"][0]["name"] = "REST"  # Preserve the example marker.
+
+    with TestClient(create_app(database_path=database_path)) as client:
+        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert response.status_code == 200
+        saved = response.json()
+        requirements = saved["posting"]["requirements"]
+        assert requirements["groups"][1]["items"] == groups[1]["items"]
+        assert requirements["groups"][1]["origin"] == "user_defined"
+        assert requirements["groups"][5]["items"] == groups[5]["items"]
+        assert requirements["groups"][5]["origin"] == "user_defined"
+        assert requirements["groups"][5]["items"][0]["is_example"] is True
+        for index in (0, 2, 3, 4, 6):
+            assert requirements["groups"][index] == card.posting.requirements.groups[index].model_dump(mode="json")
+        assert requirements["source"] == card.posting.requirements.source.model_dump(mode="json")
+        assert client.get(f"/posting-cards/{card.card_key}").json() == saved
+        reopened_store = PostingCardStore(database_path)
+        assert reopened_store.get_by_card_key(card.card_key) == PostingCard.model_validate(saved)
+        assert reopened_store.get_original_by_card_key(card.card_key) == card
+
+        request["requirement_groups"] = original_groups
+        restored = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        assert restored.status_code == 200
+        assert restored.json() == card.model_dump(mode="json")
+
+
 def test_http_requires_requirement_groups_and_cleans_empty_additions(tmp_path):
     database_path = tmp_path / "tracer.db"
     card = PostingCard(import_key=uuid4(), posting=make_posting_details())

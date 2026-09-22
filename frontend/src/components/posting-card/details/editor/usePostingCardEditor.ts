@@ -14,12 +14,14 @@ import type {
   JobDetailsDraft,
   PostingCardUserDraft,
   RequirementGroupDraft,
+  RequirementItemDraft,
   TextItemDraft,
   WorkConditionField,
   WorkConditionTextField,
 } from './PostingCardDraft'
 import {
   getCompensationValidationError,
+  getRequirementValidationError,
   hasDuplicateTags,
   isValidIsoDate,
 } from './PostingCardDraftValidators'
@@ -84,6 +86,16 @@ export function usePostingCardEditor(
 
     if (hasDuplicateTags(updateRequest.role_domains)) {
       setSaveError('Role domains must be unique, ignoring uppercase and lowercase.')
+      return
+    }
+
+    // Incomplete groups are fine while typing; stop here before sending an invalid save.
+    const requirementError = getRequirementValidationError(
+      updateRequest.requirement_groups, card.posting.requirements.groups,
+    )
+    if (requirementError !== null) {
+      // Show the existing save-error UI and keep the draft available for corrections.
+      setSaveError(requirementError)
       return
     }
 
@@ -267,6 +279,68 @@ export function usePostingCardEditor(
         }
         return { ...section, groups: [...section.groups, group] }
       }),
+    }))
+  }
+
+  function addDraftRequirementItem(groupId: string) {
+    if (isReadOnly || !isEditing || isSavingCardChanges) {
+      return
+    }
+    // Start with a plain skill; category/example controls are a later step.
+    const item: RequirementItemDraft = {
+      id: crypto.randomUUID(),
+      name: '',
+      category: 'skill',
+      is_example: false,
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      requirements: currentDraft.requirements.map((section) => ({
+        ...section,
+        groups: section.groups.map((group) =>
+          group.id === groupId ? { ...group, items: [...group.items, item] } : group,
+        ),
+      })),
+    }))
+  }
+
+  function updateDraftRequirementItem(groupId: string, itemId: string, name: string) {
+    if (isReadOnly || !isEditing || isSavingCardChanges) {
+      return
+    }
+    // Match the box, then the pill; changing its name must not change its ID or metadata.
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      requirements: currentDraft.requirements.map((section) => ({
+        ...section,
+        groups: section.groups.map((group) => {
+          if (group.id !== groupId) {
+            return group
+          }
+          return {
+            ...group,
+            items: group.items.map((item) => item.id === itemId ? { ...item, name } : item),
+          }
+        }),
+      })),
+    }))
+  }
+
+  function deleteDraftRequirementItem(groupId: string, itemId: string) {
+    if (isReadOnly || !isEditing || isSavingCardChanges) {
+      return
+    }
+    // Keep an emptied box on screen for more input; Save cleans it up later.
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      requirements: currentDraft.requirements.map((section) => ({
+        ...section,
+        groups: section.groups.map((group) =>
+          group.id === groupId
+            ? { ...group, items: group.items.filter((item) => item.id !== itemId) }
+            : group,
+        ),
+      })),
     }))
   }
 
@@ -649,6 +723,9 @@ export function usePostingCardEditor(
     addDraftRequirementSection,
     deleteDraftRequirementSection,
     addDraftRequirementGroup,
+    addDraftRequirementItem,
+    updateDraftRequirementItem,
+    deleteDraftRequirementItem,
     updateDraftJobDetails,
     addDraftAddressCandidate,
     updateDraftAddressCandidate,

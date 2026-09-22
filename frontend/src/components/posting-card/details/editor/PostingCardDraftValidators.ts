@@ -1,4 +1,51 @@
-import type { UpdateCompensationEntryRequest } from '../../../../postings/types/postingCard'
+import type {
+  UpdateCompensationEntryRequest,
+  UpdateRequirementGroupRequest,
+} from '../../../../postings/types/postingCard'
+import type { Requirement } from '../../../../postings/types/postingDetails'
+import { formatRequirementItemRuleLabel } from '../PostingCardFormatters'
+
+// Return the first save-time problem, or null; the caller decides how to show it.
+export function getRequirementValidationError(
+  groups: UpdateRequirementGroupRequest[],
+  savedGroups: Requirement[],
+): string | null {
+  const importanceLabels = { required: 'Required', preferred: 'Nice to have', unknown: 'Unknown' }
+
+  for (const group of groups) {
+    // Compare with the current saved card, not original; leave untouched legacy groups alone.
+    const isUnchanged = savedGroups.some((saved) => {
+      if (
+        saved.importance !== group.importance || saved.item_rule !== group.item_rule ||
+        saved.items.length !== group.items.length
+      ) {
+        return false
+      }
+      return group.items.every((item, itemIndex) => {
+        const savedItem = saved.items[itemIndex]
+        return item.name === savedItem.name && item.category === savedItem.category &&
+          item.is_example === savedItem.is_example
+      })
+    })
+    if (isUnchanged) {
+      continue
+    }
+
+    // The request has already dropped blank pills; examples don't count as core items.
+    const coreCount = group.items.filter((item) => !item.is_example).length
+    // Include the lane and item names so the user can find the box that needs fixing.
+    const label = `${importanceLabels[group.importance]} — ${formatRequirementItemRuleLabel(group.item_rule)}`
+    const preview = group.items.map((item) => item.name).join(', ')
+    // Check known AND/OR rules only; don't guess a rule for unknown groups.
+    if (group.item_rule === 'any_of' && coreCount < 2) {
+      return `${label} (${preview}): keep at least two core items. Examples do not count.`
+    }
+    if (group.item_rule === 'all_of' && coreCount === 0) {
+      return `${label} (${preview}): keep at least one core item. Examples do not count.`
+    }
+  }
+  return null
+}
 
 export function getCompensationValidationError(
   entries: UpdateCompensationEntryRequest[],

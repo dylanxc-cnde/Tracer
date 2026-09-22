@@ -19,10 +19,15 @@ export type TextItemDraft = {
   value: string
 }
 
+// Editor-only ID: keep the same pill when its name changes; never send this ID.
+export type RequirementItemDraft = RequirementItem & {
+  id: string
+}
+
 export type RequirementGroupDraft = {
   id: string
   itemRule: RequirementItemRule
-  items: RequirementItem[]
+  items: RequirementItemDraft[]
 }
 
 export type RequirementSectionDraft = {

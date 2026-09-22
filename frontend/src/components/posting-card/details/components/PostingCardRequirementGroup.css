@@ -25,6 +25,26 @@
   gap: 8px;
 }
 
+/* Reserve the Add button's space in both modes, so the row doesn't jump. */
+.posting-card-requirements__group-heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding-right: 48px;
+}
+
+.posting-card-requirements__add-item {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+}
+
 .posting-card-requirements__item-rule {
   width: fit-content;
   color: var(--color-text-secondary);
@@ -49,6 +69,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .posting-card-requirements__item-connector {
@@ -59,10 +81,14 @@
 }
 
 .posting-card-requirements__pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 10px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 6px 32px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
   color: var(--color-text-primary);
@@ -70,6 +96,92 @@
   font-size: 13px;
   font-weight: 650;
   line-height: 1.2;
+}
+
+.posting-card-requirements__pill-text {
+  position: relative;
+  min-width: 0;
+}
+
+.posting-card-requirements__pill-value,
+.posting-card-requirements__pill-input {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  white-space: pre;
+}
+
+.posting-card-requirements__pill-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Keep text width without showing a second copy behind the input. */
+.posting-card-requirements__pill-value--sizing {
+  visibility: hidden;
+}
+
+.posting-card-requirements__pill-input {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
+}
+
+.posting-card-requirements__pill-input:hover:not(:disabled),
+.posting-card-requirements__pill-input:focus-visible {
+  background-color: rgba(52, 53, 53, 0.04);
+}
+
+.posting-card-requirements__pill-input:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 3px;
+}
+
+.posting-card-requirements__pill-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.posting-card-requirements__pill-input:disabled {
+  color: var(--color-text-secondary);
+  cursor: wait;
+}
+
+.posting-card-requirements__pill-delete {
+  position: absolute;
+  inset-block: 0;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  margin-block: auto;
+  padding: 0;
+  border-color: transparent;
+  border-radius: 50%;
+  background-color: transparent;
+}
+
+.posting-card-requirements__pill-delete:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+}
+
+.posting-card-requirements__pill-delete:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
 }
 
 .posting-card-requirements__pill--example {

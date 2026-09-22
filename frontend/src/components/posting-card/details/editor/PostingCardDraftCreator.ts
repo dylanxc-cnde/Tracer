@@ -6,6 +6,7 @@ import type {
   RequirementSectionDraft,
 } from './PostingCardDraft'
 
+// Group saved data by importance and give each editable box/pill its own ID.
 function createRequirementSections(groups: Requirement[]): RequirementSectionDraft[] {
   const sections: RequirementSectionDraft[] = []
 
@@ -15,10 +16,11 @@ function createRequirementSections(groups: Requirement[]): RequirementSectionDra
       section = { importance: group.importance, groups: [] }
       sections.push(section)
     }
+    // Generate IDs when building the draft, not on every keystroke or render.
     section.groups.push({
       id: crypto.randomUUID(),
       itemRule: group.item_rule,
-      items: group.items.map((item) => ({ ...item })),
+      items: group.items.map((item) => ({ ...item, id: crypto.randomUUID() })),
     })
   }
 

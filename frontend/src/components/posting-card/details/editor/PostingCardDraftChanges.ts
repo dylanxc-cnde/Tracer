@@ -7,10 +7,12 @@ import type {
 import type { CompensationEntry, Requirement, RequirementImportance } from '../../../../postings/types/postingDetails'
 import type { RequirementSectionDraft } from './PostingCardDraft'
 
-// Empty additions still allow Save, which removes them from the draft.
+// Blank additions disappear from the request, but Save must still let us clear them.
 export function hasEmptyRequirementDrafts(sections: RequirementSectionDraft[]): boolean {
   return sections.some((section) =>
-    section.groups.length === 0 || section.groups.some((group) => group.items.length === 0),
+    section.groups.length === 0 || section.groups.some((group) =>
+      group.items.length === 0 || group.items.some((item) => item.name.trim().length === 0),
+    ),
   )
 }
 

@@ -29,6 +29,7 @@ function normalizeTextItems(items: TextItemDraft[]): string[] {
     .filter((value) => value.length > 0)
 }
 
+// Turn section/group drafts into the API's flat group list; no state or HTTP changes here.
 function normalizeRequirementGroups(
   sections: RequirementSectionDraft[],
 ): UpdateRequirementGroupRequest[] {
@@ -36,13 +37,22 @@ function normalizeRequirementGroups(
 
   for (const section of sections) {
     for (const group of section.groups) {
-      if (group.items.length === 0) {
+      // Only keep API fields: trim names, drop blank pills, and leave draft IDs behind.
+      const items = group.items
+        .map((item) => ({
+          name: item.name.trim(),
+          category: item.category,
+          is_example: item.is_example,
+        }))
+        .filter((item) => item.name.length > 0)
+      if (items.length === 0) {
+        // Clearing the last pill also removes the empty box from the saved card.
         continue
       }
       groups.push({
         importance: section.importance,
         item_rule: group.itemRule,
-        items: group.items.map((item) => ({ ...item })),
+        items,
       })
     }
   }

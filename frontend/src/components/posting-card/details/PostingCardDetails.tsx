@@ -355,6 +355,9 @@ export function PostingCardDetails({
               isSavingCardChanges={editor.isSavingCardChanges}
               onGroupAdd={editor.addDraftRequirementGroup}
               onSectionDelete={editor.deleteDraftRequirementSection}
+              onItemAdd={editor.addDraftRequirementItem}
+              onItemChange={editor.updateDraftRequirementItem}
+              onItemDelete={editor.deleteDraftRequirementItem}
             />
 
             <PostingCardSourceEvidence
