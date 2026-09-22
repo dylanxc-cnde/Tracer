@@ -43,7 +43,7 @@ inline editors, aren't pictured yet. Click an image for a closer look.
 - a working React and TypeScript browser flow from pasted text to a saved card;
 - local Card and Import libraries that reload records from SQLite;
 - explicit, confirmed deletion for saved Cards and Import history;
-- a Card Details dialog with quick facts, role content, requirements,
+- a Card Details dialog with quick facts, role content, requirements, job details,
   work conditions, compensation, application and contact details, company
   information, source excerpts, and creation metadata;
 - a global Card edit mode with inline text, list, pill, date, choice, and
@@ -69,6 +69,7 @@ stays unknown, and you review and select a posting before saving it as a Card.
 | Section | Editable content |
 | --- | --- |
 | What you'll do | Role summary, responsibilities, and role-domain pills |
+| What they're looking for | Add/remove importance sections; add All required together or Choose any one groups; add, edit, delete, and switch pills between requirements and examples |
 | Job details | Workload, job types, contract type, seniority, work modes, primary address, other address candidates, internship requirement, and eligibility |
 | Work conditions | Weekly hours, schedule, travel requirement, start date, and duration; add missing fields or remove existing ones |
 | Salary and benefits | Repeatable compensation entries, amounts, currency, period, pay basis, applicable groups, payment conditions, benefits, and vacation days |
@@ -77,8 +78,16 @@ stays unknown, and you review and select a posting before saving it as a Card.
 | About the company | Company summary, industries, and company size |
 | My Card | Alias, tags, and notes |
 
-Requirements is the largest remaining editor, not the last read-only field in the
-whole Card. Identity and Posting info are still read-only.
+Requirements now has its basic editor, using the same Card-wide draft and
+Save/Cancel flow. New pills start as regular requirements and can be switched
+to examples. Each importance section allows one All required together group
+and multiple Choose any one groups; existing unknown-rule groups remain separate.
+Saving drops blank items and empty groups, and checks changed groups for enough
+non-example requirements. Moving pills between groups, changing group rules,
+and drag-and-drop are not part of this iteration.
+
+This is the editable Card MVP checkpoint, not a finished interface or a promise
+that every field is editable. Identity and Posting info are still read-only.
 Quick Facts remains a display-only summary of the saved Card: supported edits to
 classification, primary address, work modes, hours, deadline, and salary appear there
 after saving, not while typing in the draft.
@@ -212,13 +221,9 @@ basic usability and reliable saving still matter along the way.
 Remaining Card work stays on the roadmap, without making every field editor
 a prerequisite for building the wider workspace:
 
-- build Requirements editing in small, reviewable steps: agree on the draft
-  and update contract, then connect validation, saving, and the UI; keep one
-  `all_of` group per importance level and each `any_of`/`unknown` group separate;
-- reuse the Card-wide Save/Cancel flow and preserve section-level sources;
-  settle group editing before adding drag-and-drop;
-- keep Quick Facts read-only; give its underlying fields a detailed home and
-  editing controls rather than duplicating their state;
+- pause Requirements at basic editing for now. Revisit cross-group moves and
+  group-rule changes when actual use calls for them; drag-and-drop is not an
+  MVP requirement;
 - add editing to the existing Identity/Posting info area separately, without
   duplicating the metadata already shown in the header;
 - add address review and selection before presenting a map destination as
