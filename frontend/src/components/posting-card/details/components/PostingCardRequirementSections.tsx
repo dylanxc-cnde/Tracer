@@ -1,17 +1,13 @@
 import { useRef, useState } from 'react'
-import './PostingCardRequirements.css'
+import './PostingCardRequirementSections.css'
 import type {
   Requirement,
   RequirementImportance,
 } from '../../../../postings/types/postingDetails'
-import {
-  formatEnumValue,
-  formatRequirementItemRuleConnector,
-  formatRequirementItemRuleLabel,
-} from '../PostingCardFormatters'
 import type { RequirementSectionDraft } from '../editor/PostingCardDraft'
 import { PostingCardAddFieldMenu } from './PostingCardAddFieldMenu'
 import { PostingCardDeleteConfirmation } from './PostingCardDeleteConfirmation'
+import { PostingCardRequirementGroup } from './PostingCardRequirementGroup'
 
 const REQUIREMENT_IMPORTANCES: { key: RequirementImportance; label: string }[] = [
   { key: 'required', label: 'Required' },
@@ -52,7 +48,7 @@ export function PostingCardRequirementAdd({
   )
 }
 
-type PostingCardRequirementsProps = {
+type PostingCardRequirementSectionsProps = {
   groups: Requirement[]
   draft: RequirementSectionDraft[]
   isEditing: boolean
@@ -166,91 +162,26 @@ function RequirementSection({
           />
         )}
         {orderedRequirements.length === 0 && <p className="posting-card-details__empty">None</p>}
-        {orderedRequirements.map((requirement) => {
-          const itemRuleLabel = formatRequirementItemRuleLabel(
-            requirement.itemRule,
-          )
-          const itemConnector = formatRequirementItemRuleConnector(
-            requirement.itemRule,
-          )
-          const coreItems = requirement.items.filter(
-            (item) => !item.is_example,
-          )
-          const exampleItems = requirement.items.filter(
-            (item) => item.is_example,
-          )
-
-          return (
-            <article
-              className={`posting-card-requirements__requirement posting-card-requirements__requirement--${requirement.itemRule.replace('_', '-')}`}
-              key={requirement.id}
-            >
-              <div className="posting-card-requirements__requirement-items">
-                {itemRuleLabel !== null && (
-                  <span className="posting-card-requirements__item-rule">
-                    {itemRuleLabel}
-                  </span>
-                )}
-
-                {requirement.items.length === 0 && <p className="posting-card-details__empty">None</p>}
-
-                {coreItems.length > 0 && (
-                  <div className="posting-card-requirements__pill-list">
-                    {coreItems.map((item, itemIndex) => (
-                      <span
-                        className="posting-card-requirements__pill-with-connector"
-                        key={`${item.name}-${itemIndex}`}
-                      >
-                        {itemIndex > 0 && itemConnector !== null && (
-                          <span className="posting-card-requirements__item-connector">
-                            {itemConnector}
-                          </span>
-                        )}
-
-                        <span
-                          className="posting-card-requirements__pill"
-                          title={formatEnumValue(item.category)}
-                        >
-                          {item.name}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {exampleItems.length > 0 && (
-                  <div className="posting-card-requirements__pill-list posting-card-requirements__example-list">
-                    {exampleItems.map((item, itemIndex) => (
-                      <span
-                        className="posting-card-requirements__pill posting-card-requirements__pill--example"
-                        title={formatEnumValue(item.category)}
-                        key={`${item.name}-${itemIndex}`}
-                      >
-                        <span className="posting-card-requirements__example-prefix">
-                          e.g.
-                        </span>
-                        {item.name}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </article>
-          )
-        })}
+        {orderedRequirements.map((requirement) => (
+          <PostingCardRequirementGroup
+            key={requirement.id}
+            itemRule={requirement.itemRule}
+            items={requirement.items}
+          />
+        ))}
       </div>
     </section>
   )
 }
 
-export function PostingCardRequirements({
+export function PostingCardRequirementSections({
   groups,
   draft,
   isEditing,
   isSavingCardChanges,
   onGroupAdd,
   onSectionDelete,
-}: PostingCardRequirementsProps) {
+}: PostingCardRequirementSectionsProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   function handleDeleteSection(importance: RequirementImportance) {

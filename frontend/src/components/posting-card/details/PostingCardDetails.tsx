@@ -18,7 +18,7 @@ import { PostingCardPostingInfo } from './components/PostingCardPostingInfo'
 import { PostingCardRoleSummary } from './components/PostingCardRoleSummary'
 import { PostingCardResponsibilities } from './components/PostingCardResponsibilities'
 import { PostingCardRoleDomains } from './components/PostingCardRoleDomains'
-import { PostingCardRequirements, PostingCardRequirementAdd } from './components/PostingCardRequirements'
+import { PostingCardRequirementSections, PostingCardRequirementAdd } from './components/PostingCardRequirementSections'
 import { PostingCardJobDetails } from './components/PostingCardJobDetails'
 import {
   PostingCardWorkConditions,
@@ -347,7 +347,7 @@ export function PostingCardDetails({
               )}
             </div>
 
-            <PostingCardRequirements
+            <PostingCardRequirementSections
               key={editor.isEditing ? 'editing' : 'reading'}
               groups={posting.requirements.groups}
               draft={editor.draft.requirements}
