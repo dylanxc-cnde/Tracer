@@ -12,6 +12,9 @@ from tracer.postings.models.posting_details import (
     ContractType,
     InternshipRequirement,
     PayBasis,
+    RequirementImportance,
+    RequirementItem,
+    RequirementItemRule,
     RoleFamily,
     Seniority,
     WorkMode,
@@ -29,6 +32,16 @@ class CreatePostingCardRequest(BaseModel):
     posting_alias: str | None = None
     user_notes: str | None = None
     tags: tuple[str, ...] = ()
+
+
+class UpdateRequirementGroupRequest(BaseModel):
+    """One requirement box, without draft IDs, origin or source metadata."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    importance: RequirementImportance
+    item_rule: RequirementItemRule
+    items: tuple[RequirementItem, ...]
 
 
 class UpdateCompensationEntryRequest(BaseModel):
@@ -69,6 +82,7 @@ class UpdatePostingCardRequest(BaseModel):
     role_summary: str | None
     responsibilities: tuple[str, ...]
     role_domains: tuple[str, ...]
+    requirement_groups: tuple[UpdateRequirementGroupRequest, ...]
     workload_type: WorkloadType | None
     role_families: tuple[RoleFamily, ...]
     contract_type: ContractType | None
@@ -107,6 +121,14 @@ class UpdatePostingCardRequest(BaseModel):
     posting_alias: str | None
     user_notes: str | None
     tags: tuple[str, ...]
+
+    @field_validator("requirement_groups")
+    @classmethod
+    def remove_empty_requirement_groups(
+        cls, groups: tuple[UpdateRequirementGroupRequest, ...]
+    ) -> tuple[UpdateRequirementGroupRequest, ...]:
+        """Empty editor boxes are temporary; example-only groups are not empty."""
+        return tuple(group for group in groups if group.items)
 
     @field_validator("application_channels")
     @classmethod

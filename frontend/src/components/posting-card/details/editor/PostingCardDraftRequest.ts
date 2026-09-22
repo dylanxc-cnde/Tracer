@@ -1,10 +1,12 @@
 import type {
   UpdateCompensationEntryRequest,
   UpdatePostingCardRequest,
+  UpdateRequirementGroupRequest,
 } from '../../../../postings/types/postingCard'
 import type {
   CompensationEntryFields,
   PostingCardUserDraft,
+  RequirementSectionDraft,
   TextItemDraft,
 } from './PostingCardDraft'
 
@@ -25,6 +27,37 @@ function normalizeTextItems(items: TextItemDraft[]): string[] {
   return items
     .map((item) => item.value.trim())
     .filter((value) => value.length > 0)
+}
+
+// Turn section/group drafts into the API's flat group list; no state or HTTP changes here.
+function normalizeRequirementGroups(
+  sections: RequirementSectionDraft[],
+): UpdateRequirementGroupRequest[] {
+  const groups: UpdateRequirementGroupRequest[] = []
+
+  for (const section of sections) {
+    for (const group of section.groups) {
+      // Only keep API fields: trim names, drop blank pills, and leave draft IDs behind.
+      const items = group.items
+        .map((item) => ({
+          name: item.name.trim(),
+          category: item.category,
+          is_example: item.is_example,
+        }))
+        .filter((item) => item.name.length > 0)
+      if (items.length === 0) {
+        // Clearing the last pill also removes the empty box from the saved card.
+        continue
+      }
+      groups.push({
+        importance: section.importance,
+        item_rule: group.itemRule,
+        items,
+      })
+    }
+  }
+
+  return groups
 }
 
 function normalizeCompensationAmount(value: string): number | null {
@@ -61,6 +94,7 @@ export function createPostingCardUpdateRequest(
     role_summary: normalizeOptionalText(draft.roleSummary),
     responsibilities: normalizeTextItems(draft.responsibilities),
     role_domains: normalizeTextItems(draft.roleDomains),
+    requirement_groups: normalizeRequirementGroups(draft.requirements),
     workload_type: draft.jobDetails.workloadType,
     role_families: draft.jobDetails.roleFamilies,
     contract_type: draft.jobDetails.contractType,

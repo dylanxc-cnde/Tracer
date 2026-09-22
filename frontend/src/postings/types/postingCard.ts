@@ -6,6 +6,9 @@ import type {
   InternshipRequirement,
   PayBasis,
   PostingDetails,
+  RequirementImportance,
+  RequirementItem,
+  RequirementItemRule,
   RoleFamily,
   Seniority,
   WorkMode,
@@ -31,6 +34,12 @@ export type PostingCard = {
   tags: string[]
 }
 
+export type UpdateRequirementGroupRequest = {
+  importance: RequirementImportance
+  item_rule: RequirementItemRule
+  items: RequirementItem[]
+}
+
 export type UpdateCompensationEntryRequest = {
   compensation_type: CompensationType
   minimum_amount: number | null
@@ -46,6 +55,7 @@ export type UpdatePostingCardRequest = {
   role_summary: string | null
   responsibilities: string[]
   role_domains: string[]
+  requirement_groups: UpdateRequirementGroupRequest[]
   workload_type: WorkloadType | null
   role_families: RoleFamily[]
   contract_type: ContractType | null

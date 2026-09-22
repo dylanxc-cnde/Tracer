@@ -5,6 +5,9 @@ import type {
   ContractType,
   InternshipRequirement,
   PayBasis,
+  RequirementImportance,
+  RequirementItem,
+  RequirementItemRule,
   RoleFamily,
   Seniority,
   WorkMode,
@@ -14,6 +17,22 @@ import type {
 export type TextItemDraft = {
   id: string
   value: string
+}
+
+// Editor-only ID: keep the same pill when its name changes; never send this ID.
+export type RequirementItemDraft = RequirementItem & {
+  id: string
+}
+
+export type RequirementGroupDraft = {
+  id: string
+  itemRule: RequirementItemRule
+  items: RequirementItemDraft[]
+}
+
+export type RequirementSectionDraft = {
+  importance: RequirementImportance
+  groups: RequirementGroupDraft[]
 }
 
 export type JobDetailsDraft = {
@@ -65,6 +84,7 @@ export type PostingCardUserDraft = {
   roleSummary: string
   responsibilities: TextItemDraft[]
   roleDomains: TextItemDraft[]
+  requirements: RequirementSectionDraft[]
   jobDetails: JobDetailsDraft
   workConditions: WorkConditionsDraft
   compensationEntries: CompensationEntryFields[]

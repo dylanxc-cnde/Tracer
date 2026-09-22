@@ -105,6 +105,33 @@ class UpdatePostingCardService:
 
             payload["posting"]["role_content"]["domains"] = updated_domains
 
+        saved_groups = [
+            group.model_dump(exclude={"origin"})
+            for group in card.posting.requirements.groups
+        ]
+        requested_groups = [group.model_dump() for group in request.requirement_groups]
+        # The editor groups boxes by importance; cross-section order is not an edit.
+        sorted_requested_groups = sorted(requested_groups, key=lambda group: group["importance"])
+        if sorted_requested_groups != sorted(saved_groups, key=lambda group: group["importance"]):
+            original_groups = original_card.posting.requirements.groups
+            original_group_values = [
+                group.model_dump(exclude={"origin"}) for group in original_groups
+            ]
+            if sorted_requested_groups == sorted(original_group_values, key=lambda group: group["importance"]):
+                # Also restore the original ordering when restoring all groups.
+                updated_groups = [group.model_dump() for group in original_groups]
+            else:
+                updated_groups = []
+                for group in requested_groups:
+                    origin = FactOrigin.USER_DEFINED
+                    for original_group in original_groups:
+                        if group == original_group.model_dump(exclude={"origin"}):
+                            origin = original_group.origin
+                            break
+                    updated_groups.append({**group, "origin": origin})
+
+            payload["posting"]["requirements"]["groups"] = updated_groups
+
         saved_classification = card.posting.classification
         original_classification = original_card.posting.classification
         classification_values = {

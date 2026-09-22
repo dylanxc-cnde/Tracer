@@ -1,9 +1,31 @@
 import type { PostingCard } from '../../../../postings/types/postingCard'
-import type { CompensationEntry } from '../../../../postings/types/postingDetails'
+import type { CompensationEntry, Requirement } from '../../../../postings/types/postingDetails'
 import type {
   CompensationEntryFields,
   PostingCardUserDraft,
+  RequirementSectionDraft,
 } from './PostingCardDraft'
+
+// Group saved data by importance and give each editable box/pill its own ID.
+function createRequirementSections(groups: Requirement[]): RequirementSectionDraft[] {
+  const sections: RequirementSectionDraft[] = []
+
+  for (const group of groups) {
+    let section = sections.find((section) => section.importance === group.importance)
+    if (section === undefined) {
+      section = { importance: group.importance, groups: [] }
+      sections.push(section)
+    }
+    // Generate IDs when building the draft, not on every keystroke or render.
+    section.groups.push({
+      id: crypto.randomUUID(),
+      itemRule: group.item_rule,
+      items: group.items.map((item) => ({ ...item, id: crypto.randomUUID() })),
+    })
+  }
+
+  return sections
+}
 
 export function createCompensationEntryFields(
   entry: CompensationEntry,
@@ -43,6 +65,7 @@ export function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
       id: crypto.randomUUID(),
       value: domain.value,
     })),
+    requirements: createRequirementSections(card.posting.requirements.groups),
     jobDetails: {
       workloadType: classification.workload_type?.value ?? null,
       roleFamilies: [...new Set(classification.role_families?.value ?? [])],
