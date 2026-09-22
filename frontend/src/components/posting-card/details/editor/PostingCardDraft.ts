@@ -43,6 +43,10 @@ export type RequirementSectionDraft = {
 }
 
 export type JobDetailsDraft = {
+  positionTitle: string
+  companyName: string
+  departmentName: string
+  externalJobId: string
   workloadType: WorkloadType | null
   roleFamilies: RoleFamily[]
   contractType: ContractType | null

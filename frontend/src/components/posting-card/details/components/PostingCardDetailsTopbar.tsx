@@ -1,7 +1,7 @@
 type PostingCardDetailsTopbarProps = {
   displayedTitle: string
-  originalTitle: string | null
-  isOriginalTitleVisible: boolean
+  positionTitle: string | null
+  isPositionTitleVisible: boolean
   isEditing: boolean
   isSavingCardChanges: boolean
   hasChanges: boolean
@@ -14,8 +14,8 @@ type PostingCardDetailsTopbarProps = {
 
 export function PostingCardDetailsTopbar({
   displayedTitle,
-  originalTitle,
-  isOriginalTitleVisible,
+  positionTitle,
+  isPositionTitleVisible,
   isEditing,
   isSavingCardChanges,
   hasChanges,
@@ -30,10 +30,10 @@ export function PostingCardDetailsTopbar({
       <div className="posting-card-details__title-group">
         <h2 className="posting-card-details__title">{displayedTitle}</h2>
 
-        {isOriginalTitleVisible && (
-          <details className="posting-card-details__original-title">
-            <summary>Original title</summary>
-            <p>{originalTitle}</p>
+        {isPositionTitleVisible && (
+          <details className="posting-card-details__position-title">
+            <summary>Position title</summary>
+            <p>{positionTitle}</p>
           </details>
         )}
       </div>

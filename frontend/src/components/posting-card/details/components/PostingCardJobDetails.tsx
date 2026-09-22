@@ -294,6 +294,7 @@ export function PostingCardJobDetails({
   onAddressCandidateChange,
   onAddressCandidateDelete,
 }: PostingCardJobDetailsProps) {
+  const identity = posting.identity
   const classification = posting.classification
   const workConditions = posting.work_conditions
   const workloadType = classification.workload_type?.value ?? null
@@ -337,6 +338,86 @@ export function PostingCardJobDetails({
 
   return (
     <dl className="posting-card-job-details">
+      <JobDetailField
+        label="Position title"
+        value={identity.position_title?.value ?? null}
+      >
+        {isEditing && (
+          <div className="posting-card-job-details__editor">
+            <span className="posting-card-job-details__value posting-card-job-details__sizing" aria-hidden="true">
+              {draft.positionTitle || 'None'}
+            </span>
+            <textarea
+              className="posting-card-job-details__input"
+              aria-label="Position title"
+              value={draft.positionTitle}
+              placeholder="None"
+              disabled={isSavingCardChanges}
+              onChange={(event) => onChange({ ...draft, positionTitle: event.target.value })}
+            />
+          </div>
+        )}
+      </JobDetailField>
+      <JobDetailField
+        label="Company name"
+        value={identity.company_name?.value ?? null}
+      >
+        {isEditing && (
+          <div className="posting-card-job-details__editor">
+            <span className="posting-card-job-details__value posting-card-job-details__sizing" aria-hidden="true">
+              {draft.companyName || 'None'}
+            </span>
+            <textarea
+              className="posting-card-job-details__input"
+              aria-label="Company name"
+              value={draft.companyName}
+              placeholder="None"
+              disabled={isSavingCardChanges}
+              onChange={(event) => onChange({ ...draft, companyName: event.target.value })}
+            />
+          </div>
+        )}
+      </JobDetailField>
+      <JobDetailField
+        label="Department"
+        value={identity.department_name?.value ?? null}
+      >
+        {isEditing && (
+          <div className="posting-card-job-details__editor">
+            <span className="posting-card-job-details__value posting-card-job-details__sizing" aria-hidden="true">
+              {draft.departmentName || 'None'}
+            </span>
+            <textarea
+              className="posting-card-job-details__input"
+              aria-label="Department"
+              value={draft.departmentName}
+              placeholder="None"
+              disabled={isSavingCardChanges}
+              onChange={(event) => onChange({ ...draft, departmentName: event.target.value })}
+            />
+          </div>
+        )}
+      </JobDetailField>
+      <JobDetailField
+        label="Job ID"
+        value={identity.external_job_id?.value ?? null}
+      >
+        {isEditing && (
+          <div className="posting-card-job-details__editor">
+            <span className="posting-card-job-details__value posting-card-job-details__sizing" aria-hidden="true">
+              {draft.externalJobId || 'None'}
+            </span>
+            <textarea
+              className="posting-card-job-details__input"
+              aria-label="Job ID"
+              value={draft.externalJobId}
+              placeholder="None"
+              disabled={isSavingCardChanges}
+              onChange={(event) => onChange({ ...draft, externalJobId: event.target.value })}
+            />
+          </div>
+        )}
+      </JobDetailField>
       <JobDetailField
         label="Workload"
         value={workload}

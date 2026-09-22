@@ -60,6 +60,10 @@ export type UpdatePostingCardRequest = {
   responsibilities: string[]
   role_domains: string[]
   requirement_groups: UpdateRequirementGroupRequest[]
+  position_title: string | null
+  company_name: string | null
+  department_name: string | null
+  external_job_id: string | null
   workload_type: WorkloadType | null
   role_families: RoleFamily[]
   contract_type: ContractType | null

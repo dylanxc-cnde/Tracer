@@ -48,12 +48,13 @@ export function usePostingCardEditor(
   const [saveError, setSaveError] = useState<string | null>(null)
   const [draft, setDraft] = useState<PostingCardUserDraft>(() => createCardUserDraft(card))
   const updateRequest = createPostingCardUpdateRequest(draft)
-  const originalTitle = card.posting.identity.position_title?.value ?? null
+  // This is the saved position title, not the creation-time original snapshot.
+  const positionTitle = card.posting.identity.position_title?.value ?? null
   const displayedAlias = isEditing
     ? updateRequest.posting_alias
     : card.posting_alias
   const displayedTitle =
-    displayedAlias ?? originalTitle ?? 'Unknown Position'
+    displayedAlias ?? positionTitle ?? 'Unknown Position'
   const hasChanges = hasPostingCardDraftChanges(updateRequest, card) ||
     hasEmptyRequirementDrafts(draft.requirements)
 
@@ -750,11 +751,11 @@ export function usePostingCardEditor(
     hasChanges,
     isEditing,
     isSavingCardChanges,
-    originalTitle,
-    isOriginalTitleVisible:
+    positionTitle,
+    isPositionTitleVisible:
       displayedAlias !== null &&
-      originalTitle !== null &&
-      displayedAlias !== originalTitle,
+      positionTitle !== null &&
+      displayedAlias !== positionTitle,
     cancelEditing,
     dismissSaveError,
     saveCardChanges,

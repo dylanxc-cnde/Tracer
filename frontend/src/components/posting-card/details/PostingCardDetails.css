@@ -97,19 +97,19 @@
   letter-spacing: -0.24px;
 }
 
-.posting-card-details__original-title {
+.posting-card-details__position-title {
   width: fit-content;
   color: var(--color-text-secondary);
   font-size: 12px;
 }
 
-.posting-card-details__original-title > summary {
+.posting-card-details__position-title > summary {
   width: fit-content;
   font-weight: 700;
   cursor: pointer;
 }
 
-.posting-card-details__original-title > p {
+.posting-card-details__position-title > p {
   margin: 6px 0 0;
   line-height: 1.4;
 }
@@ -249,7 +249,7 @@
 
 .posting-card-details__primary-action:focus-visible,
 .posting-card-details__edit-toggle:focus-visible,
-.posting-card-details__original-title > summary:focus-visible,
+.posting-card-details__position-title > summary:focus-visible,
 .posting-card-details__posting-info-toggle:focus-visible,
 .posting-card-details__disclosure > summary:focus-visible,
 .posting-card-details a:focus-visible {

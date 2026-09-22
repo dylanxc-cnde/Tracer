@@ -74,6 +74,10 @@ export function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
     })),
     requirements: createRequirementSections(card.posting.requirements.groups),
     jobDetails: {
+      positionTitle: identity.position_title?.value ?? '',
+      companyName: identity.company_name?.value ?? '',
+      departmentName: identity.department_name?.value ?? '',
+      externalJobId: identity.external_job_id?.value ?? '',
       workloadType: classification.workload_type?.value ?? null,
       roleFamilies: [...new Set(classification.role_families?.value ?? [])],
       contractType: classification.contract_type?.value ?? null,

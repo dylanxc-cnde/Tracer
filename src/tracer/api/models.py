@@ -87,6 +87,10 @@ class UpdatePostingCardRequest(BaseModel):
     responsibilities: tuple[str, ...]
     role_domains: tuple[str, ...]
     requirement_groups: tuple[UpdateRequirementGroupRequest, ...]
+    position_title: str | None
+    company_name: str | None
+    department_name: str | None
+    external_job_id: str | None
     workload_type: WorkloadType | None
     role_families: tuple[RoleFamily, ...]
     contract_type: ContractType | None

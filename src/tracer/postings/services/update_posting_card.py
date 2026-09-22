@@ -44,14 +44,18 @@ class UpdatePostingCardService:
         payload = card.model_dump()
         saved_identity = card.posting.identity
         original_identity = original_card.posting.identity
-        posting_info_values = {
+        identity_values = {
             "canonical_posting_url": request.canonical_posting_url,
             "source_platform": request.source_platform,
             "published_on": request.published_on,
             "posting_language": request.posting_language,
+            "position_title": request.position_title,
+            "company_name": request.company_name,
+            "department_name": request.department_name,
+            "external_job_id": request.external_job_id,
         }
         # Update only these Identity values; preserve the original snapshot and source.
-        for field, value in posting_info_values.items():
+        for field, value in identity_values.items():
             saved_field = getattr(saved_identity, field)
             saved_value = saved_field.value if saved_field is not None else None
             if value == saved_value:

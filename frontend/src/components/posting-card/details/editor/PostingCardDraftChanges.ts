@@ -100,6 +100,10 @@ export function hasPostingCardDraftChanges(
       (value, index) => value !== card.posting.role_content.domains[index]?.value,
     ) ||
     hasRequirementChanges(updateRequest.requirement_groups, card.posting.requirements.groups) ||
+    updateRequest.position_title !== (identity.position_title?.value ?? null) ||
+    updateRequest.company_name !== (identity.company_name?.value ?? null) ||
+    updateRequest.department_name !== (identity.department_name?.value ?? null) ||
+    updateRequest.external_job_id !== (identity.external_job_id?.value ?? null) ||
     updateRequest.workload_type !== (classification.workload_type?.value ?? null) ||
     updateRequest.role_families.length !== savedRoleFamilies.size ||
     updateRequest.role_families.some((value) => !savedRoleFamilies.has(value)) ||

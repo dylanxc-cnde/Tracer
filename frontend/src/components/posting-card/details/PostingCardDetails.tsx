@@ -63,8 +63,9 @@ export function PostingCardDetails({
   } | null>(null)
   const editor = usePostingCardEditor(card, onUpdate, isReadOnly)
   const posting = card.posting
-  // Job details combines classification and location/work-mode facts.
+  // Job details draws facts from Identity, Classification and Work Conditions.
   const jobDetailsSources = [
+    posting.identity.source,
     posting.classification.source,
     posting.work_conditions.source,
   ]
@@ -137,8 +138,16 @@ export function PostingCardDetails({
     }
 
     const originalPosting = sourceComparison.originalCard.posting
-    // Hours and Application fields are not displayed in Job details.
+    // Compare only the Identity fields shown here, not the separate Posting info fields.
     return (
+      JSON.stringify(posting.identity.position_title) !==
+        JSON.stringify(originalPosting.identity.position_title) ||
+      JSON.stringify(posting.identity.company_name) !==
+        JSON.stringify(originalPosting.identity.company_name) ||
+      JSON.stringify(posting.identity.department_name) !==
+        JSON.stringify(originalPosting.identity.department_name) ||
+      JSON.stringify(posting.identity.external_job_id) !==
+        JSON.stringify(originalPosting.identity.external_job_id) ||
       isSectionModified('classification') ||
       JSON.stringify(posting.work_conditions.primary_address) !==
         JSON.stringify(originalPosting.work_conditions.primary_address) ||
@@ -167,8 +176,8 @@ export function PostingCardDetails({
     >
       <PostingCardDetailsTopbar
         displayedTitle={editor.displayedTitle}
-        originalTitle={editor.originalTitle}
-        isOriginalTitleVisible={editor.isOriginalTitleVisible}
+        positionTitle={editor.positionTitle}
+        isPositionTitleVisible={editor.isPositionTitleVisible}
         isEditing={editor.isEditing}
         isSavingCardChanges={editor.isSavingCardChanges}
         hasChanges={editor.hasChanges}
