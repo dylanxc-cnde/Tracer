@@ -18,7 +18,7 @@ import { PostingCardPostingInfo } from './components/PostingCardPostingInfo'
 import { PostingCardRoleSummary } from './components/PostingCardRoleSummary'
 import { PostingCardResponsibilities } from './components/PostingCardResponsibilities'
 import { PostingCardRoleDomains } from './components/PostingCardRoleDomains'
-import { PostingCardRequirements } from './components/PostingCardRequirements'
+import { PostingCardRequirements, PostingCardRequirementAdd } from './components/PostingCardRequirements'
 import { PostingCardJobDetails } from './components/PostingCardJobDetails'
 import {
   PostingCardWorkConditions,
@@ -334,11 +334,28 @@ export function PostingCardDetails({
           />
         </section>
 
-        {posting.requirements.groups.length > 0 && (
+        {(editor.isEditing || posting.requirements.groups.length > 0) && (
           <section className="posting-card-details__section">
-            <h3>What they’re looking for</h3>
+            <div className="posting-card-requirements__heading">
+              <h3>What they’re looking for</h3>
+              {editor.isEditing && (
+                <PostingCardRequirementAdd
+                  draft={editor.draft.requirements}
+                  isSavingCardChanges={editor.isSavingCardChanges}
+                  onAdd={editor.addDraftRequirementSection}
+                />
+              )}
+            </div>
 
-            <PostingCardRequirements groups={posting.requirements.groups} />
+            <PostingCardRequirements
+              key={editor.isEditing ? 'editing' : 'reading'}
+              groups={posting.requirements.groups}
+              draft={editor.draft.requirements}
+              isEditing={editor.isEditing}
+              isSavingCardChanges={editor.isSavingCardChanges}
+              onGroupAdd={editor.addDraftRequirementGroup}
+              onSectionDelete={editor.deleteDraftRequirementSection}
+            />
 
             <PostingCardSourceEvidence
               source={posting.requirements.source}

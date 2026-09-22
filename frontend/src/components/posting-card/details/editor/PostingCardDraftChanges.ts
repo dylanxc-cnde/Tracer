@@ -2,8 +2,49 @@ import type {
   PostingCard,
   UpdateCompensationEntryRequest,
   UpdatePostingCardRequest,
+  UpdateRequirementGroupRequest,
 } from '../../../../postings/types/postingCard'
-import type { CompensationEntry } from '../../../../postings/types/postingDetails'
+import type { CompensationEntry, Requirement, RequirementImportance } from '../../../../postings/types/postingDetails'
+import type { RequirementSectionDraft } from './PostingCardDraft'
+
+// Empty additions still allow Save, which removes them from the draft.
+export function hasEmptyRequirementDrafts(sections: RequirementSectionDraft[]): boolean {
+  return sections.some((section) =>
+    section.groups.length === 0 || section.groups.some((group) => group.items.length === 0),
+  )
+}
+
+function hasRequirementChanges(
+  groups: UpdateRequirementGroupRequest[],
+  savedGroups: Requirement[],
+): boolean {
+  const importances: RequirementImportance[] = ['required', 'preferred', 'unknown']
+
+  // Grouping the draft into sections must not itself make the card dirty.
+  for (const importance of importances) {
+    const sectionGroups = groups.filter((group) => group.importance === importance)
+    const savedSectionGroups = savedGroups.filter((group) => group.importance === importance)
+    if (sectionGroups.length !== savedSectionGroups.length) {
+      return true
+    }
+    for (let index = 0; index < sectionGroups.length; index += 1) {
+      const group = sectionGroups[index]
+      const saved = savedSectionGroups[index]
+      if (group.item_rule !== saved.item_rule || group.items.length !== saved.items.length) {
+        return true
+      }
+      const hasItemChanges = group.items.some((item, itemIndex) => {
+        const savedItem = saved.items[itemIndex]
+        return item.name !== savedItem.name || item.category !== savedItem.category ||
+          item.is_example !== savedItem.is_example
+      })
+      if (hasItemChanges) {
+        return true
+      }
+    }
+  }
+  return false
+}
 
 function hasCompensationChanges(
   entries: UpdateCompensationEntryRequest[],
@@ -51,6 +92,7 @@ export function hasPostingCardDraftChanges(
     updateRequest.role_domains.some(
       (value, index) => value !== card.posting.role_content.domains[index]?.value,
     ) ||
+    hasRequirementChanges(updateRequest.requirement_groups, card.posting.requirements.groups) ||
     updateRequest.workload_type !== (classification.workload_type?.value ?? null) ||
     updateRequest.role_families.length !== savedRoleFamilies.size ||
     updateRequest.role_families.some((value) => !savedRoleFamilies.has(value)) ||

@@ -1,10 +1,12 @@
 import type {
   UpdateCompensationEntryRequest,
   UpdatePostingCardRequest,
+  UpdateRequirementGroupRequest,
 } from '../../../../postings/types/postingCard'
 import type {
   CompensationEntryFields,
   PostingCardUserDraft,
+  RequirementSectionDraft,
   TextItemDraft,
 } from './PostingCardDraft'
 
@@ -25,6 +27,27 @@ function normalizeTextItems(items: TextItemDraft[]): string[] {
   return items
     .map((item) => item.value.trim())
     .filter((value) => value.length > 0)
+}
+
+function normalizeRequirementGroups(
+  sections: RequirementSectionDraft[],
+): UpdateRequirementGroupRequest[] {
+  const groups: UpdateRequirementGroupRequest[] = []
+
+  for (const section of sections) {
+    for (const group of section.groups) {
+      if (group.items.length === 0) {
+        continue
+      }
+      groups.push({
+        importance: section.importance,
+        item_rule: group.itemRule,
+        items: group.items.map((item) => ({ ...item })),
+      })
+    }
+  }
+
+  return groups
 }
 
 function normalizeCompensationAmount(value: string): number | null {
@@ -61,6 +84,7 @@ export function createPostingCardUpdateRequest(
     role_summary: normalizeOptionalText(draft.roleSummary),
     responsibilities: normalizeTextItems(draft.responsibilities),
     role_domains: normalizeTextItems(draft.roleDomains),
+    requirement_groups: normalizeRequirementGroups(draft.requirements),
     workload_type: draft.jobDetails.workloadType,
     role_families: draft.jobDetails.roleFamilies,
     contract_type: draft.jobDetails.contractType,

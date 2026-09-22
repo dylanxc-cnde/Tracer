@@ -6,12 +6,14 @@ import type {
 import type {
   ApplicationChannel,
   CompensationType,
+  RequirementImportance,
 } from '../../../../postings/types/postingDetails'
 import type {
   ApplicationTextField,
   CompensationEntryFields,
   JobDetailsDraft,
   PostingCardUserDraft,
+  RequirementGroupDraft,
   TextItemDraft,
   WorkConditionField,
   WorkConditionTextField,
@@ -22,7 +24,7 @@ import {
   isValidIsoDate,
 } from './PostingCardDraftValidators'
 import { createPostingCardUpdateRequest } from './PostingCardDraftRequest'
-import { hasPostingCardDraftChanges } from './PostingCardDraftChanges'
+import { hasEmptyRequirementDrafts, hasPostingCardDraftChanges } from './PostingCardDraftChanges'
 import { createCardUserDraft } from './PostingCardDraftCreator'
 import { getSafeHttpUrl } from '../PostingCardSanitizers'
 
@@ -49,7 +51,8 @@ export function usePostingCardEditor(
     : card.posting_alias
   const displayedTitle =
     displayedAlias ?? originalTitle ?? 'Unknown Position'
-  const hasChanges = hasPostingCardDraftChanges(updateRequest, card)
+  const hasChanges = hasPostingCardDraftChanges(updateRequest, card) ||
+    hasEmptyRequirementDrafts(draft.requirements)
 
   function startEditing() {
     if (isReadOnly) {
@@ -216,6 +219,54 @@ export function usePostingCardEditor(
     setDraft((currentDraft) => ({
       ...currentDraft,
       roleDomains: currentDraft.roleDomains.filter((domain) => domain.id !== id),
+    }))
+  }
+
+  function addDraftRequirementSection(importance: RequirementImportance) {
+    if (isReadOnly || isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => {
+      if (currentDraft.requirements.some((section) => section.importance === importance)) {
+        return currentDraft
+      }
+      return {
+        ...currentDraft,
+        requirements: [...currentDraft.requirements, { importance, groups: [] }],
+      }
+    })
+  }
+
+  function deleteDraftRequirementSection(importance: RequirementImportance) {
+    if (isReadOnly || isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      requirements: currentDraft.requirements.filter((section) => section.importance !== importance),
+    }))
+  }
+
+  function addDraftRequirementGroup(
+    importance: RequirementImportance,
+    itemRule: 'all_of' | 'any_of',
+  ) {
+    if (isReadOnly || isSavingCardChanges) {
+      return
+    }
+    const group: RequirementGroupDraft = { id: crypto.randomUUID(), itemRule, items: [] }
+
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      requirements: currentDraft.requirements.map((section) => {
+        if (section.importance !== importance) {
+          return section
+        }
+        if (itemRule === 'all_of' && section.groups.some((group) => group.itemRule === 'all_of')) {
+          return section
+        }
+        return { ...section, groups: [...section.groups, group] }
+      }),
     }))
   }
 
@@ -595,6 +646,9 @@ export function usePostingCardEditor(
     addDraftRoleDomain,
     updateDraftRoleDomain,
     deleteDraftRoleDomain,
+    addDraftRequirementSection,
+    deleteDraftRequirementSection,
+    addDraftRequirementGroup,
     updateDraftJobDetails,
     addDraftAddressCandidate,
     updateDraftAddressCandidate,
