@@ -75,6 +75,7 @@ export function hasPostingCardDraftChanges(
   updateRequest: UpdatePostingCardRequest,
   card: PostingCard,
 ): boolean {
+  const identity = card.posting.identity
   const classification = card.posting.classification
   const savedRoleFamilies = new Set(classification.role_families?.value ?? [])
   const savedWorkModes = new Set(card.posting.work_conditions.work_modes?.value ?? [])
@@ -82,6 +83,10 @@ export function hasPostingCardDraftChanges(
   const savedChannels = new Set(application.channels?.value ?? [])
 
   return (
+    updateRequest.canonical_posting_url !== (identity.canonical_posting_url?.value ?? null) ||
+    updateRequest.source_platform !== (identity.source_platform?.value ?? null) ||
+    updateRequest.published_on !== (identity.published_on?.value ?? null) ||
+    updateRequest.posting_language !== (identity.posting_language?.value ?? null) ||
     updateRequest.role_summary !==
       (card.posting.role_content.role_summary?.value ?? null) ||
     updateRequest.responsibilities.length !==
@@ -95,6 +100,10 @@ export function hasPostingCardDraftChanges(
       (value, index) => value !== card.posting.role_content.domains[index]?.value,
     ) ||
     hasRequirementChanges(updateRequest.requirement_groups, card.posting.requirements.groups) ||
+    updateRequest.position_title !== (identity.position_title?.value ?? null) ||
+    updateRequest.company_name !== (identity.company_name?.value ?? null) ||
+    updateRequest.department_name !== (identity.department_name?.value ?? null) ||
+    updateRequest.external_job_id !== (identity.external_job_id?.value ?? null) ||
     updateRequest.workload_type !== (classification.workload_type?.value ?? null) ||
     updateRequest.role_families.length !== savedRoleFamilies.size ||
     updateRequest.role_families.some((value) => !savedRoleFamilies.has(value)) ||

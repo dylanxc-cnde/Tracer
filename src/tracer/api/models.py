@@ -79,10 +79,18 @@ class UpdatePostingCardRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    canonical_posting_url: AnyHttpUrl | None
+    source_platform: str | None
+    published_on: date | None
+    posting_language: str | None
     role_summary: str | None
     responsibilities: tuple[str, ...]
     role_domains: tuple[str, ...]
     requirement_groups: tuple[UpdateRequirementGroupRequest, ...]
+    position_title: str | None
+    company_name: str | None
+    department_name: str | None
+    external_job_id: str | None
     workload_type: WorkloadType | None
     role_families: tuple[RoleFamily, ...]
     contract_type: ContractType | None

@@ -91,10 +91,18 @@ export function createPostingCardUpdateRequest(
   draft: PostingCardUserDraft,
 ): UpdatePostingCardRequest {
   return {
+    canonical_posting_url: normalizeOptionalText(draft.postingInfo.canonicalPostingUrl),
+    source_platform: normalizeOptionalText(draft.postingInfo.sourcePlatform),
+    published_on: normalizeOptionalText(draft.postingInfo.publishedOn),
+    posting_language: normalizeOptionalText(draft.postingInfo.postingLanguage),
     role_summary: normalizeOptionalText(draft.roleSummary),
     responsibilities: normalizeTextItems(draft.responsibilities),
     role_domains: normalizeTextItems(draft.roleDomains),
     requirement_groups: normalizeRequirementGroups(draft.requirements),
+    position_title: normalizeOptionalText(draft.jobDetails.positionTitle),
+    company_name: normalizeOptionalText(draft.jobDetails.companyName),
+    department_name: normalizeOptionalText(draft.jobDetails.departmentName),
+    external_job_id: normalizeOptionalText(draft.jobDetails.externalJobId),
     workload_type: draft.jobDetails.workloadType,
     role_families: draft.jobDetails.roleFamilies,
     contract_type: draft.jobDetails.contractType,

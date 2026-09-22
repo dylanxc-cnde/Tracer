@@ -52,10 +52,18 @@ export type UpdateCompensationEntryRequest = {
 }
 
 export type UpdatePostingCardRequest = {
+  canonical_posting_url: string | null
+  source_platform: string | null
+  published_on: string | null
+  posting_language: string | null
   role_summary: string | null
   responsibilities: string[]
   role_domains: string[]
   requirement_groups: UpdateRequirementGroupRequest[]
+  position_title: string | null
+  company_name: string | null
+  department_name: string | null
+  external_job_id: string | null
   workload_type: WorkloadType | null
   role_families: RoleFamily[]
   contract_type: ContractType | null

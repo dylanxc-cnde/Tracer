@@ -56,18 +56,33 @@
   padding: 12px 24px 24px;
   border-bottom: 1px solid var(--color-border-subtle);
   background-color: var(--color-surface);
+}
+
+/* Only the saved Quick Facts projection is shaded, not the editable posting info. */
+.posting-card-details__quick-facts {
+  margin: 0 -12px -12px;
+  padding: 12px;
+  border-radius: 12px;
   transition:
     background-color 320ms ease,
     box-shadow 320ms ease;
 }
 
-.posting-card-details__header--editing {
+.posting-card-details__quick-facts:empty {
+  display: none;
+}
+
+.posting-card-details__quick-facts > .posting-card-quick-facts {
+  margin: 0;
+}
+
+.posting-card-details__quick-facts--editing {
   background-color: var(--color-surface-muted);
   box-shadow: inset 0 2px 8px rgba(52, 53, 53, 0.08);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .posting-card-details__header {
+  .posting-card-details__quick-facts {
     transition: none;
   }
 }
@@ -82,19 +97,19 @@
   letter-spacing: -0.24px;
 }
 
-.posting-card-details__original-title {
+.posting-card-details__position-title {
   width: fit-content;
   color: var(--color-text-secondary);
   font-size: 12px;
 }
 
-.posting-card-details__original-title > summary {
+.posting-card-details__position-title > summary {
   width: fit-content;
   font-weight: 700;
   cursor: pointer;
 }
 
-.posting-card-details__original-title > p {
+.posting-card-details__position-title > p {
   margin: 6px 0 0;
   line-height: 1.4;
 }
@@ -234,7 +249,7 @@
 
 .posting-card-details__primary-action:focus-visible,
 .posting-card-details__edit-toggle:focus-visible,
-.posting-card-details__original-title > summary:focus-visible,
+.posting-card-details__position-title > summary:focus-visible,
 .posting-card-details__posting-info-toggle:focus-visible,
 .posting-card-details__disclosure > summary:focus-visible,
 .posting-card-details a:focus-visible {

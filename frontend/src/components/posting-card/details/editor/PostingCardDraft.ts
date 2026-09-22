@@ -19,6 +19,13 @@ export type TextItemDraft = {
   value: string
 }
 
+export type PostingInfoDraft = {
+  canonicalPostingUrl: string
+  sourcePlatform: string
+  publishedOn: string
+  postingLanguage: string
+}
+
 // Editor-only ID: keep the same pill when its name changes; never send this ID.
 export type RequirementItemDraft = RequirementItem & {
   id: string
@@ -36,6 +43,10 @@ export type RequirementSectionDraft = {
 }
 
 export type JobDetailsDraft = {
+  positionTitle: string
+  companyName: string
+  departmentName: string
+  externalJobId: string
   workloadType: WorkloadType | null
   roleFamilies: RoleFamily[]
   contractType: ContractType | null
@@ -81,6 +92,7 @@ export type ApplicationTextField = Exclude<keyof ApplicationFactsDraft, 'channel
 
 // Type Definition: CardDraft
 export type PostingCardUserDraft = {
+  postingInfo: PostingInfoDraft
   roleSummary: string
   responsibilities: TextItemDraft[]
   roleDomains: TextItemDraft[]

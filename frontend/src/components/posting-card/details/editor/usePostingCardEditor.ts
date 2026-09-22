@@ -12,6 +12,7 @@ import type {
   ApplicationTextField,
   CompensationEntryFields,
   JobDetailsDraft,
+  PostingInfoDraft,
   PostingCardUserDraft,
   RequirementGroupDraft,
   RequirementItemDraft,
@@ -47,12 +48,13 @@ export function usePostingCardEditor(
   const [saveError, setSaveError] = useState<string | null>(null)
   const [draft, setDraft] = useState<PostingCardUserDraft>(() => createCardUserDraft(card))
   const updateRequest = createPostingCardUpdateRequest(draft)
-  const originalTitle = card.posting.identity.position_title?.value ?? null
+  // This is the saved position title, not the creation-time original snapshot.
+  const positionTitle = card.posting.identity.position_title?.value ?? null
   const displayedAlias = isEditing
     ? updateRequest.posting_alias
     : card.posting_alias
   const displayedTitle =
-    displayedAlias ?? originalTitle ?? 'Unknown Position'
+    displayedAlias ?? positionTitle ?? 'Unknown Position'
   const hasChanges = hasPostingCardDraftChanges(updateRequest, card) ||
     hasEmptyRequirementDrafts(draft.requirements)
 
@@ -81,6 +83,16 @@ export function usePostingCardEditor(
 
   async function saveCardChanges() {
     if (isReadOnly) {
+      return
+    }
+
+    // Check editable posting info before sending; failed validation keeps the draft.
+    if (updateRequest.canonical_posting_url !== null && getSafeHttpUrl(updateRequest.canonical_posting_url) === null) {
+      setSaveError('Posting URL must be a valid http:// or https:// address, or empty.')
+      return
+    }
+    if (updateRequest.published_on !== null && !isValidIsoDate(updateRequest.published_on)) {
+      setSaveError('Published date must be a real date in YYYY-MM-DD format. Please check the year, month and day.')
       return
     }
 
@@ -168,6 +180,16 @@ export function usePostingCardEditor(
     } finally {
       setIsSavingCardChanges(false)
     }
+  }
+
+  function updateDraftPostingInfo(field: keyof PostingInfoDraft, value: string) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      postingInfo: { ...currentDraft.postingInfo, [field]: value },
+    }))
   }
 
   function updateDraftRoleSummary(roleSummary: string) {
@@ -729,14 +751,15 @@ export function usePostingCardEditor(
     hasChanges,
     isEditing,
     isSavingCardChanges,
-    originalTitle,
-    isOriginalTitleVisible:
+    positionTitle,
+    isPositionTitleVisible:
       displayedAlias !== null &&
-      originalTitle !== null &&
-      displayedAlias !== originalTitle,
+      positionTitle !== null &&
+      displayedAlias !== positionTitle,
     cancelEditing,
     dismissSaveError,
     saveCardChanges,
+    updateDraftPostingInfo,
     updateDraftRoleSummary,
     addDraftResponsibility,
     updateDraftResponsibility,

@@ -42,6 +42,37 @@ class UpdatePostingCardService:
             return None
 
         payload = card.model_dump()
+        saved_identity = card.posting.identity
+        original_identity = original_card.posting.identity
+        identity_values = {
+            "canonical_posting_url": request.canonical_posting_url,
+            "source_platform": request.source_platform,
+            "published_on": request.published_on,
+            "posting_language": request.posting_language,
+            "position_title": request.position_title,
+            "company_name": request.company_name,
+            "department_name": request.department_name,
+            "external_job_id": request.external_job_id,
+        }
+        # Update only these Identity values; preserve the original snapshot and source.
+        for field, value in identity_values.items():
+            saved_field = getattr(saved_identity, field)
+            saved_value = saved_field.value if saved_field is not None else None
+            if value == saved_value:
+                continue
+
+            if value is None:
+                payload["posting"]["identity"][field] = None
+            else:
+                original_field = getattr(original_identity, field)
+                origin = FactOrigin.USER_DEFINED
+                if original_field is not None and value == original_field.value:
+                    origin = original_field.origin
+                payload["posting"]["identity"][field] = {
+                    "value": value,
+                    "origin": origin,
+                }
+
         saved_summary = card.posting.role_content.role_summary
         saved_summary_value = (
             saved_summary.value if saved_summary is not None else None

@@ -63,8 +63,9 @@ export function PostingCardDetails({
   } | null>(null)
   const editor = usePostingCardEditor(card, onUpdate, isReadOnly)
   const posting = card.posting
-  // Job details combines classification and location/work-mode facts.
+  // Job details draws facts from Identity, Classification and Work Conditions.
   const jobDetailsSources = [
+    posting.identity.source,
     posting.classification.source,
     posting.work_conditions.source,
   ]
@@ -137,8 +138,16 @@ export function PostingCardDetails({
     }
 
     const originalPosting = sourceComparison.originalCard.posting
-    // Hours and Application fields are not displayed in Job details.
+    // Compare only the Identity fields shown here, not the separate Posting info fields.
     return (
+      JSON.stringify(posting.identity.position_title) !==
+        JSON.stringify(originalPosting.identity.position_title) ||
+      JSON.stringify(posting.identity.company_name) !==
+        JSON.stringify(originalPosting.identity.company_name) ||
+      JSON.stringify(posting.identity.department_name) !==
+        JSON.stringify(originalPosting.identity.department_name) ||
+      JSON.stringify(posting.identity.external_job_id) !==
+        JSON.stringify(originalPosting.identity.external_job_id) ||
       isSectionModified('classification') ||
       JSON.stringify(posting.work_conditions.primary_address) !==
         JSON.stringify(originalPosting.work_conditions.primary_address) ||
@@ -149,11 +158,6 @@ export function PostingCardDetails({
     )
   }
 
-  const hasPostingSourceDetails =
-    posting.identity.canonical_posting_url !== null ||
-    posting.identity.source_platform !== null ||
-    posting.identity.published_on !== null ||
-    posting.identity.posting_language !== null
   return (
     <dialog
       ref={dialogRef}
@@ -172,8 +176,8 @@ export function PostingCardDetails({
     >
       <PostingCardDetailsTopbar
         displayedTitle={editor.displayedTitle}
-        originalTitle={editor.originalTitle}
-        isOriginalTitleVisible={editor.isOriginalTitleVisible}
+        positionTitle={editor.positionTitle}
+        isPositionTitleVisible={editor.isPositionTitleVisible}
         isEditing={editor.isEditing}
         isSavingCardChanges={editor.isSavingCardChanges}
         hasChanges={editor.hasChanges}
@@ -191,9 +195,7 @@ export function PostingCardDetails({
         />
       )}
 
-      <header
-        className={`posting-card-details__header${editor.isEditing && !isReadOnly ? ' posting-card-details__header--editing' : ''}`}
-      >
+      <header className="posting-card-details__header">
         <div className="posting-card-details__metadata-row">
           <p className="posting-card-details__company">
             {posting.identity.company_name?.value ?? 'Unknown Company'}
@@ -205,25 +207,29 @@ export function PostingCardDetails({
             )}
           </p>
 
-          {hasPostingSourceDetails && (
-            <button
-              className="posting-card-details__posting-info-toggle"
-              type="button"
-              aria-expanded={isPostingInfoOpen}
-              aria-controls="posting-card-details-posting-info"
-              onClick={() => setIsPostingInfoOpen((current) => !current)}
-            >
-              Posting info
-              <span aria-hidden="true">▾</span>
-            </button>
-          )}
+          <button
+            className="posting-card-details__posting-info-toggle"
+            type="button"
+            aria-expanded={isPostingInfoOpen}
+            aria-controls="posting-card-details-posting-info"
+            onClick={() => setIsPostingInfoOpen((current) => !current)}
+          >
+            Posting info
+            <span aria-hidden="true">▾</span>
+          </button>
         </div>
 
-        <PostingCardQuickFacts posting={posting} />
+        <div className={`posting-card-details__quick-facts${editor.isEditing ? ' posting-card-details__quick-facts--editing' : ''}`}>
+          <PostingCardQuickFacts posting={posting} />
+        </div>
 
-        {hasPostingSourceDetails && isPostingInfoOpen && (
+        {isPostingInfoOpen && (
           <PostingCardPostingInfo
             identity={posting.identity}
+            draft={editor.draft.postingInfo}
+            isEditing={editor.isEditing}
+            isSavingCardChanges={editor.isSavingCardChanges}
+            onTextChange={editor.updateDraftPostingInfo}
           />
         )}
 
