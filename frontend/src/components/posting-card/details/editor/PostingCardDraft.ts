@@ -19,6 +19,13 @@ export type TextItemDraft = {
   value: string
 }
 
+export type PostingInfoDraft = {
+  canonicalPostingUrl: string
+  sourcePlatform: string
+  publishedOn: string
+  postingLanguage: string
+}
+
 // Editor-only ID: keep the same pill when its name changes; never send this ID.
 export type RequirementItemDraft = RequirementItem & {
   id: string
@@ -81,6 +88,7 @@ export type ApplicationTextField = Exclude<keyof ApplicationFactsDraft, 'channel
 
 // Type Definition: CardDraft
 export type PostingCardUserDraft = {
+  postingInfo: PostingInfoDraft
   roleSummary: string
   responsibilities: TextItemDraft[]
   roleDomains: TextItemDraft[]

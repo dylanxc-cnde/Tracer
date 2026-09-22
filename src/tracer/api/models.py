@@ -79,6 +79,10 @@ class UpdatePostingCardRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    canonical_posting_url: AnyHttpUrl | None
+    source_platform: str | None
+    published_on: date | None
+    posting_language: str | None
     role_summary: str | None
     responsibilities: tuple[str, ...]
     role_domains: tuple[str, ...]

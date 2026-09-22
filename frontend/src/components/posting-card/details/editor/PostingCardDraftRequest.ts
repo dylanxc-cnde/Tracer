@@ -91,6 +91,10 @@ export function createPostingCardUpdateRequest(
   draft: PostingCardUserDraft,
 ): UpdatePostingCardRequest {
   return {
+    canonical_posting_url: normalizeOptionalText(draft.postingInfo.canonicalPostingUrl),
+    source_platform: normalizeOptionalText(draft.postingInfo.sourcePlatform),
+    published_on: normalizeOptionalText(draft.postingInfo.publishedOn),
+    posting_language: normalizeOptionalText(draft.postingInfo.postingLanguage),
     role_summary: normalizeOptionalText(draft.roleSummary),
     responsibilities: normalizeTextItems(draft.responsibilities),
     role_domains: normalizeTextItems(draft.roleDomains),

@@ -36,6 +36,111 @@
   font-weight: 650;
 }
 
+.posting-card-posting-info__text,
+.posting-card-posting-info__date-number {
+  position: relative;
+  min-width: 0;
+}
+
+.posting-card-posting-info__value,
+.posting-card-posting-info__input,
+.posting-card-posting-info__date-input {
+  display: block;
+  min-height: 1.5em;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: 1.5;
+  letter-spacing: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The hidden text reserves the same height as the reading value, including wrapping. */
+.posting-card-posting-info__value--sizing,
+.posting-card-posting-info__date-sizing {
+  visibility: hidden;
+}
+
+.posting-card-posting-info__value::after {
+  content: '\200b';
+}
+
+.posting-card-posting-info__input,
+.posting-card-posting-info__date-input {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
+  box-shadow: none;
+  transition: background-color 320ms ease;
+}
+
+.posting-card-posting-info__input {
+  overflow: hidden;
+  resize: none;
+}
+
+.posting-card-posting-info__field--canonicalPostingUrl .posting-card-posting-info__text {
+  color: var(--color-action-primary);
+  font-weight: 650;
+}
+
+.posting-card-posting-info__date,
+.posting-card-posting-info__date-part {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  line-height: 1.5;
+}
+
+.posting-card-posting-info__date-number {
+  flex: 0 0 auto;
+}
+
+.posting-card-posting-info__date-sizing {
+  display: block;
+  white-space: pre;
+}
+
+.posting-card-posting-info__input:hover:not(:disabled),
+.posting-card-posting-info__input:focus-visible,
+.posting-card-posting-info__date-input:hover:not(:disabled),
+.posting-card-posting-info__date-input:focus-visible {
+  background-color: rgba(52, 53, 53, 0.04);
+}
+
+.posting-card-posting-info__input:focus-visible,
+.posting-card-posting-info__date-input:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 4px;
+}
+
+.posting-card-posting-info__input::placeholder,
+.posting-card-posting-info__date-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.posting-card-posting-info__input:disabled,
+.posting-card-posting-info__date-input:disabled {
+  color: var(--color-text-secondary);
+  cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posting-card-posting-info__input,
+  .posting-card-posting-info__date-input {
+    transition: none;
+  }
+}
+
 @media (max-width: 600px) {
   .posting-card-posting-info__list > div {
     grid-template-columns: 1fr;

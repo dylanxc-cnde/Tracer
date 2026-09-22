@@ -75,6 +75,7 @@ export function hasPostingCardDraftChanges(
   updateRequest: UpdatePostingCardRequest,
   card: PostingCard,
 ): boolean {
+  const identity = card.posting.identity
   const classification = card.posting.classification
   const savedRoleFamilies = new Set(classification.role_families?.value ?? [])
   const savedWorkModes = new Set(card.posting.work_conditions.work_modes?.value ?? [])
@@ -82,6 +83,10 @@ export function hasPostingCardDraftChanges(
   const savedChannels = new Set(application.channels?.value ?? [])
 
   return (
+    updateRequest.canonical_posting_url !== (identity.canonical_posting_url?.value ?? null) ||
+    updateRequest.source_platform !== (identity.source_platform?.value ?? null) ||
+    updateRequest.published_on !== (identity.published_on?.value ?? null) ||
+    updateRequest.posting_language !== (identity.posting_language?.value ?? null) ||
     updateRequest.role_summary !==
       (card.posting.role_content.role_summary?.value ?? null) ||
     updateRequest.responsibilities.length !==

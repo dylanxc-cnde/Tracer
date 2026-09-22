@@ -52,6 +52,10 @@ export type UpdateCompensationEntryRequest = {
 }
 
 export type UpdatePostingCardRequest = {
+  canonical_posting_url: string | null
+  source_platform: string | null
+  published_on: string | null
+  posting_language: string | null
   role_summary: string | null
   responsibilities: string[]
   role_domains: string[]

@@ -48,12 +48,19 @@ export function createCompensationEntryFields(
 }
 
 export function createCardUserDraft(card: PostingCard): PostingCardUserDraft {
+  const identity = card.posting.identity
   const classification = card.posting.classification
   const workConditions = card.posting.work_conditions
   const weeklyHours = workConditions.weekly_hours
   const application = card.posting.application_instructions
 
   return {
+    postingInfo: {
+      canonicalPostingUrl: identity.canonical_posting_url?.value ?? '',
+      sourcePlatform: identity.source_platform?.value ?? '',
+      publishedOn: identity.published_on?.value ?? '',
+      postingLanguage: identity.posting_language?.value ?? '',
+    },
     roleSummary: card.posting.role_content.role_summary?.value ?? '',
     responsibilities: card.posting.role_content.responsibilities.map(
       (responsibility) => ({

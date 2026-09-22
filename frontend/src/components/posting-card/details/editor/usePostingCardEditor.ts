@@ -12,6 +12,7 @@ import type {
   ApplicationTextField,
   CompensationEntryFields,
   JobDetailsDraft,
+  PostingInfoDraft,
   PostingCardUserDraft,
   RequirementGroupDraft,
   RequirementItemDraft,
@@ -81,6 +82,16 @@ export function usePostingCardEditor(
 
   async function saveCardChanges() {
     if (isReadOnly) {
+      return
+    }
+
+    // Check editable posting info before sending; failed validation keeps the draft.
+    if (updateRequest.canonical_posting_url !== null && getSafeHttpUrl(updateRequest.canonical_posting_url) === null) {
+      setSaveError('Posting URL must be a valid http:// or https:// address, or empty.')
+      return
+    }
+    if (updateRequest.published_on !== null && !isValidIsoDate(updateRequest.published_on)) {
+      setSaveError('Published date must be a real date in YYYY-MM-DD format. Please check the year, month and day.')
       return
     }
 
@@ -168,6 +179,16 @@ export function usePostingCardEditor(
     } finally {
       setIsSavingCardChanges(false)
     }
+  }
+
+  function updateDraftPostingInfo(field: keyof PostingInfoDraft, value: string) {
+    if (isSavingCardChanges) {
+      return
+    }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      postingInfo: { ...currentDraft.postingInfo, [field]: value },
+    }))
   }
 
   function updateDraftRoleSummary(roleSummary: string) {
@@ -737,6 +758,7 @@ export function usePostingCardEditor(
     cancelEditing,
     dismissSaveError,
     saveCardChanges,
+    updateDraftPostingInfo,
     updateDraftRoleSummary,
     addDraftResponsibility,
     updateDraftResponsibility,
