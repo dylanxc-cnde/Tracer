@@ -75,6 +75,8 @@ Parsing uses the OpenAI Responses API. A fictional parser example lives in
 The interface uses [PT Serif](https://fonts.google.com/specimen/PT+Serif),
 bundled locally via [Fontsource](https://fontsource.org/fonts/pt-serif).
 Characters outside its coverage, including Chinese, fall back to system fonts.
+Our icon set is [Framework7 Icons](https://framework7.io/icons/) (MIT),
+installed and ready for the new Home UI.
 
 Run backend checks from the repository root:
 
