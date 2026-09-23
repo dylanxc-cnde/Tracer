@@ -23,7 +23,7 @@
 
 .posting-card-requirements__heading > h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--font-size-card-section-title);
   line-height: 1.25;
 }
 
@@ -45,7 +45,7 @@
 .posting-card-requirements__section-heading > h4 {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-card-field-title);
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;

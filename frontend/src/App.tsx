@@ -20,7 +20,7 @@ function App() {
     <main className="app-shell">
       <h1 className="app-shell__brand">Tracer</h1>
       <p className="app-shell__tagline">
-        Review job postings before saving them.
+        Your Personal Job Assistant.
       </p>
 
       <nav className="app-shell__navigation" aria-label="Main navigation">

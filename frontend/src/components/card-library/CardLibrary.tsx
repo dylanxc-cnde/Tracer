@@ -14,7 +14,6 @@ export function CardLibrary(
 ) {
     return (
         <article className="card-library">
-            <h2 className="card-library__title">CardLibrary</h2>
             {cards.map((card) => (
                 <PostingCardSummary
                     key={card.card_key}

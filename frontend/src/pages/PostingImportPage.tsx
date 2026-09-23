@@ -56,6 +56,8 @@ export function PostingImportPage() {
 
   return (
     <>
+      <h2 className="page-title">Import posting</h2>
+
       {importSessionError && <p role="alert">{importSessionError}</p>}
 
       <textarea
@@ -85,9 +87,9 @@ export function PostingImportPage() {
 
       {parseResult && parseResult.postings.length > 0 && (
         <section className="posting-import-page__candidate-list">
-          <h2 className="posting-import-page__candidate-title">
+          <h3 className="page-section-title">
             Choose a posting
-          </h2>
+          </h3>
 
           {parseResult.postings.map((posting, index) => (
             <PostingCandidateCard

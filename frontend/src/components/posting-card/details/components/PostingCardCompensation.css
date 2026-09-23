@@ -61,7 +61,7 @@
 .posting-card-compensation__label,
 .posting-card-compensation__groups-heading {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   line-height: 1.5;
 }
@@ -236,8 +236,8 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
   background-color: var(--color-surface);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--font-size-ui);
+  font-weight: 700;
 }
 
 .posting-card-compensation__delete-group {

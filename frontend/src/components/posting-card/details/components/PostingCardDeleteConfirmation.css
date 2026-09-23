@@ -11,7 +11,7 @@
   color: var(--color-text-primary);
   background-color: var(--color-surface);
   box-shadow: var(--shadow);
-  font-size: 14px;
+  font-size: var(--font-size-ui);
   line-height: 1.5;
 }
 

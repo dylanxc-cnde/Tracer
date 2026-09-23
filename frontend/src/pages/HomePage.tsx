@@ -27,7 +27,7 @@ export function HomePage() {
 
   return (
     <section className="home-page">
-      <h2>{getHomeGreeting(hour)}</h2>
+      <h2 className="page-title">{getHomeGreeting(hour)}</h2>
     </section>
   )
 }

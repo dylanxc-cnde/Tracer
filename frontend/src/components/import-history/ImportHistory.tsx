@@ -12,7 +12,6 @@ export function ImportHistory(
 ) {
     return (
         <section className="import-history">
-            <h2 className="import-history__title">Import history</h2>
             {postingImports.length === 0 && (
                 <p className="import-history__empty">
                     No posting imports found.

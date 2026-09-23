@@ -43,8 +43,8 @@
   color: var(--color-text-primary);
   background-color: transparent;
   font: inherit;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-ui);
+  font-weight: 400;
   line-height: 1.4;
   text-align: left;
   box-shadow: none;
