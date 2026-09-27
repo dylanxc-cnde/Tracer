@@ -188,6 +188,93 @@ button:disabled {
     0 4px 8px rgba(158, 51, 51, 0.12);
 }
 
+.home-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 24px;
+  margin-bottom: 24px;
+}
+
+.home-page__header .page-title {
+  margin: 0;
+}
+
+.home-page__date-time {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-page__date-time span {
+  white-space: nowrap;
+}
+
+.home-page__clock-readable {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.home-page__clock {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+/* Overlapping digits share one fixed window, so rolling never shifts the row. */
+.home-page__clock-digit {
+  display: inline-grid;
+  flex: none;
+  width: 1ch;
+  height: 1.55em;
+  overflow: hidden;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.home-page__clock-digit > span {
+  grid-area: 1 / 1;
+}
+
+.home-page__clock-digit-incoming {
+  animation: home-clock-digit-in 300ms ease both;
+}
+
+.home-page__clock-digit-outgoing {
+  opacity: 0;
+  animation: home-clock-digit-out 300ms ease both;
+}
+
+@keyframes home-clock-digit-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes home-clock-digit-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+
 .posting-import-page__input {
   display: block;
   box-sizing: border-box;
@@ -378,6 +465,11 @@ button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-page__clock-digit-incoming,
+  .home-page__clock-digit-outgoing {
+    animation: none;
+  }
+
   button,
   .posting-candidate,
   .posting-card-summary,

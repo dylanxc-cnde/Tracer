@@ -12,22 +12,79 @@ function getHomeGreeting(hour: number): string {
   return 'Good evening'
 }
 
+function formatHomeTime(time: Date): string {
+  return time.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  })
+}
+
 export function HomePage() {
   // Use the device's local time; no profile or server timezone is needed yet.
-  const [hour, setHour] = useState(() => new Date().getHours())
+  const [clockTimes, setClockTimes] = useState(() => {
+    const currentTime = new Date()
+    // Matching initial values keep the first render still.
+    return { currentTime, previousTime: currentTime }
+  })
 
   useEffect(() => {
-    // Keep the greeting current while Home stays open, and stop when leaving it.
+    // Read the clock again so delayed ticks do not accumulate drift.
     const intervalId = window.setInterval(() => {
-      setHour(new Date().getHours())
-    }, 60_000)
+      const currentTime = new Date()
+      setClockTimes((previous) => ({
+        currentTime,
+        previousTime: previous.currentTime,
+      }))
+    }, 1_000)
 
     return () => window.clearInterval(intervalId)
   }, [])
 
+  const { currentTime, previousTime } = clockTimes
+  const date = [
+    currentTime.getFullYear(),
+    String(currentTime.getMonth() + 1).padStart(2, '0'),
+    String(currentTime.getDate()).padStart(2, '0'),
+  ].join('-')
+  const time = formatHomeTime(currentTime)
+  const previousTimeText = formatHomeTime(previousTime)
+
   return (
     <section className="home-page">
-      <h2 className="page-title">{getHomeGreeting(hour)}</h2>
+      <header className="home-page__header">
+        <h2 className="page-title">{getHomeGreeting(currentTime.getHours())}</h2>
+        <time className="home-page__date-time" dateTime={currentTime.toISOString()}>
+          <span>{date}</span>{' '}
+          {/* Read the current time once, without the outgoing animation digits. */}
+          <span className="home-page__clock-readable">{time}</span>
+          <span className="home-page__clock" aria-hidden="true">
+            {time.split('').map((character, index) => {
+              if (character === ':') {
+                return <span key={index}>:</span>
+              }
+
+              const previousCharacter = previousTimeText[index]
+              const hasChanged = character !== previousCharacter
+
+              // A changed key restarts the animation for this digit only.
+              return (
+                <span className="home-page__clock-digit" key={`${index}-${character}`}>
+                  {hasChanged && (
+                    <span className="home-page__clock-digit-outgoing">
+                      {previousCharacter}
+                    </span>
+                  )}
+                  <span className={hasChanged ? 'home-page__clock-digit-incoming' : undefined}>
+                    {character}
+                  </span>
+                </span>
+              )
+            })}
+          </span>
+        </time>
+      </header>
     </section>
   )
 }
