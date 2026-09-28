@@ -24,7 +24,7 @@ from tracer.postings.stores.posting_import_request_store import (
     PostingImportRequestStore,
 )
 
-from .models import CreatePostingCardRequest, UpdatePostingCardRequest
+from .models.posting_models import CreatePostingCardRequest, UpdatePostingCardRequest
 
 
 def create_postings_router(

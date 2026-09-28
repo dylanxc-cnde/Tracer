@@ -6,7 +6,7 @@ from ..models.posting_details import FactOrigin
 from ..stores.posting_card_store import PostingCardStore
 
 if TYPE_CHECKING:
-    from tracer.api.models import UpdatePostingCardRequest
+    from tracer.api.models.posting_models import UpdatePostingCardRequest
 
 
 class UpdatePostingCardService:

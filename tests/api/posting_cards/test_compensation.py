@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from tracer.api.app import create_app
-from tracer.api.models import UpdateCompensationEntryRequest
+from tracer.api.models.posting_models import UpdateCompensationEntryRequest
 from tracer.postings import PostingCard, PostingDetails
 from tracer.postings.stores.posting_card_store import PostingCardStore
 
