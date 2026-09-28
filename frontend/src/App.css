@@ -10,7 +10,7 @@
 .app-shell__content {
   min-width: 0;
   min-height: calc(100svh - 24px);
-  padding: 28px 32px 40px;
+  padding: 0 32px 40px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 20px;
   background-color: var(--color-surface);
@@ -21,7 +21,9 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 4px 12px;
-  margin-bottom: 28px;
+  margin: 0;
+  padding: 16px 0 12px;
+  border-bottom: 1px solid transparent;
 }
 
 .app-shell__brand {
@@ -200,9 +202,7 @@ button:disabled {
 .app-shell__content--home > .app-shell__header {
   grid-column: 1;
   grid-row: 1;
-  margin: 0;
-  padding: 28px 32px 16px;
-  border-bottom: 1px solid transparent;
+  padding-inline: 32px;
 }
 
 .home-page__header {
@@ -303,11 +303,11 @@ button:disabled {
   display: grid;
   align-content: start;
   gap: 32px;
-  padding: 16px 32px 40px;
+  padding: 0 32px 40px;
 }
 
 .home-page__greeting {
-  margin: 0;
+  margin: 0 0 12px;
 }
 
 .home-page__summary-divider {
@@ -334,7 +334,7 @@ button:disabled {
   --home-discover-padding: 24px;
   grid-column: 2;
   grid-row: 1 / span 2;
-  padding: 28px var(--home-discover-padding) 0;
+  padding: 16px var(--home-discover-padding) 0;
   border-left: 1px solid var(--color-border-subtle);
   border-radius: 0 19px 19px 0;
   background-color: var(--color-canvas);
@@ -703,12 +703,8 @@ button:disabled {
 
   .app-shell__content {
     min-height: calc(100svh - 84px);
-    padding: 20px 16px 32px;
+    padding: 0 16px 32px;
     border-radius: 16px;
-  }
-
-  .app-shell__header {
-    margin-bottom: 24px;
   }
 
   .app-shell__content--home {
@@ -716,11 +712,11 @@ button:disabled {
   }
 
   .app-shell__content--home > .app-shell__header {
-    padding: 20px 16px 16px;
+    padding-inline: 16px;
   }
 
   .home-page__overview {
-    padding: 16px 16px 32px;
+    padding: 0 16px 32px;
   }
 
   .home-page__discover {
