@@ -36,8 +36,10 @@ Quick Facts stays a read-only summary. Requirement categories are also read-only
 for now; moving pills or groups and changing existing group rules are deferred.
 Failed saves keep your draft, and editing never overwrites the initial snapshot.
 
-The browser app currently has Import Posting, Card Library, and Import History.
-It's a working prototype, not yet a packaged desktop app.
+The browser app currently has Home, Import Posting, Card Library, Import History,
+and a Settings placeholder. Home is a layout prototype with separate personal
+and Discover panes; its full-year activity heatmap uses clearly labeled demo
+data, not recorded job-search activity. It's not yet a packaged desktop app.
 
 ## Run locally
 
@@ -76,7 +78,15 @@ The interface uses [PT Serif](https://fonts.google.com/specimen/PT+Serif),
 bundled locally via [Fontsource](https://fontsource.org/fonts/pt-serif).
 Characters outside its coverage, including Chinese, fall back to system fonts.
 Our icon set is [Framework7 Icons](https://framework7.io/icons/) (MIT),
-installed and ready for the new Home UI.
+used in the app navigation.
+
+The Home activity heatmap uses
+[React Activity Calendar](https://github.com/grubersjoe/react-activity-calendar)
+(`react-activity-calendar`) by Jonathan Gruber, licensed under the MIT License.
+Its font and colors are adapted to Tracer's interface. The full copyright and
+license notice is retained in
+[third-party licenses](frontend/public/third-party-licenses/react-activity-calendar.txt)
+and included in the frontend build.
 
 Run backend checks from the repository root:
 
