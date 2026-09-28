@@ -31,7 +31,20 @@
 
   --font-family: 'PT Serif', serif;
 
-  font: 16px/1.5 var(--font-family);
+  /* Pages and card details have separate title scales, even when both use h2. */
+  --font-size-page-title: 1.875rem;
+  --font-size-page-section-title: 1.375rem;
+  --font-size-card-title: 1.625rem;
+  --font-size-card-section-title: 1.375rem;
+  --font-size-card-field-title: 1.125rem;
+  --font-size-body: 1.0625rem;
+  --font-size-ui: 1rem;
+  --font-size-caption: 0.875rem;
+  --line-height-heading: 1.25;
+  --line-height-body: 1.55;
+
+  /* Keep rem tied to the browser preference; body text has its own size below. */
+  font: 100%/var(--line-height-body) var(--font-family);
   letter-spacing: 0.08px;
   color-scheme: light;
   color: var(--color-text-primary);
@@ -72,6 +85,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  font-size: var(--font-size-body);
   background-color: var(--color-canvas);
 }
 
@@ -84,14 +98,25 @@ h2,
 h3,
 h4 {
   font-family: var(--font-family);
+  font-weight: 700;
+  line-height: var(--line-height-heading);
   color: var(--color-text-primary);
 }
 
 h2 {
   margin: 0 0 8px;
-  font-size: 24px;
+}
+
+.page-title {
+  margin: 0 0 24px;
+  font-size: var(--font-size-page-title);
   line-height: 1.2;
-  letter-spacing: -0.24px;
+  overflow-wrap: anywhere;
+}
+
+.page-section-title {
+  margin: 0 0 16px;
+  font-size: var(--font-size-page-section-title);
 }
 
 h3,
@@ -101,7 +126,7 @@ p {
 }
 
 p {
-  line-height: 1.55;
+  line-height: var(--line-height-body);
 }
 
 a {
@@ -114,5 +139,5 @@ code {
   border-radius: 4px;
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
-  font: 15px/1.35 var(--font-family);
+  font: var(--font-size-ui)/1.35 var(--font-family);
 }

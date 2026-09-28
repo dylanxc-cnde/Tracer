@@ -34,7 +34,7 @@ export function PostingCandidateCard({
           : 'posting-candidate'
       }
     >
-      <h3 className="posting-candidate__title">{title}</h3>
+      <h4 className="posting-candidate__title">{title}</h4>
 
       <p className="posting-candidate__metadata">{company}</p>
       <p className="posting-candidate__metadata">{location}</p>

@@ -19,7 +19,7 @@
 
 .posting-card-posting-info__list dt {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -33,7 +33,7 @@
 
 .posting-card-posting-info__list a {
   color: var(--color-action-primary);
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .posting-card-posting-info__text,
@@ -89,7 +89,7 @@
 
 .posting-card-posting-info__field--canonicalPostingUrl .posting-card-posting-info__text {
   color: var(--color-action-primary);
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .posting-card-posting-info__date,

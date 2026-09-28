@@ -113,6 +113,8 @@ export function CardLibraryPage() {
 
   return (
     <>
+      <h2 className="page-title">Card library</h2>
+
       {error && <p role="alert">{error}</p>}
 
       <button

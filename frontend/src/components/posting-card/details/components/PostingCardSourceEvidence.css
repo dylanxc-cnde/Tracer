@@ -1,20 +1,20 @@
 .posting-card-source-evidence {
   margin-top: 10px;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-ui);
 }
 
 .posting-card-source-evidence__unavailable {
   margin: 10px 0 0;
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-caption);
   font-style: italic;
 }
 
 .posting-card-source-evidence > summary {
   width: fit-content;
   color: var(--color-text-secondary);
-  font-weight: 650;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -50,20 +50,20 @@
 }
 
 .posting-card-source-evidence__url strong {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .posting-card-source-evidence__url a {
   color: var(--color-action-primary);
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .posting-card-source-evidence__modification-notice {
   margin: 8px 0 0;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 400;
   line-height: 1.5;
 }

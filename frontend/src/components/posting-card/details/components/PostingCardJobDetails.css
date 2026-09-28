@@ -16,8 +16,8 @@
 .posting-card-job-details dt {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-ui);
+  font-weight: 400;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -202,7 +202,7 @@
   padding: 6px 10px;
   border-radius: 6px;
   color: var(--color-text-primary);
-  font-size: 14px;
+  font-size: var(--font-size-ui);
   cursor: pointer;
 }
 

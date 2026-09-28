@@ -20,6 +20,7 @@
     0 24px 64px rgba(52, 53, 53, 0.2),
     0 8px 24px rgba(52, 53, 53, 0.12);
   text-align: left;
+  font-size: var(--font-size-body);
 }
 
 .posting-card-details:focus {
@@ -91,16 +92,17 @@
   min-width: 0;
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 24px;
+  font-size: var(--font-size-card-title);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.24px;
+  overflow-wrap: anywhere;
 }
 
 .posting-card-details__position-title {
   width: fit-content;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 .posting-card-details__position-title > summary {
@@ -117,7 +119,7 @@
 .posting-card-details__company {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 16px;
+  font-size: var(--font-size-body);
   line-height: 1.45;
 }
 
@@ -139,7 +141,7 @@
   color: var(--color-text-secondary);
   background: transparent;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--font-size-ui);
   font-weight: 700;
   line-height: 1.45;
   cursor: pointer;
@@ -163,8 +165,8 @@
   gap: 8px;
   margin-top: 20px;
   color: var(--color-text-secondary);
-  font-size: 14px;
-  font-weight: 650;
+  font-size: var(--font-size-ui);
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -193,8 +195,8 @@
     0 4px 0 var(--color-action-pressed),
     0 8px 14px rgba(34, 52, 46, 0.16);
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
 }
@@ -265,7 +267,7 @@
 
 .posting-card-details__section > h3 {
   margin: 0 0 16px;
-  font-size: 20px;
+  font-size: var(--font-size-card-section-title);
   line-height: 1.25;
 }
 
@@ -279,7 +281,7 @@
 
 .posting-card-details__field > h4 {
   margin: 0 0 12px;
-  font-size: 15px;
+  font-size: var(--font-size-card-field-title);
 }
 
 .posting-card-details__field-heading {
@@ -293,7 +295,7 @@
 
 .posting-card-details__field-heading > h4 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-size-card-field-title);
 }
 
 .posting-card-details__add-responsibility,
@@ -326,7 +328,7 @@
 .posting-card-details__source-comparison-notice {
   margin: 10px 0 0;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 .posting-card-details__source-user-defined {
@@ -336,7 +338,7 @@
   border-radius: 999px;
   color: var(--color-text-secondary);
   background-color: var(--color-surface-muted);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 700;
 }
 
@@ -359,7 +361,8 @@
   padding: 16px;
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
-  font-size: 16px;
+  font-size: var(--font-size-card-section-title);
+  line-height: var(--line-height-heading);
   font-weight: 700;
   cursor: pointer;
 }
@@ -379,11 +382,12 @@
   padding-top: 16px;
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 @media (max-width: 600px) {
   .posting-card-details__topbar {
+    flex-wrap: wrap;
     gap: 12px;
     padding: 16px 20px;
   }
@@ -394,10 +398,6 @@
 
   .posting-card-details__header {
     padding: 12px 20px 20px;
-  }
-
-  .posting-card-details__title {
-    font-size: 20px;
   }
 
   .posting-card-details__content {

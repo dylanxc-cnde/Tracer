@@ -17,7 +17,7 @@
 
 .posting-card-quick-facts dt {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -25,8 +25,8 @@
 
 .posting-card-quick-facts dd {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: 700;
 }
 
 @media (max-width: 600px) {

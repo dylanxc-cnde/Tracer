@@ -18,7 +18,7 @@
   margin-bottom: 6px;
   padding-right: 28px;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -41,7 +41,7 @@
 
 .posting-card-work-conditions__heading > h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--font-size-card-section-title);
   line-height: 1.25;
 }
 

@@ -10,7 +10,7 @@
 
 .posting-card-user-area > h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--font-size-card-section-title);
   line-height: 1.25;
 }
 
@@ -22,7 +22,8 @@
 
 .posting-card-user-area__field > label,
 .posting-card-user-area__label {
-  font-size: 15px;
+  font-size: var(--font-size-card-field-title);
+  line-height: var(--line-height-heading);
   font-weight: 700;
 }
 
@@ -145,8 +146,8 @@
   border-radius: 999px;
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--font-size-ui);
+  font-weight: 700;
   line-height: 1.2;
 }
 

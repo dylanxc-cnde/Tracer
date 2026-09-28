@@ -67,6 +67,8 @@ export function ImportHistoryPage() {
 
   return (
     <>
+      <h2 className="page-title">Import history</h2>
+
       {error && <p role="alert">{error}</p>}
 
       <button
