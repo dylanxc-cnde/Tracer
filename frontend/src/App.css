@@ -188,14 +188,21 @@ button:disabled {
     0 4px 8px rgba(158, 51, 51, 0.12);
 }
 
-.home-page {
+.app-shell__content--home {
   /* Keep the trial title scale local to Home, without changing other pages. */
   --font-size-page-section-title: 1.125rem;
   display: grid;
-  flex: 1;
   grid-template-columns: minmax(0, 2fr) minmax(25rem, 1fr);
-  min-height: 0;
-  gap: 24px;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 0;
+}
+
+.app-shell__content--home > .app-shell__header {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  padding: 28px 32px 16px;
+  border-bottom: 1px solid transparent;
 }
 
 .home-page__header {
@@ -296,6 +303,11 @@ button:disabled {
   display: grid;
   align-content: start;
   gap: 32px;
+  padding: 16px 32px 40px;
+}
+
+.home-page__greeting {
+  margin: 0;
 }
 
 .home-page__summary-divider {
@@ -313,9 +325,30 @@ button:disabled {
   min-height: 0;
 }
 
+.home-page__personal {
+  grid-column: 1;
+  grid-row: 2;
+}
+
 .home-page__discover {
-  padding-left: 24px;
+  --home-discover-padding: 24px;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  padding: 28px var(--home-discover-padding) 0;
   border-left: 1px solid var(--color-border-subtle);
+  border-radius: 0 19px 19px 0;
+  background-color: var(--color-canvas);
+}
+
+.home-page__discover > .home-page__header {
+  margin: 0 calc(-1 * var(--home-discover-padding));
+  padding: 0 var(--home-discover-padding) 16px;
+  border-bottom: 1px solid transparent;
+}
+
+.home-page__discover-content {
+  padding-top: 8px;
+  padding-bottom: 40px;
 }
 
 .home-page__discover-content,
@@ -334,6 +367,7 @@ button:disabled {
   padding: 16px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 12px;
+  background-color: var(--color-surface);
 }
 
 .home-page__columns {
@@ -387,8 +421,23 @@ button:disabled {
 }
 
 .home-page__activity-calendar {
+  --home-activity-label-space: 6%;
+  /* Override the library's intrinsic width, but keep narrow calendars readable. */
+  width: 100% !important;
+  min-width: 50rem;
   color: var(--color-text-secondary);
   font-family: var(--font-family);
+}
+
+/* Scale the viewBox uniformly and reserve room for weekday labels left of x=0. */
+.home-page__activity-calendar .react-activity-calendar__calendar {
+  width: calc(100% - var(--home-activity-label-space));
+  height: auto;
+  margin-left: var(--home-activity-label-space) !important;
+}
+
+.home-page__activity-calendar .react-activity-calendar__footer {
+  margin-left: var(--home-activity-label-space) !important;
 }
 
 /* Keep a single keyboard-scrollable viewport around the full-year calendar. */
@@ -606,21 +655,24 @@ button:disabled {
 @media (min-width: 961px) {
   /* Only Home uses a bounded height; other pages keep their document scrolling. */
   .app-shell__content--home {
-    display: flex;
-    flex-direction: column;
     height: calc(100svh - 24px);
     min-height: 0;
+    overflow: hidden;
   }
 
-  .app-shell__content--home > .app-shell__header {
-    flex-shrink: 0;
+  /* Only the personal pane's scroll position reveals the brand divider. */
+  .app-shell__content--home:has(.home-page__personal[data-scrolled='true']) > .app-shell__header {
+    border-bottom-color: var(--color-border-subtle);
+  }
+
+  .home-page__discover[data-scrolled='true'] > .home-page__header {
+    border-bottom-color: var(--color-border-subtle);
   }
 
   .home-page__scroll-region {
     /* Let each pane overflow inside its column instead of stretching the shell. */
     flex: 1;
     min-height: 0;
-    padding-right: 8px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     scrollbar-gutter: stable;
@@ -628,15 +680,19 @@ button:disabled {
 }
 
 @media (max-width: 960px) {
-  .home-page {
+  .app-shell__content--home {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
   }
 
   .home-page__discover {
+    --home-discover-padding: 32px;
+    grid-column: 1;
+    grid-row: 3;
     padding-top: 24px;
-    padding-left: 0;
     border-top: 1px solid var(--color-border-subtle);
     border-left: 0;
+    border-radius: 0 0 19px 19px;
   }
 }
 
@@ -653,6 +709,27 @@ button:disabled {
 
   .app-shell__header {
     margin-bottom: 24px;
+  }
+
+  .app-shell__content--home {
+    padding: 0;
+  }
+
+  .app-shell__content--home > .app-shell__header {
+    padding: 20px 16px 16px;
+  }
+
+  .home-page__overview {
+    padding: 16px 16px 32px;
+  }
+
+  .home-page__discover {
+    --home-discover-padding: 16px;
+    border-radius: 0 0 15px 15px;
+  }
+
+  .home-page__discover-content {
+    padding-bottom: 32px;
   }
 
   .app-shell__navigation {

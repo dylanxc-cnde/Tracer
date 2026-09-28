@@ -41,6 +41,8 @@ function createDemoSearchActivity(year: number, today: string) {
 }
 
 export function HomePage() {
+  const [hasScrolledOverview, setHasScrolledOverview] = useState(false)
+  const [hasScrolledDiscover, setHasScrolledDiscover] = useState(false)
   // Use the device's local time; no profile or server timezone is needed yet.
   const [clockTimes, setClockTimes] = useState(() => {
     const currentTime = new Date()
@@ -74,20 +76,23 @@ export function HomePage() {
   const demoActivity = useMemo(() => createDemoSearchActivity(year, date), [year, date])
 
   return (
-    <section className="home-page">
-      <section className="home-page__personal" aria-labelledby="home-greeting-title">
-        <header className="home-page__header">
-          <h2 className="page-title" id="home-greeting-title">
-            {getHomeGreeting(currentTime.getHours())}
-          </h2>
-        </header>
-
+    <>
+      <section
+        className="home-page__personal"
+        aria-labelledby="home-greeting-title"
+        data-scrolled={hasScrolledOverview}
+      >
         <div
           className="home-page__overview home-page__scroll-region"
           role="region"
           aria-label="Personal overview"
           tabIndex={0}
+          onScroll={(event) => setHasScrolledOverview(event.currentTarget.scrollTop > 0)}
         >
+          <h2 className="page-title home-page__greeting" id="home-greeting-title">
+            {getHomeGreeting(currentTime.getHours())}
+          </h2>
+
           <section aria-labelledby="home-summary-title">
             <h3 className="page-section-title" id="home-summary-title">Summary</h3>
             <p className="home-page__placeholder">
@@ -199,7 +204,11 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="home-page__discover" aria-labelledby="home-discover-title">
+      <section
+        className="home-page__discover"
+        aria-labelledby="home-discover-title"
+        data-scrolled={hasScrolledDiscover}
+      >
         <header className="home-page__header">
           <h2 className="page-title" id="home-discover-title">Discover</h2>
           <time className="home-page__date-time" dateTime={currentTime.toISOString()}>
@@ -238,6 +247,7 @@ export function HomePage() {
           role="region"
           aria-label="Discover updates"
           tabIndex={0}
+          onScroll={(event) => setHasScrolledDiscover(event.currentTarget.scrollTop > 0)}
         >
           <section className="home-page__discover-section" aria-labelledby="home-market-title">
             <h3 className="home-page__detail-title" id="home-market-title">Market brief</h3>
@@ -253,6 +263,6 @@ export function HomePage() {
           </section>
         </div>
       </section>
-    </section>
+    </>
   )
 }
