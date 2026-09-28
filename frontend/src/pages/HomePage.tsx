@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { cloneElement, useEffect, useMemo, useState } from 'react'
+import { ActivityCalendar } from 'react-activity-calendar'
 
 function getHomeGreeting(hour: number): string {
   if (hour >= 5 && hour < 12) {
@@ -19,6 +20,24 @@ function formatHomeTime(time: Date): string {
     second: '2-digit',
     hourCycle: 'h23',
   })
+}
+
+function createDemoSearchActivity(year: number, today: string) {
+  const activities = []
+  // UTC is only used to enumerate date-only cells without daylight-saving shifts.
+  const day = new Date(Date.UTC(year, 0, 1))
+
+  while (day.getUTCFullYear() === year) {
+    const date = day.toISOString().slice(0, 10)
+    // Fixed sample values let us review the layout without inventing user history.
+    const sample = (day.getUTCDate() * 17 + day.getUTCMonth() * 11) % 19
+    const count = date > today ? 0 : Math.max(0, sample - 9)
+
+    activities.push({ date, count, level: Math.min(4, Math.ceil(count / 2)) })
+    day.setUTCDate(day.getUTCDate() + 1)
+  }
+
+  return activities
 }
 
 export function HomePage() {
@@ -50,6 +69,9 @@ export function HomePage() {
   ].join('-')
   const time = formatHomeTime(currentTime)
   const previousTimeText = formatHomeTime(previousTime)
+  const year = currentTime.getFullYear()
+  // The clock ticks every second, but the demo calendar only changes each day.
+  const demoActivity = useMemo(() => createDemoSearchActivity(year, date), [year, date])
 
   return (
     <section className="home-page">
@@ -104,8 +126,45 @@ export function HomePage() {
 
             <div className="home-page__search-details">
               <div className="home-page__activity">
-                <h4 className="home-page__detail-title">Search activity</h4>
-                <p className="home-page__placeholder">Space for a daily activity heatmap.</p>
+                <div className="home-page__activity-header">
+                  <h4 className="home-page__detail-title" id="home-activity-title">Search activity</h4>
+                  <span className="home-page__activity-period">{year} · Demo</span>
+                </div>
+                <div
+                  className="home-page__activity-scroll"
+                  role="region"
+                  aria-labelledby="home-activity-title"
+                  aria-describedby="home-activity-note"
+                  tabIndex={0}
+                >
+                  <ActivityCalendar
+                    data={demoActivity}
+                    className="home-page__activity-calendar"
+                    colorScheme="light"
+                    blockSize={11}
+                    blockMargin={3}
+                    blockRadius={3}
+                    fontSize={14}
+                    weekStart={1}
+                    showWeekdayLabels={['mon', 'wed', 'fri','sun']}
+                    showTotalCount={true}
+                    theme={{ light: ['var(--color-surface-muted)', 'var(--color-action-primary)'] }}
+                    labels={{ legend: { less: 'Less', more: 'More' } }}
+                    renderBlock={(block, activity) => {
+                      const isFuture = activity.date > date
+                      const label = isFuture
+                        ? `${activity.date}: future date, no activity recorded`
+                        : `${activity.date}: ${activity.count} demo activities`
+
+                      return cloneElement(block, {
+                        role: 'img',
+                        'aria-label': label,
+                        className: isFuture ? 'home-page__activity-day--future' : undefined,
+                        children: <title>{label}</title>,
+                      })
+                    }}
+                  />
+                </div>
               </div>
               <div className="home-page__columns">
                 <div>

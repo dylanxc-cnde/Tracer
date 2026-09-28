@@ -347,6 +347,64 @@ button:disabled {
   min-height: 120px;
 }
 
+.home-page__activity {
+  min-width: 0;
+}
+
+.home-page__activity-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+
+.home-page__activity-header .home-page__detail-title {
+  margin: 0;
+}
+
+.home-page__activity-period {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.home-page__activity-note {
+  margin: 0 0 16px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.home-page__activity-scroll {
+  max-width: 100%;
+  padding: 4px 2px 8px;
+  overflow-x: auto;
+}
+
+.home-page__activity-scroll:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: -2px;
+}
+
+.home-page__activity-calendar {
+  color: var(--color-text-secondary);
+  font-family: var(--font-family);
+}
+
+/* Keep a single keyboard-scrollable viewport around the full-year calendar. */
+.home-page__activity-calendar .react-activity-calendar__scroll-container {
+  overflow: visible !important;
+}
+
+.home-page__activity-calendar .home-page__activity-day--future {
+  opacity: 0.4;
+}
+
+.home-page__activity-calendar rect[data-date]:hover {
+  stroke: var(--color-action-primary) !important;
+  stroke-width: 1.5px;
+}
+
 .home-page__placeholder {
   margin: 0;
   color: var(--color-text-secondary);
