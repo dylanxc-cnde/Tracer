@@ -89,17 +89,15 @@ export function HomePage() {
           tabIndex={0}
           onScroll={(event) => setHasScrolledOverview(event.currentTarget.scrollTop > 0)}
         >
-          <h2 className="page-title home-page__greeting" id="home-greeting-title">
-            {getHomeGreeting(currentTime.getHours())}
-          </h2>
-
-          <section aria-labelledby="home-summary-title">
-            <h3 className="page-section-title" id="home-summary-title">Summary</h3>
+          <div>
+            <h2 className="page-title home-page__greeting" id="home-greeting-title">
+              {getHomeGreeting(currentTime.getHours())}
+            </h2>
             <p className="home-page__placeholder">
               Space for a short daily overview and suggested priorities.
             </p>
             <hr className="home-page__summary-divider" />
-          </section>
+          </div>
 
           <div className="home-page__columns">
             <section className="home-page__schedule" aria-labelledby="home-today-title">
