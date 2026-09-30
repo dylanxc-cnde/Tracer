@@ -205,6 +205,20 @@ button:disabled {
   padding-inline: 32px;
 }
 
+.app-shell__content--settings {
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - 24px);
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.app-shell__content--settings > .app-shell__header {
+  flex-shrink: 0;
+  padding-inline: 32px;
+}
+
 .home-page__header {
   display: flex;
   flex-shrink: 0;
@@ -653,7 +667,7 @@ button:disabled {
 }
 
 @media (min-width: 961px) {
-  /* Only Home uses a bounded height; other pages keep their document scrolling. */
+  /* Keep Home's two scroll panes inside the desktop shell. */
   .app-shell__content--home {
     height: calc(100svh - 24px);
     min-height: 0;
@@ -712,6 +726,16 @@ button:disabled {
   }
 
   .app-shell__content--home > .app-shell__header {
+    padding-inline: 16px;
+  }
+
+  .app-shell__content--settings {
+    height: calc(100svh - 84px);
+    min-height: 0;
+    padding: 0;
+  }
+
+  .app-shell__content--settings > .app-shell__header {
     padding-inline: 16px;
   }
 

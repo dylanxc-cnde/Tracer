@@ -78,7 +78,7 @@ function App() {
         </button>
       </nav>
 
-      <main className={currentPage === 'home' ? 'app-shell__content app-shell__content--home' : 'app-shell__content'}>
+      <main className={`app-shell__content app-shell__content--${currentPage}`}>
         <header className="app-shell__header">
           <h1 className="app-shell__brand">Tracer</h1>
           <p className="app-shell__tagline">Your Personal Job Assistant.</p>

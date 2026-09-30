@@ -7,6 +7,7 @@ declare module 'framework7-icons/react' {
   export const GearAlt: Framework7Icon
   export const House: Framework7Icon
   export const HouseFill: Framework7Icon
+  export const PersonCropCircle: Framework7Icon
   export const SquareStack: Framework7Icon
   export const TrayArrowDown: Framework7Icon
 }
