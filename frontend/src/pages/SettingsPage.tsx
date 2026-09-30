@@ -12,7 +12,7 @@ export function SettingsPage() {
   return (
     <section className="settings-page">
       <aside className="settings-page__sidebar">
-        <h2 className="settings-page__title">Settings</h2>
+        <h1 className="settings-page__title">Settings</h1>
         <nav className="settings-page__navigation" aria-label="Settings sections">
           <button
             className="settings-page__navigation-button"

@@ -16,7 +16,8 @@
 
 .settings-page__title {
   margin: 0 12px 24px;
-  font-size: var(--font-size-page-section-title);
+  font-size: var(--font-size-page-title);
+  line-height: 1.2;
 }
 
 .settings-page__navigation {
@@ -64,7 +65,7 @@
 .settings-page__workspace {
   min-width: 0;
   min-height: 0;
-  padding: 32px;
+  padding: 24px 32px;
   overflow-y: auto;
   overscroll-behavior-y: contain;
 }

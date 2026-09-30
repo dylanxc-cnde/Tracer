@@ -31,13 +31,13 @@
 
   --font-family: 'PT Serif', serif;
 
-  /* Pages and card details have separate title scales, even when both use h2. */
-  --font-size-page-title: 1.875rem;
-  --font-size-page-section-title: 1.375rem;
+  /* Page headings and card details use independent title scales. */
+  --font-size-page-title: 1.5rem;
+  --font-size-page-section-title: 1.125rem;
   --font-size-card-title: 1.625rem;
   --font-size-card-section-title: 1.375rem;
   --font-size-card-field-title: 1.125rem;
-  --font-size-body: 1.0625rem;
+  --font-size-body: 1rem;
   --font-size-ui: 1rem;
   --font-size-caption: 0.875rem;
   --line-height-heading: 1.25;

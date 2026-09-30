@@ -56,7 +56,7 @@ export function PostingImportPage() {
 
   return (
     <>
-      <h2 className="page-title">Import posting</h2>
+      <h1 className="page-title">Import posting</h1>
 
       {importSessionError && <p role="alert">{importSessionError}</p>}
 
@@ -87,9 +87,9 @@ export function PostingImportPage() {
 
       {parseResult && parseResult.postings.length > 0 && (
         <section className="posting-import-page__candidate-list">
-          <h3 className="page-section-title">
+          <h2 className="page-section-title">
             Choose a posting
-          </h3>
+          </h2>
 
           {parseResult.postings.map((posting, index) => (
             <PostingCandidateCard
