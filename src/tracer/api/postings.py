@@ -49,7 +49,7 @@ def create_postings_router(
     update_posting_card_service = UpdatePostingCardService(
         posting_card_store
     )
-    router = APIRouter(tags=["postings"])
+    router = APIRouter(prefix="/posting", tags=["postings"])
 
     def get_posting_import(import_key: UUID) -> PostingImportRequest:
         request = posting_import_request_store.get(import_key)
@@ -70,7 +70,7 @@ def create_postings_router(
         return posting_parser
 
     @router.post(
-        "/posting-imports",
+        "/import",
         status_code=status.HTTP_201_CREATED,
     )
     def create_posting_import(
@@ -84,18 +84,18 @@ def create_postings_router(
 
         return request
 
-    @router.get("/posting-imports")
+    @router.get("/import")
     def read_posting_imports() -> tuple[PostingImportRequest, ...]:
         return posting_import_request_store.get_all()
 
-    @router.get("/posting-imports/{import_key}")
+    @router.get("/import/{import_key}")
     def read_posting_import(
         import_key: UUID,
     ) -> PostingImportRequest:
         return get_posting_import(import_key)
 
     @router.delete(
-        "/posting-imports/{import_key}",
+        "/import/{import_key}",
         status_code=status.HTTP_204_NO_CONTENT,
     )
     def delete_posting_import(import_key: UUID) -> None:
@@ -105,7 +105,7 @@ def create_postings_router(
                 detail="Posting import not found",
             )
 
-    @router.post("/posting-imports/{import_key}/parse-results")
+    @router.post("/import/{import_key}/parse-results")
     def create_posting_parse_result(
         import_key: UUID,
     ) -> PostingParseResult:
@@ -114,7 +114,7 @@ def create_postings_router(
         return get_posting_parser().parse(request)
 
     @router.post(
-        "/posting-cards",
+        "/card",
         status_code=status.HTTP_201_CREATED,
     )
     def create_posting_card(
@@ -130,7 +130,7 @@ def create_postings_router(
             tags=request.tags,
         )
 
-    @router.get("/posting-cards/{card_key}")
+    @router.get("/card/{card_key}")
     def read_posting_card(card_key: UUID) -> PostingCard:
         card = posting_card_store.get_by_card_key(card_key)
         if card is None:
@@ -141,7 +141,7 @@ def create_postings_router(
 
         return card
 
-    @router.get("/posting-cards/{card_key}/original")
+    @router.get("/card/{card_key}/original")
     def read_original_posting_card(card_key: UUID) -> PostingCard:
         card = posting_card_store.get_original_by_card_key(card_key)
         if card is None:
@@ -152,11 +152,11 @@ def create_postings_router(
 
         return card
 
-    @router.get("/posting-cards")
+    @router.get("/card")
     def read_posting_cards() -> tuple[PostingCard, ...]:
         return posting_card_store.get_all()
 
-    @router.patch("/posting-cards/{card_key}")
+    @router.patch("/card/{card_key}")
     def update_posting_card(
         card_key: UUID,
         request: UpdatePostingCardRequest,
@@ -174,7 +174,7 @@ def create_postings_router(
         return card
 
     @router.delete(
-        "/posting-cards/{card_key}",
+        "/card/{card_key}",
         status_code=status.HTTP_204_NO_CONTENT,
     )
     def delete_posting_card(card_key: UUID) -> None:

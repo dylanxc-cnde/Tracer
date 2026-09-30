@@ -60,15 +60,15 @@ def test_http_updates_clears_and_restores_identity(
             (original_value, original_origin),
         ]:
             request[field] = value
-            response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+            response = client.patch(f"/posting/card/{card.card_key}", json=request)
             expected["posting"]["identity"][field] = (
                 None if origin is None else {"value": value, "origin": origin}
             )
             assert response.status_code == 200
             assert response.json() == expected
-            assert client.get(f"/posting-cards/{card.card_key}").json() == expected
-            assert client.get("/posting-cards").json() == [expected]
-            assert client.get(f"/posting-cards/{card.card_key}/original").json() == (
+            assert client.get(f"/posting/card/{card.card_key}").json() == expected
+            assert client.get("/posting/card").json() == [expected]
+            assert client.get(f"/posting/card/{card.card_key}/original").json() == (
                 card.model_dump(mode="json")
             )
 
@@ -108,23 +108,23 @@ def test_http_adds_missing_identity_and_keeps_it_on_later_saves(tmp_path):
         expected["posting"]["identity"][field] = {"value": value, "origin": "user_defined"}
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
 
         request["user_notes"] = "Only notes change on this save."
         expected["user_notes"] = request["user_notes"]
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
 
         for field in IDENTITY_FIELDS:
             request[field] = None
             expected["posting"]["identity"][field] = None
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
-        assert client.get("/posting-cards").json() == [expected]
+        assert client.get("/posting/card").json() == [expected]
 
     reopened_store = PostingCardStore(database_path)
     assert reopened_store.get_by_card_key(card.card_key).model_dump(mode="json") == expected
@@ -141,7 +141,7 @@ def test_http_rejects_invalid_identity_without_writing(tmp_path, field, value):
     request = make_card_update_request(**{field: value})
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
     assert store.get_by_card_key(card.card_key) == card
     assert store.get_original_by_card_key(card.card_key) == card
@@ -157,7 +157,7 @@ def test_http_requires_identity_in_full_card_update(tmp_path, field):
     del request[field]
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
     assert store.get_by_card_key(card.card_key) == card
     assert store.get_original_by_card_key(card.card_key) == card

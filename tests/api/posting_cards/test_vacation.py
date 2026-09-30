@@ -58,7 +58,7 @@ def test_http_updates_and_restores_vacation_days(
 
     with TestClient(app) as client:
         response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert response.status_code == 200
         expected_payload = card.model_dump(mode="json")
@@ -68,12 +68,12 @@ def test_http_updates_and_restores_vacation_days(
             else None
         )
         assert response.json() == expected_payload
-        assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
-        assert client.get("/posting-cards").json() == [expected_payload]
+        assert client.get(f"/posting/card/{card.card_key}").json() == expected_payload
+        assert client.get("/posting/card").json() == [expected_payload]
 
         update_request["posting_alias"] = "Renamed after saving vacation"
         repeated_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         expected_payload["posting_alias"] = update_request["posting_alias"]
         assert repeated_response.status_code == 200
@@ -81,7 +81,7 @@ def test_http_updates_and_restores_vacation_days(
 
         update_request["vacation_days"] = original_value
         restored_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert restored_response.status_code == 200
         expected_payload["posting"]["compensation"]["vacation_days"] = (
@@ -89,7 +89,7 @@ def test_http_updates_and_restores_vacation_days(
         )
         assert restored_response.json() == expected_payload
         assert client.get(
-            f"/posting-cards/{card.card_key}/original"
+            f"/posting/card/{card.card_key}/original"
         ).json() == card.model_dump(mode="json")
 
     reopened_store = PostingCardStore(database_path)
@@ -111,7 +111,7 @@ def test_http_requires_vacation_days_in_card_update(tmp_path):
 
     with TestClient(app) as client:
         response = client.patch(
-            f"/posting-cards/{card.card_key}",
+            f"/posting/card/{card.card_key}",
             json=update_request,
         )
 

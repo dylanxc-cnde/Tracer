@@ -57,15 +57,15 @@ def test_http_updates_clears_and_restores_application_facts(
             (original_value, original_origin),
         ]:
             request[request_field] = value
-            response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+            response = client.patch(f"/posting/card/{card.card_key}", json=request)
             expected["posting"]["application_instructions"][posting_field] = (
                 None if origin is None else {"value": value, "origin": origin}
             )
             assert response.status_code == 200
             assert response.json() == expected
-            assert client.get(f"/posting-cards/{card.card_key}").json() == expected
-            assert client.get("/posting-cards").json() == [expected]
-            assert client.get(f"/posting-cards/{card.card_key}/original").json() == (
+            assert client.get(f"/posting/card/{card.card_key}").json() == expected
+            assert client.get("/posting/card").json() == [expected]
+            assert client.get(f"/posting/card/{card.card_key}/original").json() == (
                 card.model_dump(mode="json")
             )
 
@@ -88,7 +88,7 @@ def test_http_adds_application_facts_to_empty_card_and_preserves_saved_changes(t
         "role_summary": "My saved summary",
     })
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         saved = response.json()
         application = saved["posting"]["application_instructions"]
@@ -105,11 +105,11 @@ def test_http_adds_application_facts_to_empty_card_and_preserves_saved_changes(t
 
         request["posting_alias"] = "My renamed card"
         request["application_channels"].reverse()
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         saved["posting_alias"] = request["posting_alias"]
         assert response.status_code == 200
         assert response.json() == saved  # Only alias changed; channel order is not an edit.
-        assert client.get(f"/posting-cards/{card.card_key}").json() == saved
+        assert client.get(f"/posting/card/{card.card_key}").json() == saved
 
     assert PostingCardStore(database_path).get_by_card_key(card.card_key) == (
         PostingCard.model_validate(saved)
@@ -130,15 +130,15 @@ def test_http_channel_selection_order_does_not_change_original_provenance(tmp_pa
     request = make_card_update_request()
     with TestClient(create_app(database_path=database_path)) as client:
         request["application_channels"] = ["portal", "email"]
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == card.model_dump(mode="json")
 
         request["application_channels"] = ["other"]
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         request["application_channels"] = ["portal", "email"]
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == card.model_dump(mode="json")
     assert store.get_original_by_card_key(card.card_key) == card
@@ -175,7 +175,7 @@ def test_http_rejects_invalid_application_fact_updates_without_writing(tmp_path,
     request[field] = value
     request["posting_alias"] = "Must not be saved either"
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
         assert any(error["loc"][:2] == ["body", field] for error in response.json()["detail"])
     assert store.get_by_card_key(card.card_key) == card
@@ -194,7 +194,7 @@ def test_http_requires_application_facts_in_card_update(tmp_path, field):
     request = make_card_update_request()
     del request[field]
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
         assert any(
             error["loc"] == ["body", field] and error["type"] == "missing"

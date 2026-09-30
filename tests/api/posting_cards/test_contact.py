@@ -42,14 +42,14 @@ def test_http_updates_and_restores_contact_fields(
     update_request[f"contact_{field_name}"] = new_value
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=update_request)
         expected_payload = card.model_dump(mode="json")
         expected_payload["posting"]["contact"][field_name] = new_value
         expected_payload["posting"]["contact"]["origin"] = "user_defined"
         assert response.status_code == 200
         assert response.json() == expected_payload
-        assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
-        assert client.get("/posting-cards").json() == [expected_payload]
+        assert client.get(f"/posting/card/{card.card_key}").json() == expected_payload
+        assert client.get("/posting/card").json() == [expected_payload]
         assert PostingCardStore(database_path).get_by_card_key(card.card_key) == (
             PostingCard.model_validate(expected_payload)
         )
@@ -57,7 +57,7 @@ def test_http_updates_and_restores_contact_fields(
         # Saving an unrelated field must keep the edited contact and its source.
         update_request["posting_alias"] = "Renamed card"
         repeated_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         expected_payload["posting_alias"] = "Renamed card"
         assert repeated_response.status_code == 200
@@ -65,12 +65,12 @@ def test_http_updates_and_restores_contact_fields(
 
         update_request[f"contact_{field_name}"] = contact[field_name]
         restored_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         expected_payload["posting"]["contact"] = contact
         assert restored_response.status_code == 200
         assert restored_response.json() == expected_payload
-        assert client.get(f"/posting-cards/{card.card_key}/original").json() == (
+        assert client.get(f"/posting/card/{card.card_key}/original").json() == (
             card.model_dump(mode="json")
         )
 
@@ -91,7 +91,7 @@ def test_http_adds_and_clears_previously_missing_contact(tmp_path, field_name):
     update_request[f"contact_{field_name}"] = "New contact text"
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=update_request)
         expected_contact = {
             "source": {"excerpts": [], "source_urls": []},
             "name": None,
@@ -109,7 +109,7 @@ def test_http_adds_and_clears_previously_missing_contact(tmp_path, field_name):
 
         update_request[f"contact_{field_name}"] = None
         cleared_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert cleared_response.status_code == 200
         assert cleared_response.json() == card.model_dump(mode="json")
@@ -146,19 +146,19 @@ def test_http_contact_keeps_source_and_restores_origin_only_for_full_match(
     update_request["contact_role"] = "Team lead"
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=update_request)
         assert response.status_code == 200
         assert response.json()["posting"]["contact"]["origin"] == "user_defined"
 
         update_request["contact_name"] = contact["name"]
         partial_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert partial_response.status_code == 200
         assert partial_response.json()["posting"]["contact"]["origin"] == "user_defined"
 
         cleared_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=make_card_update_request({})
+            f"/posting/card/{card.card_key}", json=make_card_update_request({})
         )
         assert cleared_response.status_code == 200
         assert cleared_response.json()["posting"]["contact"] == {
@@ -169,7 +169,7 @@ def test_http_contact_keeps_source_and_restores_origin_only_for_full_match(
         }
 
         restored_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=make_card_update_request(contact)
+            f"/posting/card/{card.card_key}", json=make_card_update_request(contact)
         )
         assert restored_response.status_code == 200
         assert restored_response.json() == card.model_dump(mode="json")
@@ -191,12 +191,12 @@ def test_http_rejects_invalid_contact_without_changing_storage(
     update_request[f"contact_{field_name}"] = invalid_value
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=update_request)
         assert response.status_code == 422
 
         del update_request[f"contact_{field_name}"]
         missing_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert missing_response.status_code == 422
 

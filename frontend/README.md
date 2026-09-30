@@ -121,21 +121,21 @@ Open `http://127.0.0.1:8000/docs` to try the API directly. Import and confirmati
 use this sequence:
 
 ```text
-POST /posting-imports
--> POST /posting-imports/{import_key}/parse-results
+POST /posting/import
+-> POST /posting/import/{import_key}/parse-results
 -> user selects one candidate
--> POST /posting-cards
+-> POST /posting/card
 ```
 
 Saved-record actions are independent, not one mandatory sequence:
 
 ```text
-Load cards       GET    /posting-cards
-Show original    GET    /posting-cards/{card_key}/original
-Save card edits  PATCH  /posting-cards/{card_key}
-Delete card      DELETE /posting-cards/{card_key}
-Load imports     GET    /posting-imports
-Delete import    DELETE /posting-imports/{import_key}
+Load cards       GET    /posting/card
+Show original    GET    /posting/card/{card_key}/original
+Save card edits  PATCH  /posting/card/{card_key}
+Delete card      DELETE /posting/card/{card_key}
+Load imports     GET    /posting/import
+Delete import    DELETE /posting/import/{import_key}
 ```
 
 View details currently uses the Card already loaded in the list or returned by

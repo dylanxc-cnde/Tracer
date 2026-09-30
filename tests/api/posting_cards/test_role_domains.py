@@ -63,7 +63,7 @@ def test_http_updates_and_restores_role_domains(
 
     with TestClient(app) as client:
         response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert response.status_code == 200
         expected_payload = card.model_dump(mode="json")
@@ -75,12 +75,12 @@ def test_http_updates_and_restores_role_domains(
         expected_payload["user_notes"] = update_request["user_notes"]
         expected_payload["tags"] = update_request["tags"]
         assert response.json() == expected_payload
-        assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
-        assert client.get("/posting-cards").json() == [expected_payload]
+        assert client.get(f"/posting/card/{card.card_key}").json() == expected_payload
+        assert client.get("/posting/card").json() == [expected_payload]
 
         update_request["posting_alias"] = "Renamed after saving domains"
         repeated_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         expected_payload["posting_alias"] = update_request["posting_alias"]
         assert repeated_response.status_code == 200
@@ -88,7 +88,7 @@ def test_http_updates_and_restores_role_domains(
 
         update_request["role_domains"] = ["Data analytics", "Service design"]
         restored_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert restored_response.status_code == 200
         expected_payload["posting"]["role_content"]["domains"] = (
@@ -96,7 +96,7 @@ def test_http_updates_and_restores_role_domains(
         )
         assert restored_response.json() == expected_payload
         assert client.get(
-            f"/posting-cards/{card.card_key}/original"
+            f"/posting/card/{card.card_key}/original"
         ).json() == card.model_dump(mode="json")
 
     reopened_store = PostingCardStore(database_path)
@@ -117,7 +117,7 @@ def test_http_requires_role_domains_and_can_add_to_empty_list(tmp_path):
 
     with TestClient(app) as client:
         missing_field_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert missing_field_response.status_code == 422
         assert any(
@@ -129,7 +129,7 @@ def test_http_requires_role_domains_and_can_add_to_empty_list(tmp_path):
 
         update_request["role_domains"] = ["Automation"]
         response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert response.status_code == 200
         expected_payload = card.model_dump(mode="json")
