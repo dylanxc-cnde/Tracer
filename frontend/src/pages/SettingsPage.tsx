@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PersonCropCircle } from 'framework7-icons/react'
+import { IconKey, IconUserCircle } from '@tabler/icons-react'
 import { ApiSettings } from '../components/settings/api/ApiSettings'
 import { ProfileSettings } from '../components/settings/profile/ProfileSettings'
 import './SettingsPage.css'
@@ -20,7 +20,7 @@ export function SettingsPage() {
             aria-current={currentSection === 'profile' ? 'page' : undefined}
             onClick={() => setCurrentSection('profile')}
           >
-            <PersonCropCircle aria-hidden="true" focusable="false" />
+            <IconUserCircle aria-hidden="true" focusable="false" />
             <span>Profile</span>
           </button>
 
@@ -30,20 +30,7 @@ export function SettingsPage() {
             aria-current={currentSection === 'api' ? 'page' : undefined}
             onClick={() => setCurrentSection('api')}
           >
-            {/* The installed icon set has no key glyph; keep this SVG fallback local. */}
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <circle cx="7.5" cy="7.5" r="4.5" />
-              <path d="M10.7 10.7 21 21M15 15l3-3M18 18l3-3" />
-            </svg>
+            <IconKey aria-hidden="true" focusable="false" />
             <span>API</span>
           </button>
         </nav>

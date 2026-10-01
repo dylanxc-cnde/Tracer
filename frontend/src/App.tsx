@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowCounterclockwise, Clock, GearAlt, House, Search, SquareStack, TrayArrowDown } from 'framework7-icons/react'
+import { IconClock, IconCopy, IconDownload, IconHistory, IconHome, IconSearch, IconSettings } from '@tabler/icons-react'
 import './App.css'
 import { ActivityPage } from './pages/ActivityPage'
 import { CardLibraryPage } from './pages/CardLibraryPage'
@@ -26,7 +26,7 @@ function App() {
 
         {/* Search and its shortcut hint are visual placeholders only. */}
         <div className="app-shell__search-placeholder">
-          <Search aria-hidden="true" focusable="false" />
+          <IconSearch aria-hidden="true" focusable="false" />
           <span>Search your workspace…</span>
           <kbd
             className="app-shell__search-shortcut"
@@ -50,7 +50,7 @@ function App() {
           onClick={() => setCurrentPage('home')}
           aria-current={currentPage === 'home' ? 'page' : undefined}
         >
-          <House aria-hidden="true" focusable="false" />
+          <IconHome aria-hidden="true" focusable="false" />
           <span className="app-shell__navigation-label">Home</span>
         </button>
 
@@ -60,7 +60,7 @@ function App() {
           onClick={() => setCurrentPage('card-library')}
           aria-current={currentPage === 'card-library' ? 'page' : undefined}
         >
-          <SquareStack aria-hidden="true" focusable="false" />
+          <IconCopy aria-hidden="true" focusable="false" />
           <span className="app-shell__navigation-label">Card library</span>
         </button>
 
@@ -70,7 +70,7 @@ function App() {
           onClick={() => setCurrentPage('posting-import')}
           aria-current={currentPage === 'posting-import' ? 'page' : undefined}
         >
-          <TrayArrowDown aria-hidden="true" focusable="false" />
+          <IconDownload aria-hidden="true" focusable="false" />
           <span className="app-shell__navigation-label">Import posting</span>
         </button>
 
@@ -80,7 +80,7 @@ function App() {
           onClick={() => setCurrentPage('activity')}
           aria-current={currentPage === 'activity' ? 'page' : undefined}
         >
-          <Clock aria-hidden="true" focusable="false" />
+          <IconClock aria-hidden="true" focusable="false" />
           <span className="app-shell__navigation-label">Activity</span>
         </button>
 
@@ -90,7 +90,7 @@ function App() {
           onClick={() => setCurrentPage('import-history')}
           aria-current={currentPage === 'import-history' ? 'page' : undefined}
         >
-          <ArrowCounterclockwise aria-hidden="true" focusable="false" />
+          <IconHistory aria-hidden="true" focusable="false" />
           <span className="app-shell__navigation-label">Import history</span>
         </button>
 
@@ -100,7 +100,7 @@ function App() {
           onClick={() => setCurrentPage('settings')}
           aria-current={currentPage === 'settings' ? 'page' : undefined}
         >
-          <GearAlt aria-hidden="true" focusable="false" />
+          <IconSettings aria-hidden="true" focusable="false" />
           <span className="app-shell__navigation-label">Settings</span>
         </button>
       </nav>

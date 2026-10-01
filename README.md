@@ -83,8 +83,12 @@ and included in the frontend build. Characters outside its coverage, including
 Chinese, fall back to system sans-serif fonts. PT Serif remains installed for
 possible future use, but is not loaded by the interface.
 
-Our icon set is [Framework7 Icons](https://framework7.io/icons/) (MIT),
-used in the app navigation.
+The app navigation, Home, and Settings use [Tabler Icons](https://tabler.io/icons/)
+via `@tabler/icons-react` (MIT), with outline icons and the default stroke width of 2.
+The full copyright and license notice is retained in
+[third-party licenses](frontend/public/third-party-licenses/tabler-icons.txt)
+and included in the frontend build. Framework7 Icons remains installed for
+comparison, but these views no longer import it.
 
 The Home activity heatmap uses
 [React Activity Calendar](https://github.com/grubersjoe/react-activity-calendar)

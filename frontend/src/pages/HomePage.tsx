@@ -1,21 +1,21 @@
 import { cloneElement, useEffect, useMemo, useState } from 'react'
 import { ActivityCalendar } from 'react-activity-calendar'
 import {
-  ArrowRight,
-  ArrowUpRightSquare,
-  Bookmark,
-  Building2,
-  Calendar,
-  ChevronDown,
-  ChevronRight,
-  DocText,
-  Ellipsis,
-  Envelope,
-  LightbulbFill,
-  Plus,
-  Sparkles,
-  Videocam,
-} from 'framework7-icons/react'
+  IconArrowRight,
+  IconBookmark,
+  IconBuilding,
+  IconBulb,
+  IconCalendarEvent,
+  IconChevronDown,
+  IconChevronRight,
+  IconDots,
+  IconExternalLink,
+  IconFileText,
+  IconMail,
+  IconPlus,
+  IconSparkles,
+  IconVideo,
+} from '@tabler/icons-react'
 
 function getHomeGreeting(hour: number): string {
   if (hour >= 5 && hour < 12) {
@@ -128,7 +128,7 @@ export function HomePage() {
                   <h2 className="home-page__section-title" id="home-today-title">Today</h2>
                   <span className="home-page__count">— tasks</span>
                   <button className="home-page__preview-button home-page__text-action" type="button" disabled>
-                    <Plus aria-hidden="true" /> Add task
+                    <IconPlus aria-hidden="true" /> Add task
                   </button>
                 </div>
 
@@ -154,10 +154,10 @@ export function HomePage() {
                   </div>
                   <div className="home-page__event-footer">
                     <span className="home-page__event-format">
-                      <Videocam aria-hidden="true" /> Video call · — min
+                      <IconVideo aria-hidden="true" /> Video call · — min
                     </span>
                     <button className="home-page__preview-button home-page__prepare-button" type="button" disabled>
-                      Prepare interview <ArrowRight aria-hidden="true" />
+                      Prepare interview <IconArrowRight aria-hidden="true" />
                     </button>
                   </div>
                 </article>
@@ -171,13 +171,13 @@ export function HomePage() {
                         <span className="home-page__placeholder-line home-page__placeholder-line--medium" />
                       </div>
                       <button className="home-page__preview-button home-page__icon-button" type="button" disabled aria-label="Task details preview">
-                        <ChevronRight aria-hidden="true" />
+                        <IconChevronRight aria-hidden="true" />
                       </button>
                     </li>
                   ))}
                 </ul>
                 <button className="home-page__preview-button home-page__completed" type="button" disabled>
-                  — completed today <ChevronDown aria-hidden="true" />
+                  — completed today <IconChevronDown aria-hidden="true" />
                 </button>
               </section>
 
@@ -185,7 +185,7 @@ export function HomePage() {
                 <div className="home-page__section-heading">
                   <h2 className="home-page__section-title" id="home-upcoming-title">Upcoming</h2>
                   <button className="home-page__preview-button home-page__text-action" type="button" disabled>
-                    Next 14 days <ArrowRight aria-hidden="true" />
+                    Next 14 days <IconArrowRight aria-hidden="true" />
                   </button>
                 </div>
                 <ul className="home-page__upcoming-list" aria-label="Upcoming event placeholders">
@@ -200,7 +200,7 @@ export function HomePage() {
                         <span className="home-page__placeholder-line home-page__placeholder-line--medium" />
                         <span className="home-page__placeholder-line home-page__placeholder-line--short" />
                       </div>
-                      <Calendar className="home-page__row-icon" aria-hidden="true" />
+                      <IconCalendarEvent className="home-page__row-icon" aria-hidden="true" />
                     </li>
                   ))}
                 </ul>
@@ -213,17 +213,17 @@ export function HomePage() {
               </div>
               <dl className="home-page__metrics">
                 <div className="home-page__metric">
-                  <span className="home-page__metric-icon home-page__metric-icon--applications" aria-hidden="true"><DocText /></span>
+                  <span className="home-page__metric-icon home-page__metric-icon--applications" aria-hidden="true"><IconFileText /></span>
                   <dt>Active applications</dt>
                   <dd>—</dd>
                 </div>
                 <div className="home-page__metric">
-                  <span className="home-page__metric-icon" aria-hidden="true"><Envelope /></span>
+                  <span className="home-page__metric-icon" aria-hidden="true"><IconMail /></span>
                   <dt>Awaiting reply</dt>
                   <dd>—</dd>
                 </div>
                 <div className="home-page__metric">
-                  <span className="home-page__metric-icon" aria-hidden="true"><Calendar /></span>
+                  <span className="home-page__metric-icon" aria-hidden="true"><IconCalendarEvent /></span>
                   <dt>Interviews in next 7 days</dt>
                   <dd>—</dd>
                 </div>
@@ -234,23 +234,23 @@ export function HomePage() {
               <div className="home-page__section-heading">
                 <h2 className="home-page__section-title" id="home-recent-jobs-title">Recent jobs</h2>
                 <button className="home-page__preview-button home-page__text-action" type="button" disabled>
-                  View library <ArrowRight aria-hidden="true" />
+                  View library <IconArrowRight aria-hidden="true" />
                 </button>
               </div>
               <ul className="home-page__recent-list" aria-label="Saved job placeholders">
                 {[0, 1, 2].map((slot) => (
                   <li className="home-page__recent-row" key={slot} aria-label="Saved job placeholder">
-                    <span className="home-page__company-mark" aria-hidden="true"><Building2 /></span>
+                    <span className="home-page__company-mark" aria-hidden="true"><IconBuilding /></span>
                     <div className="home-page__row-copy" aria-hidden="true">
                       <span className="home-page__placeholder-line home-page__placeholder-line--title" />
                       <span className="home-page__placeholder-line home-page__placeholder-line--medium" />
                     </div>
                     <span className="home-page__saved-time" aria-hidden="true"><span className="home-page__placeholder-line" /></span>
                     <button className="home-page__preview-button home-page__icon-button" type="button" disabled aria-label="Bookmark preview">
-                      <Bookmark aria-hidden="true" />
+                      <IconBookmark aria-hidden="true" />
                     </button>
                     <button className="home-page__preview-button home-page__icon-button" type="button" disabled aria-label="Job details preview">
-                      <ChevronRight aria-hidden="true" />
+                      <IconChevronRight aria-hidden="true" />
                     </button>
                   </li>
                 ))}
@@ -334,7 +334,7 @@ export function HomePage() {
           <div className="home-page__section-heading">
             <h2 className="home-page__discover-title" id="home-discover-title">Discover</h2>
             <button className="home-page__preview-button home-page__icon-button" type="button" disabled aria-label="Discover options preview">
-              <Ellipsis aria-hidden="true" />
+              <IconDots aria-hidden="true" />
             </button>
           </div>
           <time className="home-page__date-time" dateTime={currentTime.toISOString()}>
@@ -378,7 +378,7 @@ export function HomePage() {
         >
           <section className="home-page__market" aria-labelledby="home-market-title">
             <div className="home-page__market-heading">
-              <span className="home-page__brief-icon" aria-hidden="true"><DocText /></span>
+              <span className="home-page__brief-icon" aria-hidden="true"><IconFileText /></span>
               <h3 id="home-market-title">Market brief</h3>
               <span className="home-page__brief-age" aria-hidden="true"><span className="home-page__placeholder-line" /></span>
             </div>
@@ -389,10 +389,10 @@ export function HomePage() {
             </div>
             <div className="home-page__brief-source" aria-hidden="true">
               <span className="home-page__placeholder-line" />
-              <ArrowUpRightSquare />
+              <IconExternalLink />
             </div>
             <button className="home-page__preview-button home-page__text-action" type="button" disabled>
-              Show more <ArrowRight aria-hidden="true" />
+              Show more <IconArrowRight aria-hidden="true" />
             </button>
           </section>
 
@@ -400,23 +400,23 @@ export function HomePage() {
             <div className="home-page__section-heading">
               <h3 className="home-page__recommendations-title" id="home-recommendations-title">Recommended jobs</h3>
               <button className="home-page__preview-button home-page__text-action" type="button" disabled>
-                View all <ArrowRight aria-hidden="true" />
+                View all <IconArrowRight aria-hidden="true" />
               </button>
             </div>
             <ul className="home-page__recommendation-list" aria-label="Recommended job placeholders">
               {[0, 1, 2, 3, 4].map((slot) => (
                 <li className="home-page__recommendation-row" key={slot} aria-label="Recommended job placeholder">
-                  <span className="home-page__company-mark" aria-hidden="true"><Building2 /></span>
+                  <span className="home-page__company-mark" aria-hidden="true"><IconBuilding /></span>
                   <div className="home-page__row-copy" aria-hidden="true">
                     <span className="home-page__placeholder-line home-page__placeholder-line--title" />
                     <span className="home-page__placeholder-line home-page__placeholder-line--medium" />
                     <span className="home-page__placeholder-line home-page__placeholder-line--short" />
                   </div>
                   <button className="home-page__preview-button home-page__icon-button home-page__bookmark" type="button" disabled aria-label="Save recommended job preview">
-                    <Bookmark aria-hidden="true" />
+                    <IconBookmark aria-hidden="true" />
                   </button>
                   <button className="home-page__preview-button home-page__ask-button" type="button" disabled>
-                    <Sparkles aria-hidden="true" /> Ask Tracer
+                    <IconSparkles aria-hidden="true" /> Ask Tracer
                   </button>
                 </li>
               ))}
@@ -426,12 +426,12 @@ export function HomePage() {
 
         <footer className="home-page__assistant-footer">
           <button className="home-page__preview-button home-page__assistant" type="button" disabled>
-            <span className="home-page__assistant-icon" aria-hidden="true"><LightbulbFill /></span>
+            <span className="home-page__assistant-icon" aria-hidden="true"><IconBulb /></span>
             <span className="home-page__assistant-copy">
               <span>Ask Tracer</span>
               <span className="home-page__placeholder-line" aria-hidden="true" />
             </span>
-            <ChevronRight aria-hidden="true" />
+            <IconChevronRight aria-hidden="true" />
           </button>
         </footer>
       </section>
