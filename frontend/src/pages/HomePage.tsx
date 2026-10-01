@@ -41,7 +41,6 @@ function createDemoSearchActivity(year: number, today: string) {
 }
 
 export function HomePage() {
-  const [hasScrolledOverview, setHasScrolledOverview] = useState(false)
   const [hasScrolledDiscover, setHasScrolledDiscover] = useState(false)
   // Use the device's local time; no profile or server timezone is needed yet.
   const [clockTimes, setClockTimes] = useState(() => {
@@ -80,19 +79,17 @@ export function HomePage() {
       <section
         className="home-page__personal"
         aria-labelledby="home-greeting-title"
-        data-scrolled={hasScrolledOverview}
       >
         <div
           className="home-page__overview home-page__scroll-region"
           role="region"
           aria-label="Personal overview"
           tabIndex={0}
-          onScroll={(event) => setHasScrolledOverview(event.currentTarget.scrollTop > 0)}
         >
           <div>
-            <h2 className="page-title home-page__greeting" id="home-greeting-title">
+            <h1 className="page-title home-page__greeting" id="home-greeting-title">
               {getHomeGreeting(currentTime.getHours())}
-            </h2>
+            </h1>
             <p className="home-page__placeholder">
               Space for a short daily overview and suggested priorities.
             </p>

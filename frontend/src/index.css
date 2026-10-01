@@ -28,10 +28,11 @@
   --color-danger-soft: #fbeef0;
   --color-danger-border: color-mix(in srgb, var(--color-danger) 40%, transparent);
 
-  /* Reserved for the agreed shell and Home mockup; these do not create UI. */
-  --color-topbar: #202225;
-  --color-topbar-search: #33363a;
+  --color-topbar: #28313c;
+  --color-topbar-search: #3c4757;
+  --color-topbar-shortcut: #505b6b;
   --color-text-inverse-secondary: #c9cdd4;
+  /* Reserved for the upcoming Home mockup. */
   --color-focus-surface: #3d5a85;
   --color-highlight-warm: #edbd97;
   --color-assistant-surface: #ffe38a;
