@@ -139,7 +139,7 @@
 
 .posting-card-requirements__pill-input:hover:not(:disabled),
 .posting-card-requirements__pill-input:focus-visible {
-  background-color: rgba(52, 53, 53, 0.04);
+  background-color: var(--color-hover);
 }
 
 .posting-card-requirements__pill-input:focus-visible {
@@ -206,7 +206,7 @@
   border-color: var(--color-information);
   border-style: dotted;
   color: var(--color-text-tertiary);
-  background-color: rgba(185, 207, 213, 0.28);
+  background-color: var(--color-information-soft);
 }
 
 .posting-card-requirements__example-prefix {

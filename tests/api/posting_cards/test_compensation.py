@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from tracer.api.app import create_app
-from tracer.api.models import UpdateCompensationEntryRequest
+from tracer.api.models.posting_models import UpdateCompensationEntryRequest
 from tracer.postings import PostingCard, PostingDetails
 from tracer.postings.stores.posting_card_store import PostingCardStore
 
@@ -98,7 +98,7 @@ def test_http_updates_and_restores_compensation_entries(
     request["vacation_days"] = 30
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         expected = card.model_dump(mode="json")
         expected["posting"]["compensation"]["entries"] = [
@@ -106,12 +106,12 @@ def test_http_updates_and_restores_compensation_entries(
             for entry, origin in zip(new_entries, expected_origins, strict=True)
         ]
         assert response.json() == expected
-        assert client.get(f"/posting-cards/{card.card_key}").json() == expected
+        assert client.get(f"/posting/card/{card.card_key}").json() == expected
         assert store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
 
         request["posting_alias"] = "After editing salary"
         expected["posting_alias"] = request["posting_alias"]
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
 
@@ -119,12 +119,12 @@ def test_http_updates_and_restores_compensation_entries(
             entry.model_dump(mode="json", exclude={"origin"})
             for entry in card.posting.compensation.entries
         ]
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         expected["posting"]["compensation"]["entries"] = original_entries
         assert response.status_code == 200
         assert response.json() == expected
         assert store.get_original_by_card_key(card.card_key) == card
-        assert client.get(f"/posting-cards/{card.card_key}/original").json() == card.model_dump(mode="json")
+        assert client.get(f"/posting/card/{card.card_key}/original").json() == card.model_dump(mode="json")
 
 
 @pytest.mark.parametrize(
@@ -156,7 +156,7 @@ def test_http_rejects_invalid_compensation_without_changing_storage(tmp_path, in
     request = make_card_update_request()
     request["compensation_entries"] = invalid_entries
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
     assert store.get_by_card_key(card.card_key) == card
     assert store.get_original_by_card_key(card.card_key) == card
@@ -170,7 +170,7 @@ def test_http_requires_compensation_entries_in_update(tmp_path):
     request = make_card_update_request()
     del request["compensation_entries"]
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
         assert any(error["loc"] == ["body", "compensation_entries"] for error in response.json()["detail"])
     assert store.get_by_card_key(card.card_key) == card

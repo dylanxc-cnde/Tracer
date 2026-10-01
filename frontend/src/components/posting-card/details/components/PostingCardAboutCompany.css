@@ -48,7 +48,7 @@
 
 .posting-card-about-company__input:hover:not(:disabled),
 .posting-card-about-company__input:focus-visible {
-  background-color: rgba(52, 53, 53, 0.04);
+  background-color: var(--color-hover);
 }
 
 .posting-card-about-company__input:focus-visible {
@@ -165,7 +165,7 @@
 
 .posting-card-about-company__pill-input:hover:not(:disabled),
 .posting-card-about-company__pill-input:focus-visible {
-  background-color: rgba(52, 53, 53, 0.04);
+  background-color: var(--color-hover);
 }
 
 .posting-card-about-company__pill-input:focus-visible {

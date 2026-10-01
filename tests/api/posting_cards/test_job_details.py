@@ -41,11 +41,11 @@ def test_http_reads_and_preserves_eligibility_when_updating_other_fields(tmp_pat
 
     with TestClient(create_app(database_path=database_path)) as client:
         for suffix in ("", "/original"):
-            response = client.get(f"/posting-cards/{card.card_key}{suffix}")
+            response = client.get(f"/posting/card/{card.card_key}{suffix}")
             assert response.status_code == 200
             assert response.json()["posting"]["classification"] == payload["classification"]
 
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json()["posting"]["classification"] == payload["classification"]
         assert response.json()["user_notes"] == request["user_notes"]
@@ -87,12 +87,12 @@ def test_http_job_details_edit_clear_and_restore(
             expected["posting"][section][field] = (
                 {"value": value, "origin": origin} if origin is not None else None
             )
-            response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+            response = client.patch(f"/posting/card/{card.card_key}", json=request)
             assert response.status_code == 200
             assert response.json() == expected
-            assert client.get(f"/posting-cards/{card.card_key}").json() == expected
+            assert client.get(f"/posting/card/{card.card_key}").json() == expected
             assert store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
-        assert client.get(f"/posting-cards/{card.card_key}/original").json() == card.model_dump(mode="json")
+        assert client.get(f"/posting/card/{card.card_key}/original").json() == card.model_dump(mode="json")
     assert store.get_original_by_card_key(card.card_key) == card
 
 
@@ -105,11 +105,11 @@ def test_http_job_details_can_fill_missing_values(tmp_path, section, field, orig
     request = make_card_update_request()
     request[field] = new_value
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json()["posting"][section][field] == {"value": new_value, "origin": "user_defined"}
         request[field] = empty_value
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == card.model_dump(mode="json")
     assert store.get_original_by_card_key(card.card_key) == card
@@ -130,13 +130,13 @@ def test_http_job_detail_selection_order_preserves_provenance(tmp_path, origin, 
     request = make_card_update_request()
     with TestClient(create_app(database_path=database_path)) as client:
         request[field] = list(reversed(values))
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == card.model_dump(mode="json")
         request[field] = ["other"]
-        assert client.patch(f"/posting-cards/{card.card_key}", json=request).status_code == 200
+        assert client.patch(f"/posting/card/{card.card_key}", json=request).status_code == 200
         request[field] = list(reversed(values))
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == card.model_dump(mode="json")
     assert store.get_original_by_card_key(card.card_key) == card
@@ -173,7 +173,7 @@ def test_http_rejects_invalid_job_detail_updates(tmp_path, field, value):
     request = make_card_update_request()
     request[field] = value
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
     assert store.get_by_card_key(card.card_key) == card
     assert store.get_original_by_card_key(card.card_key) == card
@@ -188,7 +188,7 @@ def test_http_requires_job_details_in_full_card_update(tmp_path, field):
     request = make_card_update_request()
     del request[field]
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
         assert any(error["loc"] == ["body", field] for error in response.json()["detail"])
     assert store.get_by_card_key(card.card_key) == card
@@ -215,10 +215,10 @@ def test_http_address_candidates_edit_clear_and_restore(tmp_path, original_addre
         for addresses in [original_addresses, ["Office B, Köln", "Office C, Berlin"], [], original_addresses]:
             request["address_candidates"] = addresses
             expected["posting"]["work_conditions"]["address_candidates"] = addresses
-            response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+            response = client.patch(f"/posting/card/{card.card_key}", json=request)
             assert response.status_code == 200
             assert response.json() == expected
-            assert client.get(f"/posting-cards/{card.card_key}").json() == expected
+            assert client.get(f"/posting/card/{card.card_key}").json() == expected
             assert store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
 
         # Clearing the primary address does not silently promote a candidate.
@@ -226,9 +226,9 @@ def test_http_address_candidates_edit_clear_and_restore(tmp_path, original_addre
         request["address_candidates"] = ["Office B, Köln"]
         expected["posting"]["work_conditions"]["primary_address"] = None
         expected["posting"]["work_conditions"]["address_candidates"] = request["address_candidates"]
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
         assert store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
-        assert client.get(f"/posting-cards/{card.card_key}/original").json() == card.model_dump(mode="json")
+        assert client.get(f"/posting/card/{card.card_key}/original").json() == card.model_dump(mode="json")
     assert store.get_original_by_card_key(card.card_key) == card

@@ -57,7 +57,7 @@ def test_http_updates_and_restores_industries(tmp_path, new_values, expected_ori
 
     with TestClient(app) as client:
         response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert response.status_code == 200
         expected_payload = card.model_dump(mode="json")
@@ -66,15 +66,15 @@ def test_http_updates_and_restores_industries(tmp_path, new_values, expected_ori
             for value, origin in zip(new_values, expected_origins, strict=True)
         ]
         assert response.json() == expected_payload
-        assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
-        assert client.get("/posting-cards").json() == [expected_payload]
+        assert client.get(f"/posting/card/{card.card_key}").json() == expected_payload
+        assert client.get("/posting/card").json() == [expected_payload]
         assert PostingCardStore(database_path).get_by_card_key(card.card_key) == (
             PostingCard.model_validate(expected_payload)
         )
 
         update_request["posting_alias"] = "Renamed after saving industries"
         repeated_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         expected_payload["posting_alias"] = update_request["posting_alias"]
         assert repeated_response.status_code == 200
@@ -82,13 +82,13 @@ def test_http_updates_and_restores_industries(tmp_path, new_values, expected_ori
 
         update_request["industry_tags"] = ["Software", "Consulting"]
         restored_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         expected_payload["posting"]["company"]["industry_tags"] = company["industry_tags"]
         assert restored_response.status_code == 200
         assert restored_response.json() == expected_payload
         assert client.get(
-            f"/posting-cards/{card.card_key}/original"
+            f"/posting/card/{card.card_key}/original"
         ).json() == card.model_dump(mode="json")
 
     reopened_store = PostingCardStore(database_path)
@@ -109,7 +109,7 @@ def test_http_requires_industries_and_can_add_to_empty_list(tmp_path):
 
     with TestClient(app) as client:
         missing_response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert missing_response.status_code == 422
         assert any(
@@ -120,7 +120,7 @@ def test_http_requires_industries_and_can_add_to_empty_list(tmp_path):
 
         update_request["industry_tags"] = ["Software"]
         response = client.patch(
-            f"/posting-cards/{card.card_key}", json=update_request
+            f"/posting/card/{card.card_key}", json=update_request
         )
         assert response.status_code == 200
         expected_payload = card.model_dump(mode="json")

@@ -64,15 +64,15 @@ def test_http_work_condition_text_add_edit_delete_and_restore(
     with TestClient(create_app(database_path=database_path)) as client:
         for value, expected_field in changes:
             update_request[field_name] = value
-            response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+            response = client.patch(f"/posting/card/{card.card_key}", json=update_request)
             expected_payload["posting"]["work_conditions"][field_name] = expected_field
             assert response.status_code == 200
             assert response.json() == expected_payload
-            assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
+            assert client.get(f"/posting/card/{card.card_key}").json() == expected_payload
             assert PostingCardStore(database_path).get_by_card_key(card.card_key) == (
                 PostingCard.model_validate(expected_payload)
             )
-        assert client.get(f"/posting-cards/{card.card_key}/original").json() == (
+        assert client.get(f"/posting/card/{card.card_key}/original").json() == (
             card.model_dump(mode="json")
         )
     assert store.get_original_by_card_key(card.card_key) == card
@@ -109,15 +109,15 @@ def test_http_weekly_hours_add_edit_delete_and_restore(
         ]:
             update_request["weekly_hours_minimum"] = lower
             update_request["weekly_hours_maximum"] = upper
-            response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+            response = client.patch(f"/posting/card/{card.card_key}", json=update_request)
             expected_payload["posting"]["work_conditions"]["weekly_hours"] = expected_hours
             assert response.status_code == 200
             assert response.json() == expected_payload
-            assert client.get(f"/posting-cards/{card.card_key}").json() == expected_payload
+            assert client.get(f"/posting/card/{card.card_key}").json() == expected_payload
             assert PostingCardStore(database_path).get_by_card_key(card.card_key) == (
                 PostingCard.model_validate(expected_payload)
             )
-        assert client.get(f"/posting-cards/{card.card_key}/original").json() == (
+        assert client.get(f"/posting/card/{card.card_key}/original").json() == (
             card.model_dump(mode="json")
         )
     assert store.get_original_by_card_key(card.card_key) == card
@@ -148,7 +148,7 @@ def test_http_rejects_invalid_work_conditions_without_changing_storage(tmp_path,
     update_request = make_card_update_request()
     update_request.update(invalid_fields)
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=update_request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=update_request)
         assert response.status_code == 422
     assert store.get_by_card_key(card.card_key) == card
     assert store.get_original_by_card_key(card.card_key) == card

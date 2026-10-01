@@ -8,6 +8,7 @@ from tracer.postings.parsers.openai_posting_parser import (
 )
 
 from .postings import create_postings_router
+from .settings import create_settings_router
 
 
 DEFAULT_DATABASE_PATH = Path(".local/tracer.sqlite3")
@@ -51,6 +52,7 @@ def create_app(
             posting_parser=posting_parser,
         )
     )
+    app.include_router(create_settings_router(database_path=database_path))
 
     return app
 

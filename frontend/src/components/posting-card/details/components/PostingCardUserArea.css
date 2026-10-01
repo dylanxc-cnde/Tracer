@@ -79,7 +79,7 @@
 .posting-card-user-area__input:focus-visible,
 .posting-card-user-area__tag-input:hover:not(:disabled),
 .posting-card-user-area__tag-input:focus-visible {
-  background-color: rgba(52, 53, 53, 0.04);
+  background-color: var(--color-hover);
 }
 
 .posting-card-user-area__input:focus-visible {

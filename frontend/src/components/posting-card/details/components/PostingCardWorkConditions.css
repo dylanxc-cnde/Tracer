@@ -184,7 +184,7 @@
 .posting-card-work-conditions__input:focus-visible,
 .posting-card-work-conditions__number-input:focus-visible,
 .posting-card-work-conditions__date-input:focus-visible {
-  background-color: rgba(52, 53, 53, 0.04);
+  background-color: var(--color-hover);
 }
 
 .posting-card-work-conditions__input:focus-visible,

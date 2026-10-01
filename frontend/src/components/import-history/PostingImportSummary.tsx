@@ -27,11 +27,11 @@ export function PostingImportSummary(
 ) {
     return (
         <article className="posting-import-summary">
-            <h3 className="posting-import-summary__title">
+            <h2 className="posting-import-summary__title">
                 {postingImport.source.kind === 'url'
                     ? 'URL import'
                     : 'Text import'}
-            </h3>
+            </h2>
             <p className="posting-import-summary__metadata">
                 {getSourceSummary(postingImport)}
             </p>

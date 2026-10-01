@@ -62,7 +62,7 @@ def test_http_updates_role_summary_and_preserves_card_context(
 
     with TestClient(app) as client:
         response = client.patch(
-            f"/posting-cards/{card.card_key}",
+            f"/posting/card/{card.card_key}",
             json=update_request,
         )
 
@@ -78,11 +78,11 @@ def test_http_updates_role_summary_and_preserves_card_context(
         expected_payload["tags"] = update_request["tags"]
         assert response.json() == expected_payload
         assert client.get(
-            f"/posting-cards/{card.card_key}"
+            f"/posting/card/{card.card_key}"
         ).json() == expected_payload
-        assert client.get("/posting-cards").json() == [expected_payload]
+        assert client.get("/posting/card").json() == [expected_payload]
         assert client.get(
-            f"/posting-cards/{card.card_key}/original"
+            f"/posting/card/{card.card_key}/original"
         ).json() == card.model_dump(mode="json")
 
     reopened_store = PostingCardStore(database_path)
@@ -131,7 +131,7 @@ def test_http_restores_original_summary_and_origin(
 
     with TestClient(app) as client:
         first_response = client.patch(
-            f"/posting-cards/{card.card_key}",
+            f"/posting/card/{card.card_key}",
             json=update_request,
         )
         assert first_response.status_code == 200
@@ -143,7 +143,7 @@ def test_http_restores_original_summary_and_origin(
 
         update_request["role_summary"] = original_value
         restored_response = client.patch(
-            f"/posting-cards/{card.card_key}",
+            f"/posting/card/{card.card_key}",
             json=update_request,
         )
         assert restored_response.status_code == 200
@@ -155,7 +155,7 @@ def test_http_restores_original_summary_and_origin(
 
         update_request["posting_alias"] = "My renamed role"
         next_response = client.patch(
-            f"/posting-cards/{card.card_key}",
+            f"/posting/card/{card.card_key}",
             json=update_request,
         )
         assert next_response.status_code == 200

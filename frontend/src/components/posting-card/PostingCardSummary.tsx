@@ -30,7 +30,7 @@ export function PostingCardSummary(
 
     return (
         <article className="posting-card-summary">
-            <h3 className="posting-card-summary__title">{title}</h3>
+            <h2 className="posting-card-summary__title">{title}</h2>
             <p className="posting-card-summary__metadata">{company}</p>
             <p className="posting-card-summary__metadata">{location}</p>
             <p className="posting-card-summary__metadata">{workMode}</p>

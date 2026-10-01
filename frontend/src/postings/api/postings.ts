@@ -14,7 +14,7 @@ const API_BASE_URL = 'http://127.0.0.1:8000'
 export async function createPostingImport(
     source: PostingImportSource,
 ): Promise<PostingImportRequest> {
-    const response = await fetch(`${API_BASE_URL}/posting-imports`, {
+    const response = await fetch(`${API_BASE_URL}/posting/import`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -35,7 +35,7 @@ export async function createPostingImport(
 }
 
 export async function listPostingImports(): Promise<PostingImportRequest[]> {
-    const response = await fetch(`${API_BASE_URL}/posting-imports`,
+    const response = await fetch(`${API_BASE_URL}/posting/import`,
         {
             method: 'GET',
         }
@@ -56,7 +56,7 @@ export async function deletePostingImport(
     importKey: string,
 ): Promise<void> {
     const response = await fetch(
-        `${API_BASE_URL}/posting-imports/${importKey}`,
+        `${API_BASE_URL}/posting/import/${importKey}`,
         {
             method: 'DELETE',
         }
@@ -74,7 +74,7 @@ export async function deletePostingImport(
 export async function parsePostingImport(
     importKey: string,
 ): Promise<PostingParseResult> {
-    const response = await fetch(`${API_BASE_URL}/posting-imports/${importKey}/parse-results`,
+    const response = await fetch(`${API_BASE_URL}/posting/import/${importKey}/parse-results`,
         {
             method: 'POST',
         }
@@ -94,7 +94,7 @@ export async function parsePostingImport(
 export async function createPostingCard(
     request: CreatePostingCardRequest,
 ): Promise<PostingCard> {
-    const response = await fetch(`${API_BASE_URL}/posting-cards`,
+    const response = await fetch(`${API_BASE_URL}/posting/card`,
         {
             method: 'POST',
             headers: {
@@ -115,7 +115,7 @@ export async function createPostingCard(
 }
 
 export async function listPostingCards(): Promise<PostingCard[]> {
-    const response = await fetch(`${API_BASE_URL}/posting-cards`,
+    const response = await fetch(`${API_BASE_URL}/posting/card`,
         {
             method: 'GET',
         }
@@ -134,7 +134,7 @@ export async function getOriginalPostingCard(
     cardKey: string,
 ): Promise<PostingCard> {
     const response = await fetch(
-        `${API_BASE_URL}/posting-cards/${cardKey}/original`,
+        `${API_BASE_URL}/posting/card/${cardKey}/original`,
         {
             method: 'GET',
         }
@@ -154,7 +154,7 @@ export async function getOriginalPostingCard(
 export async function deletePostingCard(
     cardKey: string,
 ): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/posting-cards/${cardKey}`,
+    const response = await fetch(`${API_BASE_URL}/posting/card/${cardKey}`,
         {
             method: 'DELETE',
         }
@@ -173,7 +173,7 @@ export async function updatePostingCard(
   cardKey: string,
   request: UpdatePostingCardRequest,
 ): Promise<PostingCard> {
-  const response = await fetch(`${API_BASE_URL}/posting-cards/${cardKey}`, {
+  const response = await fetch(`${API_BASE_URL}/posting/card/${cardKey}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',

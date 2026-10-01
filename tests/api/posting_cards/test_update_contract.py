@@ -74,7 +74,7 @@ def test_http_rejects_invalid_card_update_without_changing_storage(
 
     with TestClient(app) as client:
         response = client.patch(
-            f"/posting-cards/{card.card_key}",
+            f"/posting/card/{card.card_key}",
             json=update_request,
         )
 
@@ -92,7 +92,7 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
 
     with TestClient(app) as client:
         first_response = client.patch(
-            f"/posting-cards/{card.card_key}",
+            f"/posting/card/{card.card_key}",
             json=make_card_update_request(
                 role_summary="User summary",
                 posting_alias="My role",
@@ -101,7 +101,7 @@ def test_http_repeated_updates_preserve_current_fields_and_original(tmp_path):
             ),
         )
         second_response = client.patch(
-            f"/posting-cards/{card.card_key}",
+            f"/posting/card/{card.card_key}",
             json=make_card_update_request(
                 role_summary="User summary",
                 posting_alias="My renamed role",

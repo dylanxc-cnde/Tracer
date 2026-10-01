@@ -48,15 +48,15 @@ def test_http_updates_clears_and_restores_posting_info(
             (original_value, original_origin),
         ]:
             request[field] = value
-            response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+            response = client.patch(f"/posting/card/{card.card_key}", json=request)
             expected["posting"]["identity"][field] = (
                 None if origin is None else {"value": value, "origin": origin}
             )
             assert response.status_code == 200
             assert response.json() == expected
-            assert client.get(f"/posting-cards/{card.card_key}").json() == expected
-            assert client.get("/posting-cards").json() == [expected]
-            assert client.get(f"/posting-cards/{card.card_key}/original").json() == (
+            assert client.get(f"/posting/card/{card.card_key}").json() == expected
+            assert client.get("/posting/card").json() == [expected]
+            assert client.get(f"/posting/card/{card.card_key}/original").json() == (
                 card.model_dump(mode="json")
             )
 
@@ -83,21 +83,21 @@ def test_http_adds_posting_info_and_preserves_it_on_later_saves(tmp_path):
         expected["posting"]["identity"][field] = {"value": value, "origin": "user_defined"}
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
 
         request["posting_alias"] = "My saved alias"
         expected["posting_alias"] = request["posting_alias"]
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
-        assert client.get(f"/posting-cards/{card.card_key}").json() == expected
+        assert client.get(f"/posting/card/{card.card_key}").json() == expected
 
         for field in values:
             request[field] = None
             expected["posting"]["identity"][field] = None
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
 
@@ -132,7 +132,7 @@ def test_http_rejects_invalid_posting_info_without_writing(tmp_path, field, valu
     request[field] = value
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
     assert store.get_by_card_key(card.card_key) == card
     assert store.get_original_by_card_key(card.card_key) == card
@@ -150,7 +150,7 @@ def test_http_requires_posting_info_in_full_card_update(tmp_path, field):
     del request[field]
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
     assert store.get_by_card_key(card.card_key) == card
     assert store.get_original_by_card_key(card.card_key) == card

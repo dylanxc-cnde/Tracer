@@ -21,7 +21,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
 
     with TestClient(app) as client:
         import_response = client.post(
-            "/posting-imports",
+            "/posting/import",
             json={
                 "kind": "text",
                 "text": "Working student posting text.",
@@ -35,7 +35,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
         )
 
         read_import_response = client.get(
-            f"/posting-imports/{import_request.import_key}"
+            f"/posting/import/{import_request.import_key}"
         )
 
         assert read_import_response.status_code == 200
@@ -43,7 +43,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
             read_import_response.json()
         ) == import_request
 
-        imports_response = client.get("/posting-imports")
+        imports_response = client.get("/posting/import")
 
         assert imports_response.status_code == 200
         assert tuple(
@@ -52,7 +52,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
         ) == (import_request,)
 
         parse_response = client.post(
-            f"/posting-imports/{import_request.import_key}/parse-results"
+            f"/posting/import/{import_request.import_key}/parse-results"
         )
 
         assert parse_response.status_code == 200
@@ -63,7 +63,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
 
         parsed_posting = parser.result.postings[0].details
         card_response = client.post(
-            "/posting-cards",
+            "/posting/card",
             json={
                 "import_key": str(import_request.import_key),
                 "posting": parsed_posting.model_dump(mode="json"),
@@ -79,7 +79,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
         assert card.posting_alias == "Velora Data"
 
         read_card_response = client.get(
-            f"/posting-cards/{card.card_key}"
+            f"/posting/card/{card.card_key}"
         )
 
         assert read_card_response.status_code == 200
@@ -87,7 +87,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
             read_card_response.json()
         ) == card
 
-        cards_response = client.get("/posting-cards")
+        cards_response = client.get("/posting/card")
 
         assert cards_response.status_code == 200
         assert tuple(
@@ -96,7 +96,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
         ) == (card,)
 
         update_card_response = client.patch(
-            f"/posting-cards/{card.card_key}",
+            f"/posting/card/{card.card_key}",
             json=make_card_update_request(
                 posting_alias="Velora analytics",
                 user_notes="Prepare questions for the team.",
@@ -117,7 +117,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
         assert updated_card.tags == ("priority", "analytics")
 
         stored_card_response = client.get(
-            f"/posting-cards/{card.card_key}"
+            f"/posting/card/{card.card_key}"
         )
 
         assert stored_card_response.status_code == 200
@@ -126,7 +126,7 @@ def test_http_flow_parses_creates_and_reads_posting_card(tmp_path):
         ) == updated_card
 
         original_card_response = client.get(
-            f"/posting-cards/{card.card_key}/original"
+            f"/posting/card/{card.card_key}/original"
         )
 
         assert original_card_response.status_code == 200

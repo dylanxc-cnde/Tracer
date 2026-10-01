@@ -66,11 +66,11 @@ def test_http_deletes_requirement_sections_and_restores_original(tmp_path, impor
     expected["posting"]["requirements"]["groups"] = remaining
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
-        assert client.get(f"/posting-cards/{card.card_key}").json() == expected
-        assert client.get(f"/posting-cards/{card.card_key}/original").json() == original
+        assert client.get(f"/posting/card/{card.card_key}").json() == expected
+        assert client.get(f"/posting/card/{card.card_key}/original").json() == original
         reopened_store = PostingCardStore(database_path)
         assert reopened_store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
         assert reopened_store.get_original_by_card_key(card.card_key) == card
@@ -80,7 +80,7 @@ def test_http_deletes_requirement_sections_and_restores_original(tmp_path, impor
             [group.model_dump(mode="json", exclude={"origin"}) for group in card.posting.requirements.groups],
             key=lambda group: group["importance"],
         )
-        restored = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        restored = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert restored.status_code == 200
         assert restored.json() == original
 
@@ -102,7 +102,7 @@ def test_http_requirement_noop_preserves_order_origins_and_examples(tmp_path):
     request["user_notes"] = "Changed another field, not requirements."
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json()["posting"] == card.posting.model_dump(mode="json")
         assert response.json()["user_notes"] == request["user_notes"]
@@ -122,7 +122,7 @@ def test_http_requirement_groups_use_server_owned_origin(tmp_path):
     request["requirement_groups"][1]["items"][0]["name"] = "TypeScript"
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         requirements = response.json()["posting"]["requirements"]
         assert requirements["groups"][1]["origin"] == "user_defined"
@@ -130,7 +130,7 @@ def test_http_requirement_groups_use_server_owned_origin(tmp_path):
         assert requirements["source"] == card.posting.requirements.source.model_dump(mode="json")
         assert requirements["groups"][0] == card.posting.requirements.groups[0].model_dump(mode="json")
         request["requirement_groups"][1]["items"][0]["name"] = "Python"
-        restored = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        restored = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert restored.status_code == 200
         assert restored.json() == card.model_dump(mode="json")
     assert store.get_original_by_card_key(card.card_key) == card
@@ -155,7 +155,7 @@ def test_http_rejects_invalid_requirement_updates_without_writing(tmp_path, inva
     request["requirement_groups"] = invalid_groups
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 422
     assert store.get_by_card_key(card.card_key) == card
     assert store.get_original_by_card_key(card.card_key) == card
@@ -182,7 +182,7 @@ def test_http_requirement_item_edits_persist_and_restore_original(tmp_path):
     groups[5]["items"][0]["name"] = "REST"  # Preserve the example marker.
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         saved = response.json()
         requirements = saved["posting"]["requirements"]
@@ -194,13 +194,13 @@ def test_http_requirement_item_edits_persist_and_restore_original(tmp_path):
         for index in (0, 2, 3, 4, 6):
             assert requirements["groups"][index] == card.posting.requirements.groups[index].model_dump(mode="json")
         assert requirements["source"] == card.posting.requirements.source.model_dump(mode="json")
-        assert client.get(f"/posting-cards/{card.card_key}").json() == saved
+        assert client.get(f"/posting/card/{card.card_key}").json() == saved
         reopened_store = PostingCardStore(database_path)
         assert reopened_store.get_by_card_key(card.card_key) == PostingCard.model_validate(saved)
         assert reopened_store.get_original_by_card_key(card.card_key) == card
 
         request["requirement_groups"] = original_groups
-        restored = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        restored = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert restored.status_code == 200
         assert restored.json() == card.model_dump(mode="json")
 
@@ -225,17 +225,17 @@ def test_http_requirement_example_toggle_persists_and_restores_original(tmp_path
     expected_group["origin"] = "user_defined"
 
     with TestClient(create_app(database_path=database_path)) as client:
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == expected
-        assert client.get(f"/posting-cards/{card.card_key}").json() == expected
+        assert client.get(f"/posting/card/{card.card_key}").json() == expected
         reopened_store = PostingCardStore(database_path)
         assert reopened_store.get_by_card_key(card.card_key) == PostingCard.model_validate(expected)
         assert reopened_store.get_original_by_card_key(card.card_key) == card
 
         # Toggling back restores the original group origin as well as its contents.
         item["is_example"] = not item["is_example"]
-        restored = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        restored = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert restored.status_code == 200
         assert restored.json() == card.model_dump(mode="json")
         assert reopened_store.get_original_by_card_key(card.card_key) == card
@@ -250,7 +250,7 @@ def test_http_requires_requirement_groups_and_cleans_empty_additions(tmp_path):
     del request["requirement_groups"]
 
     with TestClient(create_app(database_path=database_path)) as client:
-        missing = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        missing = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert missing.status_code == 422
         assert any(
             error["loc"] == ["body", "requirement_groups"] and error["type"] == "missing"
@@ -260,7 +260,7 @@ def test_http_requires_requirement_groups_and_cleans_empty_additions(tmp_path):
             {"importance": "required", "item_rule": "all_of", "items": []},
             {"importance": "unknown", "item_rule": "any_of", "items": []},
         ]
-        response = client.patch(f"/posting-cards/{card.card_key}", json=request)
+        response = client.patch(f"/posting/card/{card.card_key}", json=request)
         assert response.status_code == 200
         assert response.json() == card.model_dump(mode="json")
     assert store.get_by_card_key(card.card_key) == card

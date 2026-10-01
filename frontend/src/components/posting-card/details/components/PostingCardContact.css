@@ -71,7 +71,7 @@
 
 .posting-card-contact__input:hover:not(:disabled),
 .posting-card-contact__input:focus-visible {
-  background-color: rgba(52, 53, 53, 0.04);
+  background-color: var(--color-hover);
 }
 
 .posting-card-contact__input:focus-visible {

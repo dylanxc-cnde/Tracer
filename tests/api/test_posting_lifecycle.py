@@ -23,19 +23,19 @@ def test_missing_import_and_card_return_not_found(tmp_path):
     )
 
     with TestClient(app) as client:
-        import_response = client.get(f"/posting-imports/{missing_key}")
+        import_response = client.get(f"/posting/import/{missing_key}")
         parse_response = client.post(
-            f"/posting-imports/{missing_key}/parse-results"
+            f"/posting/import/{missing_key}/parse-results"
         )
         delete_import_response = client.delete(
-            f"/posting-imports/{missing_key}"
+            f"/posting/import/{missing_key}"
         )
-        card_response = client.get(f"/posting-cards/{missing_key}")
+        card_response = client.get(f"/posting/card/{missing_key}")
         original_card_response = client.get(
-            f"/posting-cards/{missing_key}/original"
+            f"/posting/card/{missing_key}/original"
         )
         update_card_response = client.patch(
-            f"/posting-cards/{missing_key}",
+            f"/posting/card/{missing_key}",
             json=make_card_update_request(),
         )
 
@@ -60,7 +60,7 @@ def test_http_rejects_invalid_original_card_key(tmp_path):
     app = create_app(database_path=tmp_path / "tracer.db")
 
     with TestClient(app) as client:
-        response = client.get("/posting-cards/not-a-uuid/original")
+        response = client.get("/posting/card/not-a-uuid/original")
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["path", "card_key"]
@@ -78,13 +78,13 @@ def test_http_deletes_posting_card(tmp_path):
 
     with TestClient(app) as client:
         delete_response = client.delete(
-            f"/posting-cards/{card.card_key}"
+            f"/posting/card/{card.card_key}"
         )
         read_response = client.get(
-            f"/posting-cards/{card.card_key}"
+            f"/posting/card/{card.card_key}"
         )
         original_response = client.get(
-            f"/posting-cards/{card.card_key}/original"
+            f"/posting/card/{card.card_key}/original"
         )
 
     assert delete_response.status_code == 204
@@ -99,7 +99,7 @@ def test_http_returns_not_found_when_deleting_missing_card(tmp_path):
     app = create_app(database_path=tmp_path / "tracer.db")
 
     with TestClient(app) as client:
-        response = client.delete(f"/posting-cards/{missing_key}")
+        response = client.delete(f"/posting/card/{missing_key}")
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Posting card not found"}
@@ -125,16 +125,16 @@ def test_http_deletes_import_without_deleting_posting_card(tmp_path):
 
     with TestClient(app) as client:
         delete_response = client.delete(
-            f"/posting-imports/{import_request.import_key}"
+            f"/posting/import/{import_request.import_key}"
         )
         read_import_response = client.get(
-            f"/posting-imports/{import_request.import_key}"
+            f"/posting/import/{import_request.import_key}"
         )
         read_card_response = client.get(
-            f"/posting-cards/{card.card_key}"
+            f"/posting/card/{card.card_key}"
         )
         original_card_response = client.get(
-            f"/posting-cards/{card.card_key}/original"
+            f"/posting/card/{card.card_key}/original"
         )
 
     assert delete_response.status_code == 204
