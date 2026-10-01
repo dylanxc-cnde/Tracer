@@ -166,7 +166,6 @@
 .app-shell__navigation-button[aria-current='page']:hover:not(:disabled) {
   color: var(--color-action-primary);
   background-color: var(--color-navigation-selected);
-  font-weight: 600;
 }
 
 .app-shell__navigation-button:active:not(:disabled) {
@@ -344,6 +343,7 @@ button:disabled {
 .home-page__section-title {
   margin: 0;
   font-size: 1.375rem;
+  font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.025em;
 }
@@ -761,6 +761,7 @@ button:disabled {
 .home-page__discover-title {
   margin: 0;
   font-size: 1.75rem;
+  font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.03em;
 }
@@ -937,6 +938,7 @@ button:disabled {
 .home-page__recommendations-title {
   margin: 0;
   font-size: 1.1875rem;
+  font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.025em;
 }
@@ -1127,6 +1129,7 @@ button:disabled {
   margin: 0 0 12px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-page-section-title);
+  font-weight: 600;
 }
 
 .home-page__usage-metrics {
