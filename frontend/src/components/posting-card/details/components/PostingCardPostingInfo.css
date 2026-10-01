@@ -113,7 +113,7 @@
 .posting-card-posting-info__input:focus-visible,
 .posting-card-posting-info__date-input:hover:not(:disabled),
 .posting-card-posting-info__date-input:focus-visible {
-  background-color: rgba(52, 53, 53, 0.04);
+  background-color: var(--color-hover);
 }
 
 .posting-card-posting-info__input:focus-visible,

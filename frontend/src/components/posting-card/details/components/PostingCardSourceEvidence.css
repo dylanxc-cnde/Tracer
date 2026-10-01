@@ -34,7 +34,7 @@
 .posting-card-source-evidence__list li {
   padding: 10px 12px;
   border-left: 3px solid var(--color-information);
-  background-color: rgba(185, 207, 213, 0.16);
+  background-color: var(--color-information-soft);
 }
 
 .posting-card-source-evidence__list blockquote {

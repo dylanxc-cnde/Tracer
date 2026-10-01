@@ -1,20 +1,51 @@
 :root {
-  --color-canvas: #f3f1ec;
-  --color-surface: #fcfbf8;
-  --color-surface-muted: #e9e6e0;
-  --color-text-primary: #343535;
-  --color-text-secondary: #565a57;
-  --color-text-tertiary: #747875;
-  --color-border-subtle: #d3cec5;
-  --color-border-strong: #a09990;
-  --color-action-primary: #31463e;
-  --color-action-pressed: #22342e;
-  --color-information: #b9cfd5;
+  --color-canvas: #f2f3f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f4f5f7;
+  --color-navigation: #f4f4f2;
+  --color-navigation-selected: #e8ecf1;
+  --color-text-primary: #22252a;
+  --color-text-secondary: #68707a;
+  --color-text-tertiary: #6b7078;
+  --color-text-inverse: #ffffff;
+  --color-border-subtle: #dfe3e8;
+  --color-border-strong: #7e8793;
+
+  --color-action-primary: #355fcb;
+  --color-action-hover: #2e54b5;
+  --color-action-pressed: #26479b;
+  --color-action-soft: #edf2ff;
+  --color-action-ring: color-mix(in srgb, var(--color-action-primary) 18%, transparent);
+  --color-hover: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  --color-information: #8d9fbd;
+  --color-information-soft: #f2f5fa;
+
+  /* Keep existing requirement markers separate from decorative time highlights. */
   --color-accent-warm: #b76e3c;
   --color-attention: #8a4944;
-  --color-danger: #c44747;
-  --color-danger-pressed: #9e3333;
-  --color-danger-soft: #f6e1df;
+  --color-danger: #b33e43;
+  --color-danger-pressed: #922f35;
+  --color-danger-soft: #fbeef0;
+  --color-danger-border: color-mix(in srgb, var(--color-danger) 40%, transparent);
+
+  /* Reserved for the agreed shell and Home mockup; these do not create UI. */
+  --color-topbar: #202225;
+  --color-topbar-search: #33363a;
+  --color-text-inverse-secondary: #c9cdd4;
+  --color-focus-surface: #3d5a85;
+  --color-highlight-warm: #edbd97;
+  --color-assistant-surface: #ffe38a;
+  --color-assistant-icon: #9a6500;
+
+  --color-backdrop: rgb(34 37 42 / 42%);
+  --shadow-surface: 0 1px 3px rgb(34 37 42 / 5%);
+  --shadow-raised: 0 4px 12px rgb(34 37 42 / 8%);
+  --shadow-popover: 0 8px 24px rgb(34 37 42 / 12%);
+  --shadow-dialog:
+    0 24px 64px rgb(34 37 42 / 16%),
+    0 8px 24px rgb(34 37 42 / 8%);
+  --shadow-inset: inset 0 1px 4px rgb(34 37 42 / 5%);
+  --radius-control: 8px;
 
   --text: var(--color-text-secondary);
   --text-h: var(--color-text-primary);
@@ -22,12 +53,10 @@
   --border: var(--color-border-subtle);
   --code-bg: var(--color-surface-muted);
   --accent: var(--color-action-primary);
-  --accent-bg: rgba(49, 70, 62, 0.1);
-  --accent-border: rgba(49, 70, 62, 0.5);
-  --social-bg: rgba(233, 230, 224, 0.65);
-  --shadow:
-    rgba(52, 53, 53, 0.1) 0 10px 24px -8px,
-    rgba(52, 53, 53, 0.06) 0 4px 10px -4px;
+  --accent-bg: var(--color-action-soft);
+  --accent-border: color-mix(in srgb, var(--color-action-primary) 50%, transparent);
+  --social-bg: var(--color-surface-muted);
+  --shadow: var(--shadow-surface);
 
   --font-family: 'Inter', system-ui, sans-serif;
 

@@ -143,7 +143,7 @@
 .posting-card-compensation__select:hover:not(:disabled),
 .posting-card-compensation__input:focus-visible,
 .posting-card-compensation__select:focus-visible {
-  background-color: rgba(52, 53, 53, 0.04);
+  background-color: var(--color-hover);
 }
 
 .posting-card-compensation__input:focus-visible,
