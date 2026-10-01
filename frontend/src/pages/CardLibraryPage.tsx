@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { IconCopy, IconMap, IconRefresh } from '@tabler/icons-react'
 import { CardLibrary } from '../components/card-library/CardLibrary'
 import {
   deletePostingCard,
@@ -12,12 +13,14 @@ import type {
   UpdatePostingCardRequest,
 } from '../postings/types/postingCard'
 import { PostingCardDetails } from '../components/posting-card/details/PostingCardDetails'
+import './CardLibraryPage.css'
 
 export function CardLibraryPage() {
   const { syncPostingCardDeletion, syncPostingCardUpdate } =
     usePostingImportSession()
   const [cards, setCards] = useState<PostingCard[]>([])
   const [isLoadingCards, setIsLoadingCards] = useState(false)
+  const [hasLoadedCards, setHasLoadedCards] = useState(false)
   const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
@@ -30,6 +33,7 @@ export function CardLibraryPage() {
     try {
       const storedCards = await listPostingCards()
       setCards(storedCards)
+      setHasLoadedCards(true)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
         setError(caughtError.message)
@@ -111,28 +115,108 @@ export function CardLibraryPage() {
     }
   }
 
+  let libraryStatus = 'Saved jobs in your workspace'
+  if (isLoadingCards) {
+    libraryStatus = 'Refreshing…'
+  } else if (hasLoadedCards) {
+    libraryStatus = `${cards.length} saved ${cards.length === 1 ? 'job' : 'jobs'}`
+  }
+
   return (
     <>
-      <h1 className="page-title">Card library</h1>
+      <div className="card-library-page">
+        <section className="card-library-page__browser" aria-labelledby="card-library-title">
+          <header className="card-library-page__header">
+            <div>
+              <h1 id="card-library-title" className="page-title">Card library</h1>
+              <p className="card-library-page__count" role="status">
+                {libraryStatus}
+              </p>
+            </div>
+            <button
+              className="card-library-page__refresh"
+              type="button"
+              onClick={handleLoadCards}
+              disabled={isLoadingCards}
+              aria-label="Refresh card library"
+              title="Refresh card library"
+            >
+              <IconRefresh aria-hidden="true" focusable="false" />
+            </button>
+          </header>
 
-      {error && <p role="alert">{error}</p>}
+          <div
+            className="card-library-page__list-region"
+            role="region"
+            aria-label="Saved jobs"
+            tabIndex={-1}
+            aria-busy={isLoadingCards}
+          >
+            {error && <p role="alert">{error}</p>}
 
-      <button
-        className="button--primary card-library-page__load-button"
-        type="button"
-        onClick={handleLoadCards}
-        disabled={isLoadingCards}
-      >
-        {isLoadingCards ? 'Loading...' : 'Load card library'}
-      </button>
+            {cards.length === 0 ? (
+              <div className="card-library-page__empty">
+                <IconCopy aria-hidden="true" focusable="false" />
+                <h2>{hasLoadedCards ? 'No saved jobs yet' : 'Your saved jobs'}</h2>
+                <p>
+                  {hasLoadedCards
+                    ? 'Jobs you save from an import will appear here.'
+                    : 'Use the refresh arrow to load your card library.'}
+                </p>
+              </div>
+            ) : (
+              <CardLibrary
+                cards={cards}
+                deletingCardKey={deletingCardKey}
+                onDelete={handleDeleteCard}
+                onOpen={handleOpenCard}
+                onShowOriginal={handleShowOriginalCard}
+              />
+            )}
+          </div>
+        </section>
 
-      <CardLibrary
-        cards={cards}
-        deletingCardKey={deletingCardKey}
-        onDelete={handleDeleteCard}
-        onOpen={handleOpenCard}
-        onShowOriginal={handleShowOriginalCard}
-      />
+        {/* Reserve the wider workspace without mounting a second card editor. */}
+        <section className="card-library-page__details" aria-labelledby="card-library-details-title">
+          <header className="card-library-page__details-header">
+            <h2 id="card-library-details-title">Details</h2>
+            <span className="card-library-page__preview-label">Layout preview</span>
+          </header>
+          <div
+            className="card-library-page__details-body"
+            role="region"
+            aria-label="Details layout preview"
+            tabIndex={0}
+          >
+            <p className="card-library-page__preview-note">
+              Open a saved job to view its full card in a dialog.
+            </p>
+            <div className="card-library-page__details-placeholder" aria-hidden="true">
+              <span className="card-library-page__placeholder card-library-page__placeholder--title" />
+              <span className="card-library-page__placeholder card-library-page__placeholder--short" />
+              <div className="card-library-page__placeholder-facts">
+                <span /><span /><span />
+              </div>
+              <div className="card-library-page__placeholder-section">
+                <span className="card-library-page__placeholder card-library-page__placeholder--heading" />
+                <span className="card-library-page__placeholder" />
+                <span className="card-library-page__placeholder" />
+                <span className="card-library-page__placeholder card-library-page__placeholder--short" />
+              </div>
+              <div className="card-library-page__placeholder-section">
+                <span className="card-library-page__placeholder card-library-page__placeholder--heading" />
+                <span className="card-library-page__placeholder" />
+                <span className="card-library-page__placeholder card-library-page__placeholder--short" />
+              </div>
+            </div>
+            <section className="card-library-page__map-placeholder" aria-label="Map placeholder">
+              <IconMap aria-hidden="true" focusable="false" />
+              <h3>Map</h3>
+              <p>Reserved for location context. No map connected.</p>
+            </section>
+          </div>
+        </section>
+      </div>
 
       {openedCard !== null && (
         <PostingCardDetails
