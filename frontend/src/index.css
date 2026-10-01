@@ -29,7 +29,7 @@
     rgba(52, 53, 53, 0.1) 0 10px 24px -8px,
     rgba(52, 53, 53, 0.06) 0 4px 10px -4px;
 
-  --font-family: 'PT Serif', serif;
+  --font-family: 'Inter', system-ui, sans-serif;
 
   /* Page headings and card details use independent title scales. */
   --font-size-page-title: 1.5rem;

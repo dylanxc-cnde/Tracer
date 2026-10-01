@@ -13,7 +13,7 @@ Less digging through job pages. More time deciding which roles are worth a look.
 
 ## A look inside
 
-These screenshots use a fictional posting. They show the reading layout;
+These screenshots use a fictional posting and show an earlier layout and typography;
 newer features such as inline editing and Show original aren't pictured yet.
 
 | Overview | Requirements |
@@ -74,9 +74,15 @@ The stack is React + TypeScript + Vite, FastAPI + Pydantic, and SQLite.
 Parsing uses the OpenAI Responses API. A fictional parser example lives in
 [examples/try_posting_parse.py](examples/try_posting_parse.py).
 
-The interface uses [PT Serif](https://fonts.google.com/specimen/PT+Serif),
-bundled locally via [Fontsource](https://fontsource.org/fonts/pt-serif).
-Characters outside its coverage, including Chinese, fall back to system fonts.
+The interface uses [Inter](https://fonts.google.com/specimen/Inter),
+bundled locally via [Fontsource](https://fontsource.org/fonts/inter).
+Inter is by The Inter Project Authors and is licensed under the SIL Open Font
+License 1.1. Its full copyright and license notice is retained in
+[third-party licenses](frontend/public/third-party-licenses/inter.txt)
+and included in the frontend build. Characters outside its coverage, including
+Chinese, fall back to system sans-serif fonts. PT Serif remains installed for
+possible future use, but is not loaded by the interface.
+
 Our icon set is [Framework7 Icons](https://framework7.io/icons/) (MIT),
 used in the app navigation.
 
