@@ -32,11 +32,15 @@
   --color-topbar-search: #3c4757;
   --color-topbar-shortcut: #505b6b;
   --color-text-inverse-secondary: #c9cdd4;
-  /* Reserved for the upcoming Home mockup. */
   --color-focus-surface: #3d5a85;
+  --color-focus-surface-light: #426b98;
   --color-highlight-warm: #edbd97;
   --color-assistant-surface: #ffe38a;
   --color-assistant-icon: #9a6500;
+  --color-positive: #008963;
+  --color-positive-soft: #edf9f4;
+  --color-placeholder: color-mix(in srgb, var(--color-text-secondary) 14%, var(--color-surface));
+  --color-placeholder-strong: color-mix(in srgb, var(--color-text-secondary) 28%, var(--color-surface));
 
   --color-backdrop: rgb(34 37 42 / 42%);
   --shadow-surface: 0 1px 3px rgb(34 37 42 / 5%);
