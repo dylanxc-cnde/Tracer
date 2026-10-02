@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconCopy, IconMap, IconRefresh } from '@tabler/icons-react'
+import { IconCopy, IconRefresh } from '@tabler/icons-react'
 import { CardLibrary } from '../components/card-library/CardLibrary'
 import {
   deletePostingCard,
@@ -173,47 +173,6 @@ export function CardLibraryPage() {
                 onShowOriginal={handleShowOriginalCard}
               />
             )}
-          </div>
-        </section>
-
-        {/* Reserve the wider workspace without mounting a second card editor. */}
-        <section className="card-library-page__details" aria-labelledby="card-library-details-title">
-          <header className="card-library-page__details-header">
-            <h2 id="card-library-details-title">Details</h2>
-            <span className="card-library-page__preview-label">Layout preview</span>
-          </header>
-          <div
-            className="card-library-page__details-body"
-            role="region"
-            aria-label="Details layout preview"
-            tabIndex={0}
-          >
-            <p className="card-library-page__preview-note">
-              Open a saved job to view its full card in a dialog.
-            </p>
-            <div className="card-library-page__details-placeholder" aria-hidden="true">
-              <span className="card-library-page__placeholder card-library-page__placeholder--title" />
-              <span className="card-library-page__placeholder card-library-page__placeholder--short" />
-              <div className="card-library-page__placeholder-facts">
-                <span /><span /><span />
-              </div>
-              <div className="card-library-page__placeholder-section">
-                <span className="card-library-page__placeholder card-library-page__placeholder--heading" />
-                <span className="card-library-page__placeholder" />
-                <span className="card-library-page__placeholder" />
-                <span className="card-library-page__placeholder card-library-page__placeholder--short" />
-              </div>
-              <div className="card-library-page__placeholder-section">
-                <span className="card-library-page__placeholder card-library-page__placeholder--heading" />
-                <span className="card-library-page__placeholder" />
-                <span className="card-library-page__placeholder card-library-page__placeholder--short" />
-              </div>
-            </div>
-            <section className="card-library-page__map-placeholder" aria-label="Map placeholder">
-              <IconMap aria-hidden="true" focusable="false" />
-              <h3>Map</h3>
-              <p>Reserved for location context. No map connected.</p>
-            </section>
           </div>
         </section>
       </div>

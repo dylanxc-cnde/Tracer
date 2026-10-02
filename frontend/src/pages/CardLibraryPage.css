@@ -1,13 +1,12 @@
 .card-library-page {
   display: grid;
-  grid-template-columns: minmax(20rem, 2fr) minmax(0, 3fr);
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
   min-width: 0;
   min-height: 0;
 }
 
-.card-library-page__browser,
-.card-library-page__details {
+.card-library-page__browser {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -34,8 +33,7 @@
   letter-spacing: -0.025em;
 }
 
-.card-library-page__count,
-.card-library-page__preview-note {
+.card-library-page__count {
   margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
@@ -71,8 +69,7 @@
   background-color: var(--color-surface-muted);
 }
 
-.card-library-page__list-region,
-.card-library-page__details-body {
+.card-library-page__list-region {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -87,11 +84,6 @@
 /* Rows and their actions provide keyboard focus, not the whole scroll region. */
 .card-library-page__list-region:focus {
   outline: none;
-}
-
-.card-library-page__details-body:focus-visible {
-  outline: 2px solid var(--color-action-primary);
-  outline-offset: -2px;
 }
 
 .card-library__rows {
@@ -232,124 +224,6 @@
   font-size: var(--font-size-caption);
 }
 
-.card-library-page__details {
-  margin: 20px 18px 20px 16px;
-  overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
-  box-shadow: var(--shadow-surface);
-}
-
-.card-library-page__details-header {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-  padding: 24px 28px 16px;
-}
-
-.card-library-page__details-header h2 {
-  margin: 0;
-  font-size: var(--font-size-page-title);
-  font-weight: 600;
-  letter-spacing: -0.025em;
-}
-
-.card-library-page__preview-label {
-  color: var(--color-text-tertiary);
-  font-size: 0.75rem;
-}
-
-.card-library-page__details-body {
-  padding: 0 28px 28px;
-}
-
-.card-library-page__details-placeholder {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 28px 0;
-}
-
-.card-library-page__placeholder {
-  display: block;
-  width: 90%;
-  height: 9px;
-  border-radius: 4px;
-  background-color: var(--color-placeholder);
-}
-
-.card-library-page__placeholder--title {
-  width: 65%;
-  height: 18px;
-  background-color: var(--color-placeholder-strong);
-}
-
-.card-library-page__placeholder--short {
-  width: 50%;
-}
-
-.card-library-page__placeholder--heading {
-  width: 28%;
-  height: 12px;
-  margin-bottom: 8px;
-}
-
-.card-library-page__placeholder-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.card-library-page__placeholder-facts span {
-  width: 72px;
-  height: 28px;
-  border-radius: var(--radius-control);
-  background-color: var(--color-surface-muted);
-}
-
-.card-library-page__placeholder-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.card-library-page__map-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 180px;
-  padding: 24px;
-  border: 1px dashed var(--color-border-subtle);
-  border-radius: 10px;
-  background-color: var(--color-surface-muted);
-  text-align: center;
-}
-
-.card-library-page__map-placeholder svg {
-  width: 28px;
-  height: 28px;
-  margin-bottom: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.card-library-page__map-placeholder h3 {
-  margin: 0 0 6px;
-  font-size: var(--font-size-body);
-  font-weight: 600;
-}
-
-.card-library-page__map-placeholder p {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-caption);
-}
-
 @media (max-width: 1100px) {
   .card-library-page {
     display: block;
@@ -357,13 +231,8 @@
     min-height: 100%;
   }
 
-  .card-library-page__list-region,
-  .card-library-page__details-body {
+  .card-library-page__list-region {
     overflow: visible;
-  }
-
-  .card-library-page__details {
-    margin: 20px 24px 24px 36px;
   }
 }
 
@@ -373,18 +242,6 @@
   }
 
   .card-library-page__list-region {
-    padding: 0 16px 24px;
-  }
-
-  .card-library-page__details {
-    margin: 16px;
-  }
-
-  .card-library-page__details-header {
-    padding: 20px 16px 16px;
-  }
-
-  .card-library-page__details-body {
     padding: 0 16px 24px;
   }
 }
