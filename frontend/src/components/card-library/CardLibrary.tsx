@@ -45,10 +45,14 @@ export function CardLibrary({
                 <IconBuilding focusable="false" />
               </span>
               <span className="card-library__copy">
-                <span className="card-library__title" title={title}>{title}</span>
-                <span className="card-library__company" title={company}>{company}</span>
-                <span className="card-library__location" title={location}>{location}</span>
-                <span className="card-library__work-mode">{workMode}</span>
+                <span className="card-library__identity">
+                  <span className="card-library__title" title={title}>{title}</span>
+                  <span className="card-library__company" title={company}>{company}</span>
+                </span>
+                <span className="card-library__location-details">
+                  <span className="card-library__location" title={location}>{location}</span>
+                  <span className="card-library__work-mode">{workMode}</span>
+                </span>
               </span>
               <IconChevronRight className="card-library__chevron" aria-hidden="true" focusable="false" />
             </button>
