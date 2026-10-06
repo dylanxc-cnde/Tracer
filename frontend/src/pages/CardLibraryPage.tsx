@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { IconCopy, IconRefresh } from '@tabler/icons-react'
 import { CardLibrary } from '../components/card-library/CardLibrary'
 import {
@@ -19,12 +19,47 @@ export function CardLibraryPage() {
   const { syncPostingCardDeletion, syncPostingCardUpdate } =
     usePostingImportSession()
   const [cards, setCards] = useState<PostingCard[]>([])
-  const [isLoadingCards, setIsLoadingCards] = useState(false)
+  const [isLoadingCards, setIsLoadingCards] = useState(true)
   const [hasLoadedCards, setHasLoadedCards] = useState(false)
   const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
   const [isShowingOriginal, setIsShowingOriginal] = useState(false)
+  const initialCardsRequest = useRef<Promise<PostingCard[]> | null>(null)
+
+  useEffect(() => {
+    let isActive = true
+
+    // Reuse the initial request when Strict Mode replays this effect in development.
+    const request = initialCardsRequest.current ??= listPostingCards()
+
+    async function loadInitialCards() {
+      try {
+        const storedCards = await request
+        if (isActive) {
+          setCards(storedCards)
+          setHasLoadedCards(true)
+        }
+      } catch (caughtError: unknown) {
+        if (isActive) {
+          setError(caughtError instanceof Error
+            ? caughtError.message
+            : 'Something went wrong while loading cards.')
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingCards(false)
+        }
+      }
+    }
+
+    void loadInitialCards()
+
+    // Ignore a late response after the user has left this page.
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   async function handleLoadCards() {
     setIsLoadingCards(true)
@@ -154,7 +189,7 @@ export function CardLibraryPage() {
           >
             {error && <p role="alert">{error}</p>}
 
-            {cards.length === 0 ? (
+            {cards.length === 0 && !isLoadingCards && (
               <div className="card-library-page__empty">
                 <IconCopy aria-hidden="true" focusable="false" />
                 <h2>{hasLoadedCards ? 'No saved jobs yet' : 'Your saved jobs'}</h2>
@@ -164,7 +199,8 @@ export function CardLibraryPage() {
                     : 'Use the refresh arrow to load your card library.'}
                 </p>
               </div>
-            ) : (
+            )}
+            {cards.length > 0 && (
               <CardLibrary
                 cards={cards}
                 deletingCardKey={deletingCardKey}
