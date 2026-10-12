@@ -1,5 +1,8 @@
-import { cloneElement, useEffect, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityCalendar } from 'react-activity-calendar'
+import { HomeGreeting } from '../components/home/HomeGreeting'
+import { getSettings } from '../settings/api/settings'
+import type { AppSettings } from '../settings/types/appSettings'
 import {
   IconArrowRight,
   IconBookmark,
@@ -16,18 +19,6 @@ import {
   IconSparkles,
   IconVideo,
 } from '@tabler/icons-react'
-
-function getHomeGreeting(hour: number): string {
-  if (hour >= 5 && hour < 12) {
-    return 'Good morning'
-  }
-
-  if (hour >= 12 && hour < 18) {
-    return 'Good afternoon'
-  }
-
-  return 'Good evening'
-}
 
 function formatHomeTime(time: Date): string {
   return time.toLocaleTimeString('en-GB', {
@@ -58,6 +49,10 @@ function createDemoSearchActivity(year: number, today: string) {
 
 export function HomePage() {
   const [hasScrolledDiscover, setHasScrolledDiscover] = useState(false)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [settingsError, setSettingsError] = useState<string | null>(null)
+  const [settingsLoadAttempt, setSettingsLoadAttempt] = useState(0)
+  const settingsRequest = useRef<Promise<AppSettings> | null>(null)
   // Use the device's local time; no profile or server timezone is needed yet.
   const [clockTimes, setClockTimes] = useState(() => {
     const currentTime = new Date()
@@ -77,6 +72,40 @@ export function HomePage() {
 
     return () => window.clearInterval(intervalId)
   }, [])
+
+  useEffect(() => {
+    let isActive = true
+    // Reuse the request during Strict Mode replay; clock ticks do not reload settings.
+    const request = settingsRequest.current ??= getSettings()
+
+    async function loadDisplayName() {
+      try {
+        const settings = await request
+        if (isActive) {
+          setDisplayName(settings.user.display_name)
+        }
+      } catch (caughtError: unknown) {
+        if (isActive) {
+          setSettingsError(caughtError instanceof Error
+            ? caughtError.message
+            : 'Your display name could not be loaded. Please try again.')
+        }
+      }
+    }
+
+    void loadDisplayName()
+    // Ignore late results after leaving Home; this does not cancel the HTTP request.
+    return () => {
+      isActive = false
+    }
+  }, [settingsLoadAttempt])
+
+  function handleRetrySettings() {
+    setSettingsError(null)
+    // Discard the rejected Promise so Retry starts a new read.
+    settingsRequest.current = null
+    setSettingsLoadAttempt((attempt) => attempt + 1)
+  }
 
   const { currentTime, previousTime } = clockTimes
   const date = [
@@ -113,10 +142,20 @@ export function HomePage() {
           <div className="home-page__first-screen">
             <header className="home-page__intro">
               <time className="home-page__eyebrow" dateTime={date}>{displayDate}</time>
-              <h1 className="home-page__greeting" id="home-greeting-title">
-                {getHomeGreeting(currentTime.getHours())},
-                <span className="home-page__name-placeholder" aria-hidden="true" />
-              </h1>
+              <HomeGreeting hour={currentTime.getHours()} displayName={displayName} />
+              {settingsError && (
+                <div className="home-page__settings-feedback">
+                  <p role="alert">{settingsError}</p>
+                  <button
+                    className="home-page__settings-retry"
+                    type="button"
+                    onClick={handleRetrySettings}
+                    aria-label="Retry loading your display name"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
               <div className="home-page__summary-preview" role="img" aria-label="Daily summary placeholder">
                 <span className="home-page__placeholder-line home-page__placeholder-line--long" />
               </div>

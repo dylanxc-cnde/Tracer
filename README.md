@@ -41,10 +41,10 @@ The browser app currently has Home, Import Posting, Card Library, Activity,
 Import History, and Settings. Profile loads the saved display name and saves
 changes only when you select Save changes; Cancel restores the last saved name.
 Leaving Profile discards unsaved edits. Job preferences, API settings, and
-Activity remain placeholders. Home is a layout prototype with separate personal
-and Discover panes; its greeting does not yet use the saved name, and its
-full-year activity heatmap uses clearly labeled demo data, not recorded
-job-search activity. It's not yet a packaged desktop app.
+Activity remain placeholders. Home reads your saved display name for its greeting;
+the remaining personal and Discover sections are layout prototypes. Its full-year
+activity heatmap uses clearly labeled demo data, not recorded job-search activity.
+It's not yet a packaged desktop app.
 
 ## Run locally
 

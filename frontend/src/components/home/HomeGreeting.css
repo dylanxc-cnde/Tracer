@@ -1,0 +1,8 @@
+.home-greeting {
+  margin: 4px 0 10px;
+  font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
