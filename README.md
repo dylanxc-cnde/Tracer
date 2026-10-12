@@ -62,7 +62,8 @@ npm run dev
 ```
 
 Open **http://localhost:5173**. API docs are at **http://127.0.0.1:8000/docs**.
-In Card Library or Import History, use the Load button to fetch saved records.
+Card Library loads saved cards when you enter the page; use its refresh arrow to
+reload them manually. In Import History, use the Load button to fetch saved records.
 
 Analyze sends the posting input to OpenAI and uses paid API credits.
 Saved records live in `.local/tracer.sqlite3`; older database schemas need a
