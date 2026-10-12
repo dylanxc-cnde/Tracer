@@ -9,6 +9,15 @@ from tracer.postings import (
 from tracer.postings.models.posting_parse import PostingParseStatus
 
 
+def make_create_ai_provider_request(**changes):
+    return {
+        "provider": "openai",
+        "display_name": "test_provider",
+        "api_key": "test_secret_api_key",
+        **changes,
+    }
+
+
 class FakePostingParser:
     """Return a fixed parse result without calling an external API."""
 

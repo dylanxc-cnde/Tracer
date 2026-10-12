@@ -105,7 +105,7 @@ def test_validation_error_text_hides_the_secret_bearing_input():
     with pytest.raises(ValidationError) as raised:
         CreateAIProviderRequest.model_validate(payload)
 
-    # errors() remains raw data; a future HTTP handler must sanitize it separately.
+    # errors() remains raw data; the HTTP layer must sanitize it separately.
     assert "test_secret_api_key" not in str(raised.value)
 
 

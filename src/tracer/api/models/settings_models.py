@@ -15,7 +15,7 @@ class CreateAIProviderRequest(BaseModel):
     """Create one provider configuration; its UUID is assigned by the service.
 
     The secret is write-only input, not part of the saved settings snapshot.
-    HTTP validation errors still need sanitizing before this model is exposed.
+    The HTTP layer returns sanitized validation errors for this secret-bearing input.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
