@@ -11,7 +11,7 @@ export function SettingsPage() {
 
   return (
     <section className="settings-page">
-      <aside className="settings-page__sidebar">
+      <header className="settings-page__header">
         <h1 className="settings-page__title">Settings</h1>
         <nav className="settings-page__navigation" aria-label="Settings sections">
           <button
@@ -34,7 +34,7 @@ export function SettingsPage() {
             <span>API</span>
           </button>
         </nav>
-      </aside>
+      </header>
 
       <div
         className="settings-page__workspace"

@@ -1,43 +1,46 @@
 .settings-page {
   display: grid;
   flex: 1;
-  grid-template-columns: 15rem minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
 }
 
-.settings-page__sidebar {
-  min-height: 0;
-  padding: 24px 16px;
-  overflow-y: auto;
-  border-right: 1px solid var(--color-border-subtle);
-  background-color: var(--color-navigation);
+.settings-page__header {
+  min-width: 0;
+  padding: 24px 32px 0;
+  background-color: var(--color-surface);
 }
 
 .settings-page__title {
-  margin: 0 12px 24px;
+  margin: 0 0 24px;
   font-size: var(--font-size-page-title);
   line-height: 1.2;
 }
 
 .settings-page__navigation {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .settings-page__navigation-button {
   display: flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
-  border-color: transparent;
+  justify-content: center;
+  gap: 8px;
+  min-width: 7rem;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-color: var(--color-border-subtle);
   color: var(--color-text-secondary);
-  background-color: transparent;
+  background-color: var(--color-surface);
   box-shadow: none;
-  font-weight: 400;
-  text-align: left;
+  font-size: var(--font-size-caption);
+  font-weight: 500;
 }
 
 .settings-page__navigation-button svg {
@@ -47,12 +50,14 @@
 }
 
 .settings-page__navigation-button:hover:not(:disabled) {
-  border-color: transparent;
+  border-color: var(--color-border-strong);
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
 }
 
-.settings-page__navigation-button[aria-current='page'] {
+.settings-page__navigation-button[aria-current='page'],
+.settings-page__navigation-button[aria-current='page']:hover:not(:disabled) {
+  border-color: var(--color-action-primary);
   color: var(--color-action-primary);
   background-color: var(--color-navigation-selected);
   font-weight: 600;
@@ -76,15 +81,8 @@
 }
 
 @media (max-width: 720px) {
-  .settings-page {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-
-  .settings-page__sidebar {
-    padding: 16px;
-    border-right: 0;
-    border-bottom: 1px solid var(--color-border-subtle);
+  .settings-page__header {
+    padding: 16px 16px 0;
   }
 
   .settings-page__title {
@@ -92,7 +90,8 @@
   }
 
   .settings-page__navigation {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding-bottom: 16px;
   }
 
   .settings-page__workspace {
