@@ -1,6 +1,6 @@
 from enum import StrEnum
 from typing import Self
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -33,7 +33,8 @@ class AIProviderSettings(BaseModel):
         extra="forbid", frozen=True, str_strip_whitespace=True
     )
 
-    provider_key: UUID = Field(default_factory=uuid4)
+    # Creation assigns the key; loading saved settings must never invent one.
+    provider_key: UUID
     provider: AIProvider
     display_name: str = Field(strict=True, min_length=1)
     monthly_budget_usd: float | None = Field(

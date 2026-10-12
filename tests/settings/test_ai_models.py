@@ -76,8 +76,14 @@ def test_task_provider_key_rejects_invalid_uuids(value):
 
 
 def test_multiple_configurations_can_share_a_platform_and_display_name():
-    first = AIProviderSettings(provider=AIProvider.OPENAI, display_name="test_provider")
-    second = AIProviderSettings(provider=AIProvider.OPENAI, display_name="test_provider")
+    first = AIProviderSettings(
+        provider_key=TEST_PROVIDER_KEY, provider=AIProvider.OPENAI, display_name="test_provider"
+    )
+    second = AIProviderSettings(
+        provider_key=TEST_OTHER_PROVIDER_KEY,
+        provider=AIProvider.OPENAI,
+        display_name="test_provider",
+    )
     settings = AISettings(providers=(first, second))
 
     assert len(settings.providers) == 2
@@ -105,7 +111,9 @@ def test_duplicate_provider_keys_are_rejected_across_platforms_and_uuid_formats(
 
 
 def test_duplicate_task_selections_are_rejected_even_with_different_models():
-    provider = AIProviderSettings(provider=AIProvider.OPENAI, display_name="test_provider")
+    provider = AIProviderSettings(
+        provider_key=TEST_PROVIDER_KEY, provider=AIProvider.OPENAI, display_name="test_provider"
+    )
     with pytest.raises(ValidationError, match="Each task must have exactly one"):
         AISettings.model_validate(
             {
@@ -171,7 +179,9 @@ def test_ai_settings_reject_usage_records():
 
 
 def test_all_ai_settings_levels_are_frozen():
-    provider = AIProviderSettings(provider=AIProvider.OPENAI, display_name="test_provider")
+    provider = AIProviderSettings(
+        provider_key=TEST_PROVIDER_KEY, provider=AIProvider.OPENAI, display_name="test_provider"
+    )
     task = AITaskSettings(task="test_search", provider_key=provider.provider_key, model="test_model")
     settings = AppSettings(ai=AISettings(providers=(provider,), tasks=(task,)))
 
@@ -179,7 +189,11 @@ def test_all_ai_settings_levels_are_frozen():
         settings.ai = AISettings()
     with pytest.raises(ValidationError, match="frozen_instance"):
         settings.ai.providers += (
-            AIProviderSettings(provider=AIProvider.DEEPSEEK, display_name="test_other"),
+            AIProviderSettings(
+                provider_key=TEST_OTHER_PROVIDER_KEY,
+                provider=AIProvider.DEEPSEEK,
+                display_name="test_other",
+            ),
         )
     with pytest.raises(ValidationError, match="frozen_instance"):
         settings.ai.tasks = ()
@@ -228,7 +242,9 @@ def test_ai_settings_json_round_trip_with_multiple_providers():
 
 def test_replacing_ai_settings_preserves_user_and_does_not_mutate_original():
     original = AppSettings(user=UserSettings(display_name="test_first_name"))
-    provider = AIProviderSettings(provider=AIProvider.OPENAI, display_name="test_provider")
+    provider = AIProviderSettings(
+        provider_key=TEST_PROVIDER_KEY, provider=AIProvider.OPENAI, display_name="test_provider"
+    )
     replacement = AppSettings(
         user=original.user,
         ai=AISettings(providers=(provider,)),
@@ -239,7 +255,9 @@ def test_replacing_ai_settings_preserves_user_and_does_not_mutate_original():
 
 
 def test_renaming_a_provider_preserves_its_key_and_task_references():
-    provider = AIProviderSettings(provider=AIProvider.OPENAI, display_name="test_original")
+    provider = AIProviderSettings(
+        provider_key=TEST_PROVIDER_KEY, provider=AIProvider.OPENAI, display_name="test_original"
+    )
     task = AITaskSettings(task="test_search", provider_key=provider.provider_key, model="test_model")
     original = AISettings(providers=(provider,), tasks=(task,))
     updated_provider = AIProviderSettings.model_validate(
@@ -254,7 +272,9 @@ def test_renaming_a_provider_preserves_its_key_and_task_references():
 
 
 def test_replacement_cannot_remove_a_provider_while_keeping_its_task():
-    provider = AIProviderSettings(provider=AIProvider.OPENAI, display_name="test_provider")
+    provider = AIProviderSettings(
+        provider_key=TEST_PROVIDER_KEY, provider=AIProvider.OPENAI, display_name="test_provider"
+    )
     task = AITaskSettings(task="test_search", provider_key=provider.provider_key, model="test_model")
     original = AISettings(providers=(provider,), tasks=(task,))
 

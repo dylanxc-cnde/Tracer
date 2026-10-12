@@ -126,6 +126,37 @@ def test_store_reopens_saved_settings_without_changing_uuid_or_enum_types(tmp_pa
     assert restored.ai.providers[0].provider is AIProvider.OPENAI
     assert restored.ai.providers[2].provider is AIProvider.DEEPSEEK
 
+    assert SettingsStore(database_path).get() == restored
+    assert [provider.provider_key for provider in restored.ai.providers] == [
+        TEST_PROVIDER_KEY, TEST_OTHER_PROVIDER_KEY, TEST_UNUSED_PROVIDER_KEY,
+    ]
+    with sqlite3.connect(database_path) as connection:
+        assert connection.execute("SELECT payload_json FROM app_settings").fetchone() == (
+            settings.model_dump_json(),
+        )
+
+
+def test_repeated_reads_reject_a_missing_provider_key_without_repairing_saved_data(tmp_path):
+    database_path = tmp_path / "user.sqlite3"
+    store = SettingsStore(database_path)
+    payload = '{"ai":{"providers":[{"provider":"openai","display_name":"test_provider"}]}}'
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            "INSERT INTO app_settings(settings_key, payload_json) VALUES('app', ?)",
+            (payload,),
+        )
+
+    for reader in (store, SettingsStore(database_path)):
+        with pytest.raises(ValidationError) as error:
+            reader.get()
+        errors = error.value.errors()
+        assert len(errors) == 1
+        assert errors[0]["loc"] == ("ai", "providers", 0, "provider_key")
+        assert errors[0]["type"] == "missing"
+
+    with sqlite3.connect(database_path) as connection:
+        assert connection.execute("SELECT payload_json FROM app_settings").fetchone() == (payload,)
+
 
 def test_save_replaces_the_snapshot_without_adding_rows(tmp_path):
     database_path = tmp_path / "user.sqlite3"
