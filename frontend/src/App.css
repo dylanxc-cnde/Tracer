@@ -313,24 +313,34 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.home-page__greeting {
+.home-page__settings-feedback {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 8px 12px;
-  margin: 4px 0 10px;
-  font-size: clamp(1.75rem, 2.5vw, 2.5rem);
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.035em;
+  margin-bottom: 10px;
+  font-size: var(--font-size-caption);
 }
 
-.home-page__name-placeholder {
-  display: inline-block;
-  width: 2.8em;
-  height: 0.55em;
-  border-radius: 5px;
-  background-color: var(--color-placeholder-strong);
+.home-page__settings-feedback p {
+  margin: 0;
+  color: var(--color-danger);
+  overflow-wrap: anywhere;
+}
+
+.home-page__settings-retry {
+  min-height: 44px;
+  padding: 8px;
+  border-color: transparent;
+  color: var(--color-action-primary);
+  background-color: transparent;
+  font-size: inherit;
+}
+
+.home-page__settings-retry:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--color-action-hover);
+  text-decoration: underline;
 }
 
 .home-page__summary-preview {

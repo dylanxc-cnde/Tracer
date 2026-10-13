@@ -11,10 +11,11 @@ export function SettingsPage() {
 
   return (
     <section className="settings-page">
-      <aside className="settings-page__sidebar">
+      <header className="settings-page__header">
         <h1 className="settings-page__title">Settings</h1>
         <nav className="settings-page__navigation" aria-label="Settings sections">
           <button
+            id="settings-profile-button"
             className="settings-page__navigation-button"
             type="button"
             aria-current={currentSection === 'profile' ? 'page' : undefined}
@@ -25,6 +26,7 @@ export function SettingsPage() {
           </button>
 
           <button
+            id="settings-api-button"
             className="settings-page__navigation-button"
             type="button"
             aria-current={currentSection === 'api' ? 'page' : undefined}
@@ -34,12 +36,12 @@ export function SettingsPage() {
             <span>API</span>
           </button>
         </nav>
-      </aside>
+      </header>
 
       <div
         className="settings-page__workspace"
         role="region"
-        aria-labelledby={`settings-${currentSection}-title`}
+        aria-labelledby={`settings-${currentSection}-button`}
         tabIndex={0}
       >
         {currentSection === 'profile' && <ProfileSettings />}

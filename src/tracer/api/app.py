@@ -1,11 +1,15 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from tracer.postings.parsers.openai_posting_parser import (
     OpenAIPostingParser,
 )
+from tracer.settings.api_key_store import ApiKeyStore
 
 from .postings import create_postings_router
 from .settings import create_settings_router
@@ -18,12 +22,14 @@ def create_app(
     *,
     database_path: Path = DEFAULT_DATABASE_PATH,
     posting_parser: OpenAIPostingParser | None = None,
+    api_key_store: ApiKeyStore | None = None,
 ) -> FastAPI:
     """Create the Tracer HTTP application.
 
     Args:
         database_path: The SQLite database file to use.
         posting_parser: An optional parser supplied by tests or the caller.
+        api_key_store: Optional credential storage; defaults to lazy native storage.
 
     Returns:
         The configured FastAPI application.
@@ -31,6 +37,18 @@ def create_app(
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
     app = FastAPI()
+
+    @app.exception_handler(RequestValidationError)
+    async def handle_request_validation_error(
+        request: Request, error: RequestValidationError
+    ) -> JSONResponse:
+        if request.method == "POST" and request.url.path == "/settings/ai/providers":
+            # Validation errors can echo the full request, including secrets.
+            # Do not serialize input, field names, context, or the raw error here.
+            return JSONResponse(
+                status_code=422, content={"detail": "Invalid AI provider settings."}
+            )
+        return await request_validation_exception_handler(request, error)
 
     app.add_middleware(
         CORSMiddleware,
@@ -52,7 +70,9 @@ def create_app(
             posting_parser=posting_parser,
         )
     )
-    app.include_router(create_settings_router(database_path=database_path))
+    app.include_router(
+        create_settings_router(database_path=database_path, api_key_store=api_key_store)
+    )
 
     return app
 

@@ -119,7 +119,11 @@ def test_update_preserves_settings_saved_after_service_creation(store, saved_set
 
 
 @pytest.mark.parametrize("operation", ["read", "update"])
-@pytest.mark.parametrize("payload", ["test_invalid_json", '{"user":{"display_name":123}}'])
+@pytest.mark.parametrize("payload", [
+    "test_invalid_json",
+    '{"user":{"display_name":123}}',
+    '{"ai":{"providers":[{"provider":"openai","display_name":"test_provider"}]}}',
+])
 def test_invalid_stored_settings_are_not_replaced_with_defaults(store, tmp_path, operation, payload):
     connection = sqlite3.connect(tmp_path / "user.sqlite3")
     try:

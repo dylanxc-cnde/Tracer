@@ -31,3 +31,11 @@ export type AppSettings = {
 export type UpdateUserSettingsRequest = {
   display_name: string | null
 }
+
+// Write-only input: the backend assigns the UUID and stores the secret separately.
+export type CreateAIProviderRequest = {
+  provider: AIProvider
+  display_name: string
+  monthly_budget_usd?: number | null
+  api_key: string
+}

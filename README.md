@@ -31,15 +31,20 @@ newer features such as inline editing and Show original aren't pictured yet.
   compensation, application details, contacts, company information, and personal notes.
 - Add, edit, and delete requirement pills, including switching them to examples.
 - Save everything together, cancel a draft, or view the initial Card snapshot.
+- Read, change, or clear your display name in Settings → Profile.
 
 Quick Facts stays a read-only summary. Requirement categories are also read-only
 for now; moving pills or groups and changing existing group rules are deferred.
 Failed saves keep your draft, and editing never overwrites the initial snapshot.
 
-The browser app currently has Home, Import Posting, Card Library, Import History,
-and a Settings placeholder. Home is a layout prototype with separate personal
-and Discover panes; its full-year activity heatmap uses clearly labeled demo
-data, not recorded job-search activity. It's not yet a packaged desktop app.
+The browser app currently has Home, Import Posting, Card Library, Activity,
+Import History, and Settings. Profile loads the saved display name and saves
+changes only when you select Save changes; Cancel restores the last saved name.
+Leaving Profile discards unsaved edits. Job preferences, API settings, and
+Activity remain placeholders. Home reads your saved display name for its greeting;
+the remaining personal and Discover sections are layout prototypes. Its full-year
+activity heatmap uses clearly labeled demo data, not recorded job-search activity.
+It's not yet a packaged desktop app.
 
 ## Run locally
 
