@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Real backend connections are forbidden, including if a fetch mock regresses. -->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' ws://localhost:5173 ws://localhost:5174" />
+    <title>Provider settings isolated tests</title>
+  </head>
+  <body>
+    <h1>Provider settings isolated tests</h1>
+    <p>Fake requests only. No backend or system credential storage is used.</p>
+    <p><a href="?preview">Open isolated preview</a> · <a href="?tests">Run tests</a></p>
+    <ol id="results"></ol>
+    <p id="result-summary" role="status">Running…</p>
+    <div id="test-host"></div>
+    <script type="module" src="./settings-providers.test.tsx"></script>
+  </body>
+</html>

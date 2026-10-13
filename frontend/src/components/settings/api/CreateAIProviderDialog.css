@@ -1,0 +1,107 @@
+.create-provider-dialog::backdrop {
+  background: var(--color-backdrop);
+  backdrop-filter: blur(8px);
+}
+
+.create-provider-dialog {
+  box-sizing: border-box;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 16px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-dialog);
+  font: inherit;
+  text-align: left;
+}
+
+.create-provider-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.create-provider-dialog__header h2 {
+  margin: 0;
+  font-size: var(--font-size-page-section-title);
+  font-weight: 600;
+}
+
+.create-provider-dialog__close {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  border-color: transparent;
+}
+
+.create-provider-dialog__fields {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.create-provider-dialog__fields p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.create-provider-dialog__fields label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.create-provider-dialog__fields input,
+.create-provider-dialog__fields select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 400;
+}
+
+.create-provider-dialog__fields input:focus-visible,
+.create-provider-dialog__fields select:focus-visible {
+  outline: 3px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+.create-provider-dialog__fields :disabled {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+}
+
+.create-provider-dialog__fields .create-provider-dialog__help { margin-top: -8px; }
+
+.create-provider-dialog__error {
+  display: grid;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.create-provider-dialog__error p { color: var(--color-danger); }
+
+.create-provider-dialog__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border-subtle);
+}
