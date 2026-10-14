@@ -2,8 +2,11 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { getSettings, updateUserSettings } from '../../../settings/api/settings'
 import type { AppSettings, UserSettings } from '../../../settings/types/appSettings'
 import './ProfileSettings.css'
+import { CandidateWorkspace } from '../../profile/CandidateWorkspace'
 
 export function ProfileSettings() {
+  const [workspaceOpen, setWorkspaceOpen] = useState(false)
+  const workspaceTrigger = useRef<HTMLButtonElement>(null)
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
   const [displayName, setDisplayName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -145,11 +148,13 @@ export function ProfileSettings() {
 
       <section aria-labelledby="settings-job-preferences-title">
         <h2 id="settings-job-preferences-title" className="profile-settings__section-title">
-          Job preferences
+          Profile and job-search goal
         </h2>
         <div className="profile-settings__placeholder">
-          <p>Job preference settings will appear here.</p>
+          <p>Confirm local evidence and job-search constraints for a Card match review. Unknown information can be skipped. Your display name stays separate.</p>
+          <button type="button" ref={workspaceTrigger} aria-expanded={workspaceOpen} onClick={() => setWorkspaceOpen(true)}>Open Profile and Goal</button>
         </div>
+        {workspaceOpen && <CandidateWorkspace onClose={() => { setWorkspaceOpen(false); workspaceTrigger.current?.focus() }} />}
       </section>
     </div>
   )

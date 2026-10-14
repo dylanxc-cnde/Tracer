@@ -9,7 +9,18 @@ supports a model, or has billed a particular amount.
 
 | Setting | User flow and purpose | Save, read, and effect | Limits and recovery |
 | --- | --- | --- | --- |
-| Display name | Settings → Profile lets the user edit, clear, or cancel the greeting name. It is the existing personal preference used by Home, not a CandidateProfile or job-search fact. | `PATCH /settings/user` saves `user.display_name` in the single local `app_settings` SQLite JSON snapshot. Profile loads it with `GET /settings`; Home independently reads that saved value when Home mounts and uses it for the greeting. Empty input is saved as `null`. | Failed save retains the local draft; retry is user initiated. Leaving Profile discards an unsaved draft. Home re-entry reads settings again; there is no global Settings cache or cross-page pending-save synchronization. A save already sent is not cancelled by navigation. Job preferences and the broader candidate/job-goal profile remain unimplemented because they lack an accepted current field/consumer contract. |
+| Display name | Settings → Profile lets the user edit, clear, or cancel the greeting name. It is the existing personal preference used by Home, not a CandidateProfile or job-search fact. | `PATCH /settings/user` saves `user.display_name` in the single local `app_settings` SQLite JSON snapshot. Profile loads it with `GET /settings`; Home independently reads that saved value when Home mounts and uses it for the greeting. Empty input is saved as `null`. | Failed save retains the local draft; retry is user initiated. Leaving Profile discards an unsaved draft. Home re-entry reads settings again; there is no global Settings cache or cross-page pending-save synchronization. A save already sent is not cancelled by navigation. |
+
+**Open Profile and Goal** explicitly mounts the new local personal workspace.
+Only then does it read `GET /profile` and `GET /goal`. Confirmed candidate evidence
+and job-search constraints have separate forms, confirmations, PUT endpoints,
+saved revisions and feedback. They do not modify AppSettings, the greeting or
+credentials. Empty optional data stays unknown. Match review is an explicit
+operation in a saved current Card's reading mode, not a background AI call.
+See [Local Profile, Goal and match review](profile-matching.md) for operation,
+version invalidation, response-loss reconciliation and first-enable backup rules.
+This new integration has source inspection only at this checkpoint; the old
+Settings evidence below does not establish that it works or approve its visuals.
 
 ## API providers
 
@@ -22,7 +33,8 @@ Home/End move between actions, and Escape closes it and returns focus to the row
 button. Tab or an outside interaction dismisses the menu. Cancelling or completing
 a maintenance dialog returns to that persistent row button; after deletion removes
 the row, focus returns to Refresh providers. These are the implemented interaction
-rules; current browser execution and user visual acceptance remain pending below.
+rules; the recorded Settings browser evidence and snapshot-specific user visual
+acceptance are described below, separately from the new personal workspace.
 
 Ordinary maintenance text does not display the UUID. The same stable UUID still
 identifies API requests, task references and system credentials; hiding it does
@@ -104,14 +116,25 @@ and Refresh to reconcile its result before retrying. Refresh does not verify a k
 
 ## Evidence and limitations
 
-The current Settings layout/entry-point changes in T8e151f4c have been implemented
-and inspected at source level only. Updated browser tests, responsive screenshots,
-native keyboard/focus checks, lint/build/type checks and regressions are pending
-the assigned tester and deterministic runner. The unchanged stage-0 Home/Settings
-screenshots are comparison baselines, not proof that this candidate passed visual
-review. Real backend/keyring/provider calls and user visual approval are not
-established by source inspection or the historical evidence below. No product
-supplier calls are authorized in this Settings implementation stage.
+The earlier author-time pending-validation note was superseded by the Settings
+checkpoint **546050b0c85e7edfcf3c396899d328e9257602cd**. Sol xhigh independently
+reviewed the product, Claude-authored tests and actual page evidence in
+`msg_13c6df65d001SWqAYgBkH4qM1j.json`. Runner `run-cef506e8d2193bee` recorded
+**29 browser tests**, **28 request tests**, **947 backend tests**, and successful
+lint/build/test-types/diff checks. The 29 include the earlier 25 plus parsing-draft
+cancellation, keyboard menu use, and two viewport evidence scenarios. The archived
+manifest `operator-stage-review-materials-20261014/manifest.json` records 16 PNGs
+and two geometry files at 1440×1000 and 900×1000. The controlled decision
+**D56231d95** accepted that exact Settings visual checkpoint. This resolves the
+documentation lag identified as SET-ST1-DOC1, not a fresh execution or new review.
+
+Stage-0 images remain comparison baselines, not current-page results. The Settings
+approval does not approve the new Profile/Goal/Match layout. Its new behavior,
+screenshots, keyboard checks and current lint/build/regression results remain
+pending the assigned tester, deterministic runner and independent stage review.
+Real browser-to-backend, native keyring and supplier behavior are not established
+by the Settings mock/temporary-database evidence. No live product calls were made
+or are authorized in this Profile/Goal/Match source unit.
 
 The earlier `066cd76` behavior snapshot reported 21 browser tests passed; this is
 historical evidence and is not rewritten to include later scenarios. On the later

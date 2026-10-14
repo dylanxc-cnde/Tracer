@@ -31,6 +31,16 @@ provider-edit and parsing-selection responses reconciled by explicit refresh
 without automatic retry. The counts describe their respective recorded runs, not
 a guarantee about future runs.
 
+The later Settings checkpoint `546050b0c85e7edfcf3c396899d328e9257602cd`
+has a recorded **29 passed** browser run in `run-cef506e8d2193bee`: the earlier
+25 plus parsing-draft cancellation, native keyboard menu coverage and two
+viewport evidence scenarios. Sol xhigh's independent combined stage review is
+`msg_13c6df65d001SWqAYgBkH4qM1j.json`; the controlled decision D56231d95
+subsequently accepted that checkpoint's Settings visuals. Preserve the older
+21/25 counts as history, not current counts. The archived manifest
+`operator-stage-review-materials-20261014/manifest.json` records 16 PNGs and
+two geometry files for 1440×1000 and 900×1000. This is not live-provider evidence.
+
 The bridge opens `/tests/settings-providers.html` without `?preview` and runs the
 existing React StrictMode component suite with its own fake fetch. It requires
 exactly 16 result entries and `16 passed, 0 failed`; the fixed count and summary
@@ -49,6 +59,30 @@ covered. Empty or discarded key inputs do not prove secure memory erasure.
 Mocked App behavior does not establish real settings persistence, OS credential
 storage, external provider access, all navigation races, HTTP cancellation,
 other-browser compatibility, responsive behavior or visual acceptance.
+
+## Profile / Goal / local match integration (pending validation)
+
+New personal-domain UI source is integrated in the real Settings Profile and
+current Card reading mode. Initial Settings/ordinary Card entry does not request
+personal or match endpoints; **Open Profile and Goal** and **Review match** are
+explicit entry points. The assigned Claude tester still needs to author the
+approved coherent browser group and import it through the discovered entry
+above, without changing Playwright configuration or weakening existing tests.
+This documentation does not predeclare test counts, screenshots or passing runs
+for that new group. Existing Settings mocks remain closed.
+
+The authorized group covers separate local confirmations/saves, skip/unknown,
+failure retention, lost-response manual reads, stale-input reviews, judgment-only
+correction, and original/editing Card boundaries. Profile/Goal facts remain local;
+there is no live AI call to mock into a false automatic-match claim. Tests must
+not silently upgrade facts or turn an absent evidence entry into a confirmed gap.
+See `docs/profile-matching.md` for the API/operation contract and five approved
+cases. Browser mocks check real App controls but not real SQLite persistence.
+The new backend group must use temporary SQLite and verify app reconstruction,
+snapshot references and unchanged Card/Settings data. It does not authorize
+first-enable writes to the user's old database or claim a real browser/backend
+end-to-end run. New behavior, static checks, images and visual acceptance are
+pending; the unchanged 29-test Settings evidence is not a green run for new code.
 
 ## Separate request tests and component inspection
 
