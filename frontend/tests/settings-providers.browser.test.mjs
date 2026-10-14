@@ -195,3 +195,105 @@ test('failed provider creation preserves the draft and shows only a safe error',
   expect(posts[0]).not.toHaveProperty('provider_key')
   expect(unexpectedRequests, 'All non-Vite requests must be explicitly mocked').toEqual([])
 })
+
+test('invalid provider drafts show validation errors without posting or losing the draft', async ({ page, context, baseURL }) => {
+  const savedProvider = {
+    provider_key: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    provider: 'openai',
+    display_name: 'Existing test provider',
+    monthly_budget_usd: null,
+  }
+  const baseline = {
+    platform: 'deepseek',
+    name: '  Validation test provider  ',
+    key: '  FAKE_VALIDATION_BROWSER_KEY_NOT_A_CREDENTIAL  ',
+    budget: '12.5',
+  }
+  const posts = []
+  const unexpectedRequests = []
+
+  // Even an invalid draft that reaches POST fails closed against a fixed fake error.
+  await context.route('**/*', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'GET' && request.url() === 'http://127.0.0.1:8000/settings') {
+      await route.fulfill({ json: { user: { display_name: null }, ai: { providers: [savedProvider], tasks: [] } } })
+    } else if (request.method() === 'POST' && request.url() === 'http://127.0.0.1:8000/settings/ai/providers') {
+      posts.push(request.postDataJSON())
+      await route.fulfill({
+        status: 500,
+        json: { detail: { code: 'settings.ai_provider_creation_error', message: 'Fixed fake creation failure' } },
+      })
+    } else if (url.origin === baseURL && request.method() === 'GET'
+      && !['fetch', 'xhr'].includes(request.resourceType()) && !url.pathname.startsWith('/settings')) {
+      await route.continue()
+    } else {
+      unexpectedRequests.push(`${request.method()} ${request.url()}`)
+      await route.abort('blockedbyclient')
+    }
+  })
+  await context.routeWebSocket('**/*', (socket) => {
+    const url = new URL(socket.url())
+    if (url.origin === baseURL.replace('http:', 'ws:') && url.pathname === '/') {
+      socket.connectToServer()
+    } else {
+      unexpectedRequests.push(`WebSocket ${socket.url()}`)
+      socket.close()
+    }
+  })
+
+  await page.goto('/')
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'API', exact: true }).click()
+  const providers = page.getByRole('list', { name: 'Saved providers' })
+  await expect(providers.getByRole('listitem')).toHaveCount(1)
+  const originalList = await providers.textContent()
+  await page.getByRole('button', { name: 'Add provider', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Add provider', exact: true })).toBeVisible()
+  const controls = {
+    platform: dialog.getByRole('combobox', { name: 'Platform', exact: true }),
+    name: dialog.getByLabel('Display name', { exact: true }),
+    key: dialog.getByLabel('API key', { exact: true }),
+    budget: dialog.getByLabel('Monthly budget (USD) · Optional', { exact: true }),
+  }
+  const submit = dialog.getByRole('button', { name: 'Add provider', exact: true })
+  const cases = [
+    { title: 'empty display name', field: 'name', value: '', message: 'Enter a display name.' },
+    { title: 'whitespace display name', field: 'name', value: '   ', message: 'Enter a display name.' },
+    { title: 'empty API key', field: 'key', value: '', message: 'Enter an API key.' },
+    { title: 'whitespace API key', field: 'key', value: '   ', message: 'Enter an API key.' },
+    { title: 'negative monthly budget', field: 'budget', value: '-1', message: 'Enter a finite monthly budget of zero or more, or leave it empty.' },
+  ]
+  for (const scenario of cases) {
+    await test.step(scenario.title, async () => {
+      // Reset every field so a different validation branch cannot mask this one.
+      await controls.platform.selectOption(baseline.platform)
+      for (const field of ['name', 'key', 'budget']) await controls[field].fill(baseline[field])
+      await controls[scenario.field].fill(scenario.value)
+      const draft = { ...baseline, [scenario.field]: scenario.value }
+      for (const [field, value] of Object.entries(draft)) await expect(controls[field]).toHaveValue(value)
+      await submit.click()
+
+      // Wait for the submitted draft's validation result, not an arbitrary no-request delay.
+      await expect(dialog.getByRole('alert')).toHaveText(scenario.message)
+      await expect(controls[scenario.field]).toBeFocused()
+      await expect(dialog).toBeVisible()
+      await expect(dialog).toHaveJSProperty('open', true)
+      await expect(dialog.locator('form')).toHaveAttribute('aria-busy', 'false')
+      for (const [field, value] of Object.entries(draft)) await expect(controls[field]).toHaveValue(value)
+      await expect(controls.key).toHaveAttribute('type', 'password')
+      for (const control of [...Object.values(controls), submit,
+        dialog.getByRole('button', { name: 'Cancel', exact: true }),
+        dialog.getByRole('button', { name: 'Close add provider', exact: true })]) {
+        await expect(control).toBeEnabled()
+      }
+      // Native modal background roles are inert but their saved content must not change.
+      const savedList = page.getByRole('list', { name: 'Saved providers', includeHidden: true })
+      await expect(savedList.getByRole('listitem', { includeHidden: true })).toHaveCount(1)
+      await expect(savedList).toHaveText(originalList)
+      expect(posts).toHaveLength(0)
+      expect(unexpectedRequests, 'All non-Vite requests must be explicitly mocked').toEqual([])
+    })
+  }
+})
