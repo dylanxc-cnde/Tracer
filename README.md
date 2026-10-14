@@ -113,12 +113,19 @@ uv run pytest
 Then, from `frontend/`:
 
 ```bash
+npm ci
 npm run lint
 npm run build
+npx playwright install chromium
+npm run test:browser
 ```
 
-CI runs these checks on pushes and pull requests. Frontend behavior tests are
-still to come; a passing build isn't browser-interaction coverage.
+CI is configured to run these checks on pushes and pull requests. The browser regression covers
+one mocked-API Chromium interaction: failed provider creation preserves the draft
+and displays a safe error. A passing build alone is not browser-interaction
+coverage. Other manual browser cases, real backend persistence, cross-browser,
+responsive and visual acceptance remain outside this automated test; see
+[Settings tests](frontend/tests/README.md).
 
 ## Next
 

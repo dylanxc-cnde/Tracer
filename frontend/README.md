@@ -103,11 +103,17 @@ npm run dev      # start the Vite development server
 npm run build    # type-check and create a production build
 npm run lint     # check the source with Oxlint
 npm run preview  # preview the production build locally
+npm run test:browser # run the single mocked-API Chromium regression
 ```
 
-CI already runs `npm ci`, `npm run lint`, and `npm run build` on pushes and
-pull requests, using Node.js 22. There is no frontend test runner or component/
-API behavior suite yet; adding those tests is deferred, not part of this step.
+CI is configured to run `npm ci`, `npm run lint`, `npm run build`, `npx playwright install chromium`,
+and `npm run test:browser` on pushes and pull requests, using Node.js 22. Install
+Chromium with that same Playwright command before running the browser test locally.
+The single automated interaction covers failed provider creation with mocked APIs,
+not real backend persistence, other manual browser cases, cross-browser behavior,
+responsive layouts or visual acceptance. A passing lint/build is not a browser
+check. Existing request tests and manual component suites are documented in
+[Settings tests](tests/README.md).
 
 ## Backend
 
