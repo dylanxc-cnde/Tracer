@@ -433,13 +433,14 @@ test('pending provider edit blocks duplicate submits and Escape and retains the 
 
     const dialog = page.getByRole('dialog')
     await dialog.getByLabel('Display name', { exact: true }).fill('  Renamed draft  ')
-    const submit = dialog.getByRole('button', { name: 'Save changes', exact: true })
+    const submit = dialog.locator('button[type="submit"]')
     await submit.click()
     await expect.poll(() => patchArrived, { message: 'The mock intercepted the PATCH before any response' }).toBe(true)
 
     // Saving state disables controls and blocks Escape before the response lands.
     await expect(dialog.locator('form')).toHaveAttribute('aria-busy', 'true')
     await expect(dialog.getByLabel('Display name', { exact: true })).toBeDisabled()
+    await expect(submit).toHaveAccessibleName('Saving…', { exact: true })
     await expect(submit).toBeDisabled()
     await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeDisabled()
     await page.keyboard.press('Escape')
@@ -754,6 +755,7 @@ test('the saved display name reaches Home and re-entering Settings restores it',
   })
 
   await page.goto('/')
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Home', exact: true }).click()
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Ada Lovelace')
 
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()
