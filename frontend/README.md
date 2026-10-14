@@ -40,6 +40,8 @@ and Card creation and updates.
   component classes, and primary/danger button states;
 - loading, API errors, parse status, candidate count, and saved Card summaries
   are shown in the page.
+- Settings → Profile reads and saves the local display name; Settings → API
+  manages saved AI providers and the provider/model used for posting parsing.
 
 You can bring a posting in, save it, come back to it, and edit its role content,
 job classification, eligibility, addresses, work modes, work conditions, compensation,
@@ -103,31 +105,41 @@ npm run dev      # start the Vite development server
 npm run build    # type-check and create a production build
 npm run lint     # check the source with Oxlint
 npm run preview  # preview the production build locally
-npm run test:browser # run five App Chromium cases and the component-suite bridge
+npm run test:browser # run the Settings Chromium suite and component-suite bridge
 ```
 
-CI is configured to run `npm ci`, `npm run lint`, `npm run build`, `npx playwright install chromium`,
-and `npm run test:browser` on pushes and pull requests, using Node.js 22. Install
-Chromium with that same Playwright command before running the browser test locally.
-The six browser tests cover five real-App Settings → API → Add provider cases
-with closed HTTP/WebSocket mocks: success, safe failure with retained draft,
-invalid input, explicitly gated saving/failure recovery, and idle Cancel/X/native
-Escape/backdrop/focus/reopening behavior. The remaining test bridges the existing 16-case
-React StrictMode component suite, using that page's own fake fetch for loading,
-refresh, budget/platform, duplicate-submit, error/reconciliation and late-callback
-checks. Its exact count/summary assertions are coupled to the component list and
-must be updated when that list changes. The 12 Node 24 request tests run separately
-with `node --test tests/settings-api.test.mjs`; they are not browser cases.
+CI runs `npm ci`, lint, build, Chromium installation, and `npm run test:browser`
+on pushes and pull requests using Node.js 22. Install Chromium locally with
+`npx playwright install chromium`. On the earlier `066cd76` Settings behavior
+snapshot, the browser log reported 21 passed; that is historical evidence. The
+later stage-three snapshot reported 25 passed in each of two runs: 19 real-App
+interactions with closed HTTP/WebSocket mocks, five existing Add provider cases,
+and the component-suite bridge. Four added App scenarios cover Profile load
+failure/retry followed by a save consumed by Home and re-entry; parsing validation,
+pending-save protection, failure retention and re-entry; and lost provider-edit
+and parsing-selection responses reconciled by explicit refresh without automatic
+retry. Other App flows cover profile name changes, provider metadata and key
+management, reference-protected deletion, and parsing selection. They exercise
+the frontend with mocked responses, not real Python persistence or the OS
+credential store.
 
-Targeted isolated mutations detect removal of the saving close guard and the
-synchronous duplicate-submit guard (including `Duplicate submission` in the bridge
-error). The native idle case has green-run evidence only, no independent mutation.
-All keys are fake. Mocked late callbacks, empty key inputs and discarded drafts do
-not prove real storage, all navigation races, HTTP cancellation or secure memory
-erasure. Cross-browser behavior, responsive layouts and visual acceptance remain
-outside this automation. A passing lint/build is not a browser check, and local
-results or CI configuration do not prove the exact task commit's remote CI success.
-Commands, layer boundaries and component inspection are documented in
+The bridge executes the existing React StrictMode component suite using its own
+closed fake fetch. Its 16 result entries and summary assertion are tied to the
+component case list; every failing component's text is included in assertion
+errors. The targeted duplicate-submit mutation fails at the component assertion
+containing `Duplicate submission`; normal browser runs then pass. This mutation
+only demonstrates that existing creation guard. The native idle-dialog case has
+green-run evidence but no independent mutation; management dialogs have no
+dedicated idle close/focus mutation. Non-finite budgets and native number-input
+`badInput` are not automated. All keys are fake; empty inputs do not prove secure
+memory erasure. Real credential storage, all navigation races, HTTP cancellation,
+cross-browser behavior, responsive layout and visual acceptance are outside this
+automation. Lint/build are not browser checks. CI configuration and local results
+do not prove remote CI success for the exact reviewed task commit. See
+[Settings tests](tests/README.md).
+
+The 28 Node request tests run separately with `node --test tests/settings-api.test.mjs`;
+they are not browser cases. Commands, layer boundaries and component inspection are documented in
 [Settings tests](tests/README.md).
 
 ## Backend

@@ -2,7 +2,7 @@
 
 ## Automated Chromium regression
 
-From `frontend/`, install the locked dependencies and Chromium, then run:
+From `frontend/`, install locked dependencies and Chromium, then run:
 
 ```sh
 npm ci
@@ -10,106 +10,90 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Playwright starts its own loopback Vite server at `127.0.0.1:4173` with a strict
-port and does not reuse an existing server. Only
-`settings-providers.browser.test.mjs` is discovered: six headless Chromium tests,
-one worker, bounded timeouts and no retries. The existing Frontend CI job is
-configured to run this command after its original lint/build checks; Python CI
-is unchanged. Workflow configuration and local results do not prove that remote
-CI has passed; check the exact commit's GitHub Actions results separately.
+Playwright discovers `settings-providers.browser.test.mjs`, which imports the
+management scenarios from `settings-management.browser.test.mjs`. The runner
+starts a loopback Vite server at `127.0.0.1:4173`, uses one worker, bounded
+timeouts and no retries. All API HTTP and WebSocket requests in App scenarios
+are explicitly mocked before navigation; unexpected requests are blocked. No
+real backend, database, OS credential store, API key or external provider is
+used.
 
-Five tests navigate the real App through Settings → API → Add provider using
-closed HTTP and WebSocket mocks. The failure case supplies one existing provider
-and a known creation failure, with a fake secret marker in the raw error. It
-checks the single POST payload, safe error, unchanged list, retained
-platform/name/key/budget draft, masked key, and re-enabled controls. The success
-case returns a new provider with a server-selected name and checks the single
-POST payload, appended server result and retained existing item, no extra GET,
-dialog removal, no visible fake key, and an empty password input on reopening.
-The validation case checks empty and whitespace-only display names and API keys,
-and a negative monthly budget, each with the other fields valid in the same dialog.
-It checks the exact error message, focus on the invalid field, unchanged four-field
-draft and saved list, masked key, open dialog, idle form and enabled controls,
-and zero POSTs. Any accidental POST receives a fixed fake error, never a real request.
-The pending-response case waits for a POST-arrival signal and holds a fixed 500
-response behind an explicit gate, without fixed sleeps. While pending it checks
-`aria-busy`, the saving notice, disabled fields/submit/Cancel/X, and real keyboard
-Escape with a read-only native cancel observer. The dialog remains visible/open,
-the four-field draft and saved list stay unchanged, and the key stays masked.
-Releasing the failure restores the idle form and all controls without losing the
-draft or list; editing a field and cancelling then works. Only one POST with the
-expected payload occurs. The gate is also released in `finally` on assertion failure.
-The idle-dialog case checks an initially empty password input, then real backdrop
-clicks at a point outside the dialog and inside the viewport without closing it or
-changing the draft/list. Cancel, X and native keyboard Escape each close the dialog,
-return focus to Add provider, and discard the draft: reopening after each restores
-the initial fields and an empty, masked key. The whole case checks zero POSTs.
+For the earlier reviewed behavior snapshot at
+`066cd76334b54e231680074f64f9ccdcf9d434b4`, the final browser run reported
+**21 passed**. Preserve that count as historical evidence for that snapshot. On
+the later stage-three snapshot, runner `run-1971b93ed58b6b13` reported **25 passed**
+in both the initial and post-mutation browser runs. Those runs include 19 Settings
+management/Profile/parsing App scenarios, five existing Add provider App
+scenarios, and the component-suite bridge. Four added App scenarios cover Profile
+load failure/retry followed by a save consumed by Home and re-entry; parsing
+validation, pending-save protection, failure retention and re-entry; and lost
+provider-edit and parsing-selection responses reconciled by explicit refresh
+without automatic retry. The counts describe their respective recorded runs, not
+a guarantee about future runs.
 
-The remaining test is a component-suite bridge: it opens
-`/tests/settings-providers.html` without `?preview` and executes the existing
-React StrictMode suite with its own closed fake fetch, not the App-route API mock.
-It checks the final status, zero FAIL entries, exactly 16 result entries and
-`16 passed, 0 failed`; every component result is included in assertion errors.
-The fixed count and summary deliberately couple this completeness check to the
-component case list. Adding/removing component cases requires updating both
-integrity assertions alongside that list; a passing empty suite is not sufficient.
+The bridge opens `/tests/settings-providers.html` without `?preview` and runs the
+existing React StrictMode component suite with its own fake fetch. It requires
+exactly 16 result entries and `16 passed, 0 failed`; the fixed count and summary
+must change with the component list. Its Playwright assertion error contains
+each failing component's text. The targeted duplicate-submit mutation removes
+the existing synchronous creation guard and expects the component assertion
+containing `Duplicate submission` to fail; the recorded mutation failed at its
+target assertion with production source unchanged, and the subsequent normal
+browser run passed. This mutation evidence concerns the existing creation
+guard, not the new management functionality.
 
-Targeted isolated mutation evidence covers two guards: removing the saving guard
-in `handleClose` fails at the pending case's post-Escape dialog assertion; removing
-the synchronous duplicate-submit guard fails through the bridge with the component
-failure text `Duplicate submission`. Neither red result is a browser-startup error.
-These are targeted detection checks, not proof of every race or every assertion.
-The native idle case has green-run evidence but no independent isolated mutation.
-Reopening with an empty key does not prove secure memory erasure. No real
-backend, database, credential store or external provider is used. Do not enter
-real credentials in test fixtures.
-
-These are five App-level mocked-API cases and one component-suite bridge, not full frontend
-acceptance. Non-finite budgets and native number-input `badInput` are not covered
-automatically. Real backend persistence and credential storage, external providers,
-other browsers, responsive layout and visual acceptance are not automated by this
-command. The component suite's fake-fetch unmount/late-response checks do not prove
-all real navigation races, HTTP cancellation or backend rollback. Empty or discarded
-UI key values do not prove secure memory erasure.
-
-Chromium also needs OS runtime libraries. If launch reports a missing library
-(for example `libnspr4.so`), browser installation alone is insufficient: report
-the environment failure, not a passing test or meaningful regression failure.
-This command does not install system packages or grant permission to do so.
+The native idle creation-dialog test has green-run evidence but no independent
+mutation. The management dialogs have no dedicated idle close/focus mutation.
+Non-finite budgets and native number-input `badInput` are not automatically
+covered. Empty or discarded key inputs do not prove secure memory erasure.
+Mocked App behavior does not establish real settings persistence, OS credential
+storage, external provider access, all navigation races, HTTP cancellation,
+other-browser compatibility, responsive behavior or visual acceptance.
 
 ## Separate request tests and component inspection
 
-The 12 request-layer tests use Node 24's built-in test runner and fake fetch.
-They check request payloads, safe response/error handling and no automatic retry;
-they are separate from `npm run test:browser`, not another 12 browser interactions.
-Run them and the component TSX type check from `frontend/`:
+Run request-layer tests and the component TSX type check from `frontend/`:
 
 ```sh
 node --test tests/settings-api.test.mjs
 npx tsc -p tests/tsconfig.json
 ```
 
-To inspect the component results manually, start the Vite development server and open
-`/tests/settings-providers.html`. The page runs the real components in React
-StrictMode and reports each assertion plus the final pass/fail count. This is
-a browser-run suite now also executed by the Playwright bridge, not part of
-`npm run build` or the command-line request tests. `tests/tsconfig.json` checks
-the TSX suite and its imports; it does not type-check the browser `.mjs` file.
+The latest recorded request-test run reported **28 passed**. These Node 24 tests
+use fake `fetch` and separately check request methods/payloads, response
+validation, safe errors and no automatic retry; they are not additional browser
+interactions. The TSX type check covers the component suite and its imports, not
+the browser `.mjs` files. Neither check is part of `npm run build`.
 
-The suite covers loading and read errors, refresh, budget values, form validation,
-both platforms, successful creation, draft retention, error sanitization,
-duplicate submission, blocked closing while saving, focus restoration, and
-late GET/POST responses after unmount. Unknown-result recovery checks that no retry
-is automatic and that closing then refreshing can reconcile a fake saved provider.
-Native keyboard/backdrop coverage comes from the separate App cases, not synthetic
-component events. Responsive layout and visual inspection remain manual.
+To inspect the component results manually, start Vite and open
+`/tests/settings-providers.html`. The page reports each assertion and the final
+pass/fail count. It is a development entry, excluded from the production build;
+the `preview` query renders the existing Settings page with fake, memory-only
+settings. All requests are replaced by closed fake fetch; unexpected URLs throw,
+the page Content Security Policy blocks the backend origin, and no system
+credential store is used. Never enter real keys.
 
-All requests are replaced by a closed fake fetch implementation before mounting.
-Unexpected URLs throw; no request falls through to the real backend. The page's
-Content Security Policy additionally blocks the backend origin. Keys are fake,
-and no system credential store is used. Preview changes are memory-only and
-reset on reload. Do not enter real keys in this page.
+## Backend, static checks, and delivery evidence
 
-The test HTML is a separate development entry, not included in the production
-build. Its `preview` query renders the existing Settings page with fake settings
-for visual inspection; production components do not contain test modes.
+Backend settings and parser integration tests use temporary SQLite and fake
+credential/client implementations. The reviewed stage-two backend run reported
+**947 passed**; it did not use real OS credentials or call OpenAI. The frontend
+runner `run-1971b93ed58b6b13` also recorded lint, build, the 28 Node request tests,
+the test TSX type check, two 25-pass browser runs, the targeted duplicate-submit
+mutation, and `git diff --check` as successful on its recorded stage-three
+snapshot. The earlier 21-pass result remains tied to its earlier snapshot. A fake
+client and mocked browser are not live external or
+system-credential acceptance. No Node/Playwright binary fingerprint was recorded,
+so do not claim runtime binaries matched other runs.
+
+CI's `Frontend` job runs `npm ci`, lint, build, installs Chromium and runs the
+browser suite; it does not run the separate Node request tests or
+`tsc -p tests/tsconfig.json`. The `Python 3.12` and `Frontend` remote checks are
+required for the exact final reviewed commit only after the final dual review
+and controller submission. Earlier checkpoint or local results do not establish
+that remote gate as passed.
+
+Chromium also needs OS runtime libraries. If launch reports a missing library
+(for example `libnspr4.so`), report an environment failure, not a passing test or
+a meaningful product regression. This test procedure does not install system
+packages or grant permission to do so.

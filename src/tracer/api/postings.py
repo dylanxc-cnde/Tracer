@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, status
 from openai import OpenAI
 
+from tracer.errors.settings_errors import PostingParserConfigurationError
 from tracer.postings import (
     PostingCard,
     PostingImportRequest,
@@ -16,6 +17,7 @@ from tracer.postings.parsers.openai_posting_parser import (
 from tracer.postings.services.create_posting_card import (
     CreatePostingCardService,
 )
+from tracer.postings.services.resolve_posting_parser import ResolvePostingParserService
 from tracer.postings.services.update_posting_card import (
     UpdatePostingCardService,
 )
@@ -23,6 +25,8 @@ from tracer.postings.stores.posting_card_store import PostingCardStore
 from tracer.postings.stores.posting_import_request_store import (
     PostingImportRequestStore,
 )
+from tracer.settings.api_key_store import ApiKeyStore
+from tracer.settings.settings_store import SettingsStore
 
 from .models.posting_models import CreatePostingCardRequest, UpdatePostingCardRequest
 
@@ -31,12 +35,14 @@ def create_postings_router(
     *,
     database_path: Path,
     posting_parser: OpenAIPostingParser | None = None,
+    api_key_store: ApiKeyStore | None = None,
 ) -> APIRouter:
     """Create the routes for posting imports and cards.
 
     Args:
         database_path: The SQLite database file to use.
         posting_parser: An optional parser supplied by tests or the caller.
+        api_key_store: Optional shared, lazily initialized credential storage.
 
     Returns:
         The configured postings router.
@@ -50,6 +56,13 @@ def create_postings_router(
         posting_card_store
     )
     router = APIRouter(prefix="/posting", tags=["postings"])
+    resolve_posting_parser_service = ResolvePostingParserService(
+        SettingsStore(database_path),
+        api_key_store if api_key_store is not None else ApiKeyStore(),
+        # Keep client creation lazy and use the same constructor boundary as the
+        # existing runtime, including callers that replace it with a fake SDK.
+        client_factory=lambda **kwargs: OpenAI(**kwargs),
+    )
 
     def get_posting_import(import_key: UUID) -> PostingImportRequest:
         request = posting_import_request_store.get(import_key)
@@ -60,14 +73,6 @@ def create_postings_router(
             )
 
         return request
-
-    def get_posting_parser() -> OpenAIPostingParser:
-        nonlocal posting_parser
-
-        if posting_parser is None:
-            posting_parser = OpenAIPostingParser(OpenAI())
-
-        return posting_parser
 
     @router.post(
         "/import",
@@ -111,7 +116,33 @@ def create_postings_router(
     ) -> PostingParseResult:
         request = get_posting_import(import_key)
 
-        return get_posting_parser().parse(request)
+        try:
+            # Explicit parser injection remains authoritative and does not read
+            # settings or credentials, even if the saved configuration is invalid.
+            if posting_parser is not None:
+                return posting_parser.parse(request)
+            with resolve_posting_parser_service.resolve() as parser:
+                return parser.parse(request)
+        except PostingParserConfigurationError:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": PostingParserConfigurationError.code,
+                    "message": "Posting parsing settings or credentials are unavailable. Review Settings and try again.",
+                    "context": {},
+                },
+            ) from None
+        except Exception:
+            # SDK errors can contain API keys, private posting text or response
+            # bodies. Return a fixed message without logging or serializing them.
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "code": "posting.parse_failed",
+                    "message": "Could not parse the posting. Check your parsing configuration and try again.",
+                    "context": {},
+                },
+            ) from None
 
     @router.post(
         "/card",

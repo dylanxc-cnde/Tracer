@@ -39,3 +39,17 @@ export type CreateAIProviderRequest = {
   monthly_budget_usd?: number | null
   api_key: string
 }
+
+export type UpdateAIProviderRequest = {
+  display_name: string
+  monthly_budget_usd: number | null
+}
+
+export type ReplaceAIProviderKeyRequest = {
+  api_key: string
+}
+
+export type UpdatePostingParseSettingsRequest = {
+  provider_key: string
+  model: string
+}

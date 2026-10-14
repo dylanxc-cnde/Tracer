@@ -79,6 +79,13 @@
 
 .api-settings__budget p { font-variant-numeric: tabular-nums; }
 
+.api-settings__provider-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .api-settings__empty {
   margin: 0;
   padding: 24px;

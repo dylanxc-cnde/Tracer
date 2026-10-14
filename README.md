@@ -40,8 +40,9 @@ Failed saves keep your draft, and editing never overwrites the initial snapshot.
 The browser app currently has Home, Import Posting, Card Library, Activity,
 Import History, and Settings. Profile loads the saved display name and saves
 changes only when you select Save changes; Cancel restores the last saved name.
-Leaving Profile discards unsaved edits. Job preferences, API settings, and
-Activity remain placeholders. Home reads your saved display name for its greeting;
+Leaving Profile discards unsaved edits. API Settings manages provider metadata
+and write-only credentials and selects the provider/model for posting parsing;
+Job preferences and Activity remain placeholders. Home reads your saved display name for its greeting;
 the remaining personal and Discover sections are layout prototypes. Its full-year
 activity heatmap uses clearly labeled demo data, not recorded job-search activity.
 It's not yet a packaged desktop app.
@@ -70,8 +71,13 @@ Open **http://localhost:5173**. API docs are at **http://127.0.0.1:8000/docs**.
 Card Library loads saved cards when you enter the page; use its refresh arrow to
 reload them manually. In Import History, use the Load button to fetch saved records.
 
-Analyze sends the posting input to OpenAI and uses paid API credits.
-Saved records live in `.local/tracer.sqlite3`; older database schemas need a
+Analyze sends the posting input to OpenAI and uses paid API credits. API Settings
+can select a saved OpenAI provider/model for future Analyze requests; clearing
+that selection restores the environment credential and built-in model path.
+DeepSeek provider configuration is retained for compatibility but is not supported
+for posting parsing. Monthly budgets are saved preferences, not spending limits.
+Saved records and non-secret settings live in `.local/tracer.sqlite3`; provider
+keys are held separately in the current OS user's credential store. Older database schemas need a
 manual, backed-up migration. Automatic upgrades aren't available yet.
 
 ## Development
@@ -120,48 +126,39 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-CI is configured to run these checks on pushes and pull requests; this does not
-prove that a particular commit's remote CI has passed. `npm run test:browser` runs
-six Chromium tests: five real-App interactions with closed API/WebSocket mocks
-and one bridge to the existing 16-case React component suite. The App cases cover:
-failed provider creation preserves
-the draft and displays a safe error; successful creation removes the dialog,
-appends the server-returned provider without an extra GET, and reopens with an
-empty masked key; invalid drafts (empty/whitespace-only name or key, negative
-budget) show the exact validation message, focus the invalid field, retain all
-four draft values and the saved list, and leave the dialog open and controls
-enabled without a POST; a controlled pending POST checks the busy form/saving notice,
-disabled fields and submit/Cancel/X, and native keyboard Escape leaving the dialog
-open with its masked key, four-field draft and saved list intact. A POST-arrival
-signal and explicit response gate synchronize this case without fixed sleeps;
-releasing a fixed 500 failure restores controls and retains the draft, then editing
-and cancelling works with only one POST; idle Cancel/X/native Escape close,
-restore focus and discard the draft, with an empty password input on each reopen,
-while a real backdrop click keeps the draft and dialog intact with zero POSTs.
+CI is configured to run lint, build, and the browser command on pushes and pull
+requests; this does not prove a particular commit's remote CI passed. The earlier
+`066cd76` behavior snapshot reported 21 Chromium tests; that is historical evidence,
+not the latest count. On the later stage-three snapshot, `npm run test:browser`
+reported 25 passed in each of two runs. This includes 19 mocked real-App Settings
+interactions, five existing provider-creation cases and the bridge to the existing
+16-case React component suite (see [Settings tests](frontend/tests/README.md)).
+Four added App scenarios cover Profile load failure/retry followed by a save
+consumed by Home and re-entry; parsing validation, pending-save protection,
+failure retention and re-entry; and lost provider-edit and parsing-selection
+responses reconciled by explicit refresh without automatic retry. Existing profile,
+provider-management, reference-protected deletion and parsing-selection flows remain
+included. Browser requests are closed mocks, not a real backend or credential-store test.
 
-The component bridge uses the suite's own fake fetch to cover loading/refresh
-recovery, both platforms and empty/zero budgets, synchronous duplicate submission,
-safe error categories, unknown-result refresh reconciliation and late callbacks
-after unmount. Its fixed 16-result count and summary must be updated when the
-component case list changes. Targeted isolated mutations detect removal of the
-saving close guard (post-Escape dialog assertion) and synchronous submit guard
-(`Duplicate submission` in the bridge error). The native idle case has no independent
-mutation evidence. These checks do not prove every race. The 12 Node 24 request
-tests run separately from the browser command; see the linked test instructions.
-
-Non-finite budgets and native number-input `badInput`
-are not automated. No fake key is displayed; an empty reopened input does not
-prove secure memory erasure. A passing build alone is not browser-interaction
-coverage. Real backend persistence and credential storage, HTTP cancellation,
-all real navigation/late-response races,
-external providers, other browsers, responsive and visual
-acceptance remain outside these automated tests; see
+The component-suite bridge checks all 16 result entries and includes each failing
+component's text in assertion errors. An isolated `mutation_duplicate` run detects
+the synchronous duplicate-submit guard: its expected red assertion contains the
+component failure text `Duplicate submission`; the subsequent normal browser run
+passed. This mutation concerns the existing creation component, not the new
+management flows. The request layer separately reported 28 passing Node tests.
+The native idle-dialog case has no independent mutation evidence. Non-finite
+budgets and native number-input `badInput` are not automated. Management dialogs
+have no dedicated idle close/focus mutation. Empty reopened key fields do not prove
+secure memory erasure. A passing build alone is not browser-interaction coverage.
+The browser suite does not validate real backend persistence, system credential
+storage, external providers, other browsers, responsive or visual acceptance;
+see
 [Settings tests](frontend/tests/README.md).
 
 ## Next
 
-Build out Home, a dashboard view, and Settings in small steps, then bring the
-layouts, controls, and motion into one consistent interface.
+Continue improving Home and the dashboard, then bring layouts, controls, and
+motion into one consistent interface.
 
 Category editing and Requirements movement stay on hold until that interaction
 design is clearer. For now, the priority is keeping the card compact and usable,
