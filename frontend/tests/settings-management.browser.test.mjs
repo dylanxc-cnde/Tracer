@@ -267,7 +267,7 @@ test('posting parsing lists only supported providers, saves, and clears to defau
 
   await openApiSettings(page)
   await expect(page.getByRole('heading', { name: 'Posting parsing', exact: true })).toBeVisible()
-  const providerSelect = page.getByLabel('Parsing provider', { exact: true })
+  const providerSelect = page.getByRole('combobox', { name: 'Parsing provider', exact: true })
   const modelInput = page.getByLabel('Parsing model', { exact: true })
 
   // Only OpenAI providers are selectable; DeepSeek is not an option.
