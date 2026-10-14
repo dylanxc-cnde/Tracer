@@ -120,11 +120,16 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-CI is configured to run these checks on pushes and pull requests. The browser regression covers
-one mocked-API Chromium interaction: failed provider creation preserves the draft
-and displays a safe error. A passing build alone is not browser-interaction
-coverage. Other manual browser cases, real backend persistence, cross-browser,
-responsive and visual acceptance remain outside this automated test; see
+CI is configured to run these checks on pushes and pull requests; this does not
+prove that a particular commit's remote CI has passed. The browser regressions
+cover two mocked-API Chromium interactions: failed provider creation preserves
+the draft and displays a safe error; successful creation removes the dialog,
+appends the server-returned provider without an extra GET, and reopens with an
+empty masked key. No fake key is displayed; an empty reopened input does not
+prove secure memory erasure. A passing build alone is not browser-interaction
+coverage. Remaining manual component cases, real backend persistence and
+credential storage, external providers, other browsers, responsive and visual
+acceptance remain outside these automated tests; see
 [Settings tests](frontend/tests/README.md).
 
 ## Next
