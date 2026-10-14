@@ -110,14 +110,18 @@ npm run test:browser # run the Settings Chromium suite and component-suite bridg
 
 CI runs `npm ci`, lint, build, Chromium installation, and `npm run test:browser`
 on pushes and pull requests using Node.js 22. Install Chromium locally with
-`npx playwright install chromium`. On the reviewed Settings behavior snapshot,
-the browser log reported 21 passed: 15 real-App interactions with closed
-HTTP/WebSocket mocks, five existing Add provider cases, and the component-suite
-bridge. The App interactions include profile name saving/clearing/cancel/failure
-and Home reload; provider metadata edits, write-only key replacement, deletion
-confirmation/reference protection; parsing selection and clearing; validation,
-pending-save protection and safe failure recovery. They exercise the frontend
-with mocked responses, not the real Python persistence or OS credential store.
+`npx playwright install chromium`. On the earlier `066cd76` Settings behavior
+snapshot, the browser log reported 21 passed; that is historical evidence. The
+later stage-three snapshot reported 25 passed in each of two runs: 19 real-App
+interactions with closed HTTP/WebSocket mocks, five existing Add provider cases,
+and the component-suite bridge. Four added App scenarios cover Profile load
+failure/retry followed by a save consumed by Home and re-entry; parsing validation,
+pending-save protection, failure retention and re-entry; and lost provider-edit
+and parsing-selection responses reconciled by explicit refresh without automatic
+retry. Other App flows cover profile name changes, provider metadata and key
+management, reference-protected deletion, and parsing selection. They exercise
+the frontend with mocked responses, not real Python persistence or the OS
+credential store.
 
 The bridge executes the existing React StrictMode component suite using its own
 closed fake fetch. Its 16 result entries and summary assertion are tied to the

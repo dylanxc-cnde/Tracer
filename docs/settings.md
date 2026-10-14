@@ -61,13 +61,23 @@ empty. This does not claim secure erasure from process memory.
 
 ## Evidence and limitations
 
+The earlier `066cd76` behavior snapshot reported 21 browser tests passed; this is
+historical evidence and is not rewritten to include later scenarios. On the later
+stage-three snapshot, runner `run-1971b93ed58b6b13` recorded two browser runs of
+25 passed each. The four added App scenarios cover: Profile initial-load failure,
+retry, actual save, Home consumption and Profile re-entry; parsing validation,
+pending-save controls, failed-draft retention and re-entry; a lost provider-edit
+response reconciled by explicit refresh; and a lost parsing-selection response
+reconciled by refresh using the server's saved selection. These recovery tests
+use closed mocks and do not establish real persistence or provider behavior.
+
 The reviewed behavior snapshot's local evidence includes backend tests using
 temporary SQLite and fake credential/client objects; frontend Node request tests
 using fake `fetch`; and Chromium App interactions using closed HTTP/WebSocket
 mocks. The recorded stage-two backend run reported 947 passed. The stage-three
-frontend runner reported 28 request tests passed, 21 browser tests passed,
+frontend runner reported 28 request tests passed, two 25-pass browser runs,
 successful lint/build/test-TSX checks, the targeted existing duplicate-submit
-mutation, a successful post-mutation browser run, and `git diff --check`. These
+mutation, and `git diff --check`. These
 results are local evidence for their recorded snapshots, not real user data,
 system-credential-service or external-provider acceptance.
 

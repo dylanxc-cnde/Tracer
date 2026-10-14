@@ -18,13 +18,18 @@ are explicitly mocked before navigation; unexpected requests are blocked. No
 real backend, database, OS credential store, API key or external provider is
 used.
 
-For the reviewed behavior snapshot at `066cd76334b54e231680074f64f9ccdcf9d434b4`,
-the final browser run reported **21 passed**. It included 15 Settings management
-App scenarios (display-name save/clear/cancel/failure and Home reload; provider
-edit, key replacement, confirmed and reference-blocked deletion; posting-parse
-selection/clear; validation, pending-write protection, and safe failure recovery),
-five existing Add provider App scenarios, and the component-suite bridge. The
-browser count describes that run, not a guarantee about future runs.
+For the earlier reviewed behavior snapshot at
+`066cd76334b54e231680074f64f9ccdcf9d434b4`, the final browser run reported
+**21 passed**. Preserve that count as historical evidence for that snapshot. On
+the later stage-three snapshot, runner `run-1971b93ed58b6b13` reported **25 passed**
+in both the initial and post-mutation browser runs. Those runs include 19 Settings
+management/Profile/parsing App scenarios, five existing Add provider App
+scenarios, and the component-suite bridge. Four added App scenarios cover Profile
+load failure/retry followed by a save consumed by Home and re-entry; parsing
+validation, pending-save protection, failure retention and re-entry; and lost
+provider-edit and parsing-selection responses reconciled by explicit refresh
+without automatic retry. The counts describe their respective recorded runs, not
+a guarantee about future runs.
 
 The bridge opens `/tests/settings-providers.html` without `?preview` and runs the
 existing React StrictMode component suite with its own fake fetch. It requires
@@ -73,10 +78,11 @@ credential store is used. Never enter real keys.
 Backend settings and parser integration tests use temporary SQLite and fake
 credential/client implementations. The reviewed stage-two backend run reported
 **947 passed**; it did not use real OS credentials or call OpenAI. The frontend
-runner also recorded lint, build, the 28 Node request tests, the test TSX type
-check, 21 browser passes, the targeted duplicate-submit mutation, a post-mutation
-21-pass browser run, and `git diff --check` as successful on the reviewed
-behavior snapshot. A fake client and mocked browser are not live external or
+runner `run-1971b93ed58b6b13` also recorded lint, build, the 28 Node request tests,
+the test TSX type check, two 25-pass browser runs, the targeted duplicate-submit
+mutation, and `git diff --check` as successful on its recorded stage-three
+snapshot. The earlier 21-pass result remains tied to its earlier snapshot. A fake
+client and mocked browser are not live external or
 system-credential acceptance. No Node/Playwright binary fingerprint was recorded,
 so do not claim runtime binaries matched other runs.
 

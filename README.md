@@ -127,17 +127,20 @@ npm run test:browser
 ```
 
 CI is configured to run lint, build, and the browser command on pushes and pull
-requests; this does not prove a particular commit's remote CI passed. For the
-current documented Settings snapshot, `npm run test:browser` reported 21 Chromium
-tests passed: 15 mocked real-App Settings interactions and one bridge to the
-existing 16-case React component suite, plus the existing creation cases described
-in [Settings tests](frontend/tests/README.md). The suite covers profile display-name
-save/clear/cancel/failure and Home reload; provider creation, metadata edits,
-write-only key replacement, confirmation and reference-protected deletion; and
-posting-parse selection, clearing, validation, failure retention and saving state.
-The browser requests are closed mocks, not a real backend or credential-store test.
+requests; this does not prove a particular commit's remote CI passed. The earlier
+`066cd76` behavior snapshot reported 21 Chromium tests; that is historical evidence,
+not the latest count. On the later stage-three snapshot, `npm run test:browser`
+reported 25 passed in each of two runs. This includes 19 mocked real-App Settings
+interactions, five existing provider-creation cases and the bridge to the existing
+16-case React component suite (see [Settings tests](frontend/tests/README.md)).
+Four added App scenarios cover Profile load failure/retry followed by a save
+consumed by Home and re-entry; parsing validation, pending-save protection,
+failure retention and re-entry; and lost provider-edit and parsing-selection
+responses reconciled by explicit refresh without automatic retry. Existing profile,
+provider-management, reference-protected deletion and parsing-selection flows remain
+included. Browser requests are closed mocks, not a real backend or credential-store test.
 
-The component bridge checks all 16 result entries and includes each failing
+The component-suite bridge checks all 16 result entries and includes each failing
 component's text in assertion errors. An isolated `mutation_duplicate` run detects
 the synchronous duplicate-submit guard: its expected red assertion contains the
 component failure text `Duplicate submission`; the subsequent normal browser run
