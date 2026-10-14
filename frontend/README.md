@@ -40,6 +40,8 @@ and Card creation and updates.
   component classes, and primary/danger button states;
 - loading, API errors, parse status, candidate count, and saved Card summaries
   are shown in the page.
+- Settings → Profile reads and saves the local display name; Settings → API
+  manages saved AI providers and the provider/model used for posting parsing.
 
 You can bring a posting in, save it, come back to it, and edit its role content,
 job classification, eligibility, addresses, work modes, work conditions, compensation,
@@ -103,11 +105,42 @@ npm run dev      # start the Vite development server
 npm run build    # type-check and create a production build
 npm run lint     # check the source with Oxlint
 npm run preview  # preview the production build locally
+npm run test:browser # run the Settings Chromium suite and component-suite bridge
 ```
 
-CI already runs `npm ci`, `npm run lint`, and `npm run build` on pushes and
-pull requests, using Node.js 22. There is no frontend test runner or component/
-API behavior suite yet; adding those tests is deferred, not part of this step.
+CI runs `npm ci`, lint, build, Chromium installation, and `npm run test:browser`
+on pushes and pull requests using Node.js 22. Install Chromium locally with
+`npx playwright install chromium`. On the earlier `066cd76` Settings behavior
+snapshot, the browser log reported 21 passed; that is historical evidence. The
+later stage-three snapshot reported 25 passed in each of two runs: 19 real-App
+interactions with closed HTTP/WebSocket mocks, five existing Add provider cases,
+and the component-suite bridge. Four added App scenarios cover Profile load
+failure/retry followed by a save consumed by Home and re-entry; parsing validation,
+pending-save protection, failure retention and re-entry; and lost provider-edit
+and parsing-selection responses reconciled by explicit refresh without automatic
+retry. Other App flows cover profile name changes, provider metadata and key
+management, reference-protected deletion, and parsing selection. They exercise
+the frontend with mocked responses, not real Python persistence or the OS
+credential store.
+
+The bridge executes the existing React StrictMode component suite using its own
+closed fake fetch. Its 16 result entries and summary assertion are tied to the
+component case list; every failing component's text is included in assertion
+errors. The targeted duplicate-submit mutation fails at the component assertion
+containing `Duplicate submission`; normal browser runs then pass. This mutation
+only demonstrates that existing creation guard. The native idle-dialog case has
+green-run evidence but no independent mutation; management dialogs have no
+dedicated idle close/focus mutation. Non-finite budgets and native number-input
+`badInput` are not automated. All keys are fake; empty inputs do not prove secure
+memory erasure. Real credential storage, all navigation races, HTTP cancellation,
+cross-browser behavior, responsive layout and visual acceptance are outside this
+automation. Lint/build are not browser checks. CI configuration and local results
+do not prove remote CI success for the exact reviewed task commit. See
+[Settings tests](tests/README.md).
+
+The 28 Node request tests run separately with `node --test tests/settings-api.test.mjs`;
+they are not browser cases. Commands, layer boundaries and component inspection are documented in
+[Settings tests](tests/README.md).
 
 ## Backend
 

@@ -37,6 +37,7 @@ def create_app(
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
     app = FastAPI()
+    credentials = api_key_store if api_key_store is not None else ApiKeyStore()
 
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation_error(
@@ -47,6 +48,15 @@ def create_app(
             # Do not serialize input, field names, context, or the raw error here.
             return JSONResponse(
                 status_code=422, content={"detail": "Invalid AI provider settings."}
+            )
+        if request.method in {"PATCH", "PUT", "DELETE"} and (
+            request.url.path.startswith("/settings/ai/providers/")
+            or request.url.path == "/settings/ai/tasks/posting_parse"
+        ):
+            # Even public-field requests may contain unexpected sensitive fields,
+            # or secrets in invalid path parameters. Do not echo any validation data.
+            return JSONResponse(
+                status_code=422, content={"detail": "Invalid AI settings."}
             )
         return await request_validation_exception_handler(request, error)
 
@@ -68,10 +78,11 @@ def create_app(
         create_postings_router(
             database_path=database_path,
             posting_parser=posting_parser,
+            api_key_store=credentials,
         )
     )
     app.include_router(
-        create_settings_router(database_path=database_path, api_key_store=api_key_store)
+        create_settings_router(database_path=database_path, api_key_store=credentials)
     )
 
     return app

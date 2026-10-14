@@ -1,0 +1,55 @@
+.manage-provider-dialog::backdrop {
+  background: var(--color-backdrop);
+  backdrop-filter: blur(8px);
+}
+
+.manage-provider-dialog {
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 16px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-dialog);
+  font: inherit;
+  text-align: left;
+}
+
+.manage-provider-dialog__header,
+.manage-provider-dialog__footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+}
+
+.manage-provider-dialog__header { justify-content: space-between; border-bottom: 1px solid var(--color-border-subtle); }
+.manage-provider-dialog__header h2 { margin: 0; font-size: var(--font-size-page-section-title); }
+.manage-provider-dialog__close { display: grid; place-items: center; min-width: 44px; min-height: 44px; border-color: transparent; }
+.manage-provider-dialog__footer { justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid var(--color-border-subtle); }
+.manage-provider-dialog__fields { display: grid; gap: 16px; padding: 24px; overflow-wrap: anywhere; }
+.manage-provider-dialog__fields p { margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-caption); }
+.manage-provider-dialog__fields label { display: grid; gap: 8px; font-weight: 600; }
+.manage-provider-dialog__fields input:not([type="checkbox"]) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 400;
+}
+.manage-provider-dialog__fields input:focus-visible { outline: 3px solid var(--color-action-primary); outline-offset: 2px; }
+.manage-provider-dialog__fields .manage-provider-dialog__confirmation { display: flex; align-items: flex-start; gap: 12px; }
+.manage-provider-dialog__confirmation input { margin-top: 4px; }
+.manage-provider-dialog__fields .manage-provider-dialog__error p,
+.manage-provider-dialog__delete { color: var(--color-danger); }
+.manage-provider-dialog__error { display: grid; gap: 8px; }
