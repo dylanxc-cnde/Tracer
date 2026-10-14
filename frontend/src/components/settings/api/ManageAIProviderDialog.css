@@ -28,7 +28,7 @@
 }
 
 .manage-provider-dialog__header { justify-content: space-between; border-bottom: 1px solid var(--color-border-subtle); }
-.manage-provider-dialog__header h2 { margin: 0; font-size: var(--font-size-page-section-title); }
+.manage-provider-dialog__header h2 { margin: 0; font-size: var(--font-size-page-section-title); overflow-wrap: anywhere; }
 .manage-provider-dialog__close { display: grid; place-items: center; min-width: 44px; min-height: 44px; border-color: transparent; }
 .manage-provider-dialog__footer { justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid var(--color-border-subtle); }
 .manage-provider-dialog__fields { display: grid; gap: 16px; padding: 24px; overflow-wrap: anywhere; }
@@ -53,3 +53,4 @@
 .manage-provider-dialog__fields .manage-provider-dialog__error p,
 .manage-provider-dialog__delete { color: var(--color-danger); }
 .manage-provider-dialog__error { display: grid; gap: 8px; }
+.manage-provider-dialog__delete { border-color: var(--color-danger); }

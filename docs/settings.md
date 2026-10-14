@@ -13,6 +13,21 @@ supports a model, or has billed a particular amount.
 
 ## API providers
 
+Settings → API keeps **Add provider** as the primary action. Each saved row shows
+its nickname, platform, budget preference and **Saved configuration**, not a
+connection-health claim. The always-visible three-dot **Provider actions for
+<nickname>** button opens Edit provider, Replace API key and a separated dangerous
+Delete provider action. Enter/Space or ArrowDown opens the menu, arrows and
+Home/End move between actions, and Escape closes it and returns focus to the row
+button. Tab or an outside interaction dismisses the menu. Cancelling or completing
+a maintenance dialog returns to that persistent row button; after deletion removes
+the row, focus returns to Refresh providers. These are the implemented interaction
+rules; current browser execution and user visual acceptance remain pending below.
+
+Ordinary maintenance text does not display the UUID. The same stable UUID still
+identifies API requests, task references and system credentials; hiding it does
+not replace, regenerate or rename that identity.
+
 | Field or operation | User flow and purpose | Save, read, and effect | Limits and recovery |
 | --- | --- | --- | --- |
 | Provider ID and platform | Add a provider by choosing OpenAI or DeepSeek; the stable UUID identifies its configuration and credential. | Provider platform, UUID, display name and optional monthly budget are stored in the local `app_settings` SQLite snapshot and returned by `GET /settings`. UUID and platform are fixed when editing an existing provider. | The public settings response excludes API keys. A configured DeepSeek provider remains supported as stored configuration, but current posting parsing only supports OpenAI. |
@@ -22,6 +37,30 @@ supports a model, or has billed a particular amount.
 | Delete provider | Delete uses a confirmation checkbox for an unreferenced provider. The user must first clear any task selection using it; the interface does not silently disconnect tasks. | `DELETE /settings/ai/providers/{provider_key}` removes the provider configuration and stored key. Any task reference rejects deletion (`409`) without automatic unbinding. | SQLite and OS credential storage are separate stores, not one atomic transaction. On an operation failure, bounded compensation verifies the prior state where possible and returns a fixed error; if either store cannot be verified, the response marks the relevant state as uncertain. Do not infer rollback from an error. Refresh settings to inspect configuration, and check the OS credential store through its normal system tools if the key state is reported uncertain. |
 
 ## Posting parsing selection
+
+The section first shows the **Current saved selection** for the next Analyze
+request, or explicitly shows **Environment credentials and the built-in default
+model** when no selection is saved. This summary reads the latest loaded or saved
+public snapshot, never the input draft. It makes no claim that the environment
+credentials, account or model are available.
+
+Choose **Edit parsing settings** to open an inline **Edit draft**. **Save parsing
+settings** sends the existing PUT and uses its response to update the summary and
+close the draft; a failure keeps the draft and the safe error/reconciliation
+instructions. **Cancel parsing changes** discards and hides the draft without a
+write, including an unchanged draft. **Use environment defaults** is available in
+the editor for an existing selection and explicitly sends DELETE for only
+`posting_parse`; it is not an inferred fallback. Cancelling or saving returns to
+the Edit button. Saving disables the draft controls and prevents local duplicate
+submissions; Refresh and provider maintenance cannot write concurrently.
+
+Models are still entered by technical ID. The editor describes the required
+OpenAI Responses structured outputs and web search capability for URL parsing.
+The expandable technical note names `gpt-5.6-luna` only as a code-default example,
+**not** a tested recommendation or verified catalog. Account/model availability
+must be checked separately. The summary keeps the safety and cost boundary
+visible: saving makes no AI call, Analyze sends the imported posting to OpenAI and
+may incur charges, and saved budgets do not enforce a limit.
 
 | Setting or operation | User flow and purpose | Save, read, and effect | Limits and recovery |
 | --- | --- | --- | --- |
@@ -56,10 +95,23 @@ cases as a successful rollback.
 The API management dialogs keep edits as local drafts, disable duplicate writes
 while saving, block Escape/Cancel during a write, and retain drafts on ordinary
 failure. Closing or leaving discards local drafts; it does not cancel a request
-already sent. Reopening reads persisted public settings and a key input begins
-empty. This does not claim secure erasure from process memory.
+already sent. Reopening a management dialog uses the parent's most recently
+loaded or saved public snapshot, **not** a new network read; Refresh or re-entering
+the API section performs `GET /settings`. A replacement-key input begins empty.
+This does not claim secure erasure from process memory. Parsing drafts likewise
+disappear on API exit or Refresh. Navigation does not cancel a sent write; return
+and Refresh to reconcile its result before retrying. Refresh does not verify a key.
 
 ## Evidence and limitations
+
+The current Settings layout/entry-point changes in T8e151f4c have been implemented
+and inspected at source level only. Updated browser tests, responsive screenshots,
+native keyboard/focus checks, lint/build/type checks and regressions are pending
+the assigned tester and deterministic runner. The unchanged stage-0 Home/Settings
+screenshots are comparison baselines, not proof that this candidate passed visual
+review. Real backend/keyring/provider calls and user visual approval are not
+established by source inspection or the historical evidence below. No product
+supplier calls are authorized in this Settings implementation stage.
 
 The earlier `066cd76` behavior snapshot reported 21 browser tests passed; this is
 historical evidence and is not rewritten to include later scenarios. On the later

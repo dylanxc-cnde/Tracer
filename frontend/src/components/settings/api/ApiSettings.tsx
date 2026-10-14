@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { IconPlus, IconRefresh } from '@tabler/icons-react'
+import { IconDotsVertical, IconPlus, IconRefresh } from '@tabler/icons-react'
 import { getSettings } from '../../../settings/api/settings'
 import type { AIProviderSettings, AITaskSettings, AppSettings } from '../../../settings/types/appSettings'
 import { CreateAIProviderDialog } from './CreateAIProviderDialog'
@@ -7,6 +7,77 @@ import { ManageAIProviderDialog } from './ManageAIProviderDialog'
 import type { ProviderOperation } from './ManageAIProviderDialog'
 import { PostingParseSettings } from './PostingParseSettings'
 import './ApiSettings.css'
+
+function providerActionsId(providerKey: string) {
+  return `settings-provider-actions-${providerKey}`
+}
+
+// This menu belongs to one provider row; it does not own settings or writes.
+function ProviderActions({ provider, disabled, onManage }: {
+  provider: AIProviderSettings
+  disabled: boolean
+  onManage: (provider: AIProviderSettings, mode: ProviderOperation) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const openAtEnd = useRef(false)
+  const triggerId = providerActionsId(provider.provider_key)
+  const menuId = `${triggerId}-menu`
+
+  useEffect(() => {
+    if (!open) return
+    const items = rootRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+    if (items?.length) items[openAtEnd.current ? items.length - 1 : 0].focus()
+    function dismissOutside(event: PointerEvent) {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', dismissOutside)
+    return () => document.removeEventListener('pointerdown', dismissOutside)
+  }, [open])
+
+  return (
+    <div ref={rootRef} className="api-settings__provider-actions"
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}
+      onKeyDown={(event) => {
+        if (!open) return
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          event.stopPropagation()
+          setOpen(false)
+          triggerRef.current?.focus()
+        } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+          event.preventDefault()
+          const items = Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
+          const index = items.findIndex((item) => item === document.activeElement)
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+            : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
+          items[next]?.focus()
+        }
+      }}>
+      <button ref={triggerRef} id={triggerId} type="button" className="api-settings__menu-trigger"
+        aria-label={`Provider actions for ${provider.display_name}`} aria-haspopup="menu"
+        aria-expanded={open} aria-controls={open ? menuId : undefined} disabled={disabled}
+        onClick={() => { openAtEnd.current = false; setOpen((current) => !current) }}
+        onKeyDown={(event) => {
+          if (!open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+            event.preventDefault()
+            openAtEnd.current = event.key === 'ArrowUp'
+            setOpen(true)
+          }
+        }}>
+        <IconDotsVertical size={20} aria-hidden="true" />
+      </button>
+      {open && <div id={menuId} className="api-settings__menu" role="menu" aria-labelledby={triggerId}>
+        {(['edit', 'key', 'delete'] as const).map((mode) => <button key={mode} type="button" role="menuitem"
+          tabIndex={-1} className={mode === 'delete' ? 'api-settings__menu-delete' : undefined}
+          onClick={() => { setOpen(false); onManage(provider, mode) }}>
+          {mode === 'edit' ? 'Edit provider' : mode === 'key' ? 'Replace API key' : 'Delete provider'}
+        </button>)}
+      </div>}
+    </div>
+  )
+}
 
 export function ApiSettings() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
@@ -153,7 +224,7 @@ export function ApiSettings() {
               <li key={provider.provider_key} className="api-settings__row">
                 <div className="api-settings__identity">
                   <h3>{provider.display_name}</h3>
-                  <p>{provider.provider === 'openai' ? 'OpenAI' : 'DeepSeek'}</p>
+                  <p>{provider.provider === 'openai' ? 'OpenAI' : 'DeepSeek'} <span className="api-settings__saved-state">· Saved configuration</span></p>
                 </div>
                 <div className="api-settings__budget">
                   <span>Monthly budget · USD</span>
@@ -161,21 +232,17 @@ export function ApiSettings() {
                     style: 'currency', currency: 'USD', maximumFractionDigits: 20,
                   }).format(provider.monthly_budget_usd)}</p>
                 </div>
-                <div className="api-settings__provider-actions">
-                  {(['edit', 'key', 'delete'] as const).map((mode) => <button key={mode} type="button"
-                    disabled={isLoading || isTaskSaving || error !== null || (modal !== null && !(modal.kind === 'manage' && modal.provider.provider_key === provider.provider_key && modal.mode === mode))}
-                    onClick={() => openManage(provider, mode)}>
-                    {mode === 'edit' ? 'Edit provider' : mode === 'key' ? 'Replace API key' : 'Delete provider'}
-                  </button>)}
-                </div>
+                <ProviderActions provider={provider} onManage={openManage}
+                  disabled={isLoading || isTaskSaving || error !== null || (modal !== null && !(modal.kind === 'manage' && modal.provider.provider_key === provider.provider_key))} />
               </li>
             ))}
           </ul>
         )}
       </div>
-      <p className="api-settings__note">Budgets are saved preferences, not spending limits. API keys are not displayed here.</p>
+      <p className="api-settings__note">Budgets are saved preferences, not spending limits. API keys are not displayed here. Saved configuration does not mean a verified connection.</p>
       {isCreateOpen && <CreateAIProviderDialog onCreated={handleCreated} onClose={closeModal} />}
       {modal?.kind === 'manage' && <ManageAIProviderDialog provider={modal.provider} mode={modal.mode}
+        returnFocusId={providerActionsId(modal.provider.provider_key)}
         references={settings?.ai.tasks.filter((task) => task.provider_key === modal.provider.provider_key) ?? []}
         onUpdated={handleUpdated} onDeleted={handleDeleted} onClose={closeModal}
         onKeyReplaced={() => { closeModal(); setNotice('API key replaced. It has not been tested with the provider.') }} />}
