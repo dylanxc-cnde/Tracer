@@ -63,3 +63,9 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+
+      - name: Install Chromium for browser regression
+        run: npx playwright install chromium
+
+      - name: Run frontend browser regression
+        run: npm run test:browser
