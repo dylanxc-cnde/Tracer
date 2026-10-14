@@ -13,7 +13,9 @@ async function installMocks({ context, baseURL, settings, handlers, unexpectedRe
     const url = new URL(request.url())
     const key = `${request.method()} ${request.url()}`
     if (request.method() === 'GET' && request.url() === 'http://127.0.0.1:8000/settings') {
-      await route.fulfill({ json: settings })
+      // `settings` may be a mutable fixture (serialized per request) or a responder.
+      if (typeof settings === 'function') await settings(route)
+      else await route.fulfill({ json: settings })
     } else if (handlers[key]) {
       await handlers[key](route, request)
     } else if (url.origin === baseURL && request.method() === 'GET'
@@ -33,6 +35,12 @@ async function installMocks({ context, baseURL, settings, handlers, unexpectedRe
       socket.close()
     }
   })
+}
+
+// Gives any wrongly issued follow-up request time to reach the closed mock before
+// a "no extra request" assertion; it does not replace the explicit state waits.
+async function settle(page) {
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 250)))
 }
 
 async function openApiSettings(page) {
@@ -446,8 +454,14 @@ test('pending provider edit blocks duplicate submits and Escape and retains the 
     await page.keyboard.press('Escape')
     await expect(dialog).toBeVisible()
 
-    // A repeated submit does not issue a second request.
-    await submit.click({ force: true })
+    // Repeated submit events reach the real React onSubmit handler (it calls
+    // preventDefault, so dispatchEvent reports false) but must not issue another PATCH.
+    // A disabled button cannot submit, so the events are dispatched on the form itself.
+    const dispatched = await dialog.locator('form').evaluate((form) => [0, 1].map(
+      () => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+    ))
+    expect(dispatched, 'Both submit events must have been handled by the form handler').toEqual([false, false])
+    await settle(page)
     expect(patches).toHaveLength(1)
 
     responseGate.resolve()
@@ -762,5 +776,304 @@ test('the saved display name reaches Home and re-entering Settings restores it',
   await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Profile', exact: true }).click()
   await expect(page.getByLabel('Display name', { exact: true })).toHaveValue('Ada Lovelace')
 
+  expect(unexpectedRequests, 'All non-Vite requests must be explicitly mocked').toEqual([])
+})
+
+test('a failed initial profile load offers retry, then a real save reaches Home and survives re-entry', async ({ page, context, baseURL }) => {
+  const secretMarker = 'FAKE_PROFILE_LOAD_FAILURE_NOT_A_CREDENTIAL'
+  const savedUser = { display_name: null }
+  const patches = []
+  const unexpectedRequests = []
+  let failingLoads = 1
+
+  await installMocks({
+    context, baseURL, unexpectedRequests,
+    settings: async (route) => {
+      if (failingLoads > 0) {
+        failingLoads -= 1
+        await route.fulfill({ status: 500, json: { detail: secretMarker } })
+      } else {
+        await route.fulfill({ json: { user: savedUser, ai: { providers: [], tasks: [] } } })
+      }
+    },
+    handlers: {
+      'PATCH http://127.0.0.1:8000/settings/user': async (route, request) => {
+        const body = request.postDataJSON()
+        patches.push(body)
+        savedUser.display_name = body.display_name
+        await route.fulfill({ json: { user: savedUser, ai: { providers: [], tasks: [] } } })
+      },
+    },
+  })
+
+  const mainNavigation = page.getByRole('navigation', { name: 'Main navigation' })
+  const settingsSections = page.getByRole('navigation', { name: 'Settings sections' })
+  await page.goto('/')
+  await mainNavigation.getByRole('button', { name: 'Settings', exact: true }).click()
+  await settingsSections.getByRole('button', { name: 'Profile', exact: true }).click()
+
+  // A failed read never shows an editable, empty-looking form.
+  await expect(page.getByRole('alert')).toContainText('Could not load valid settings. Please try again.')
+  await expect(page.getByLabel('Display name', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0)
+  expect(await page.locator('body').innerText()).not.toContain(secretMarker)
+  expect(patches).toHaveLength(0)
+
+  await page.getByRole('button', { name: 'Try again', exact: true }).click()
+  const nameInput = page.getByLabel('Display name', { exact: true })
+  await expect(nameInput).toBeVisible()
+  await expect(nameInput).toHaveValue('')
+  await expect(page.getByRole('alert')).toHaveCount(0)
+
+  await nameInput.fill('  Grace Hopper  ')
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Changes saved.')
+  await expect(nameInput).toHaveValue('Grace Hopper')
+  expect(patches).toEqual([{ display_name: 'Grace Hopper' }])
+
+  // The saved name is read back from the (mutable) server fixture on both pages.
+  await mainNavigation.getByRole('button', { name: 'Home', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Grace Hopper')
+  await mainNavigation.getByRole('button', { name: 'Settings', exact: true }).click()
+  await settingsSections.getByRole('button', { name: 'Profile', exact: true }).click()
+  await expect(page.getByLabel('Display name', { exact: true })).toHaveValue('Grace Hopper')
+
+  expect(patches).toHaveLength(1)
+  expect(unexpectedRequests, 'All non-Vite requests must be explicitly mocked').toEqual([])
+})
+
+test('posting parsing validates, blocks controls while saving, retains a failed draft, and restores on re-entry', async ({ page, context, baseURL }) => {
+  const settings = {
+    user: { display_name: null },
+    ai: {
+      providers: [
+        { provider_key: OPENAI_KEY, provider: 'openai', display_name: 'OpenAI main', monthly_budget_usd: null },
+        { provider_key: DEEPSEEK_KEY, provider: 'deepseek', display_name: 'DeepSeek alt', monthly_budget_usd: null },
+      ],
+      tasks: [{ task: 'posting_parse', provider_key: OPENAI_KEY, model: 'saved_model' }],
+    },
+  }
+  const secretMarker = 'FAKE_PARSE_FAILURE_NOT_A_CREDENTIAL'
+  const puts = []
+  const unexpectedRequests = []
+  const responseGate = Promise.withResolvers()
+
+  await installMocks({
+    context, baseURL, settings, unexpectedRequests,
+    handlers: {
+      'PUT http://127.0.0.1:8000/settings/ai/tasks/posting_parse': async (route, request) => {
+        const body = request.postDataJSON()
+        puts.push(body)
+        if (puts.length === 1) {
+          await responseGate.promise
+          await route.fulfill({ status: 500, json: { detail: { code: 'settings.ai_operation_failed', message: secretMarker } } })
+        } else {
+          settings.ai.tasks = [{ task: 'posting_parse', provider_key: body.provider_key, model: body.model }]
+          await route.fulfill({ json: settings.ai.tasks[0] })
+        }
+      },
+    },
+  })
+
+  try {
+    await openApiSettings(page)
+    const providerSelect = page.getByRole('combobox', { name: 'Parsing provider', exact: true })
+    const modelInput = page.getByLabel('Parsing model', { exact: true })
+    const saveButton = page.getByRole('button', { name: 'Save parsing settings', exact: true })
+    const cancelButton = page.getByRole('button', { name: 'Cancel parsing changes', exact: true })
+    const defaultsButton = page.getByRole('button', { name: 'Use environment defaults', exact: true })
+    const refreshButton = page.getByRole('button', { name: 'Refresh providers', exact: true })
+    const parseForm = page.locator('form.posting-parse-settings__form')
+
+    await expect(page.getByText('Saved: OpenAI main · saved_model')).toBeVisible()
+    await expect(providerSelect).toHaveValue(OPENAI_KEY)
+    await expect(modelInput).toHaveValue('saved_model')
+    await expect(saveButton).toBeDisabled()
+    await expect(defaultsButton).toBeEnabled()
+
+    // Validation: no provider, then a blank model; neither sends a request.
+    await providerSelect.selectOption('')
+    await saveButton.click()
+    await expect(page.getByRole('alert')).toContainText('Choose an OpenAI provider for posting parsing.')
+    await providerSelect.selectOption(OPENAI_KEY)
+    await modelInput.fill('   ')
+    await saveButton.click()
+    await expect(page.getByRole('alert')).toContainText('Enter a model for posting parsing.')
+    await settle(page)
+    expect(puts).toHaveLength(0)
+
+    // A valid submit hangs on the response gate.
+    await modelInput.fill('  gated_model  ')
+    await saveButton.click()
+    await expect.poll(() => puts.length, { message: 'The mock intercepted the PUT before any response' }).toBe(1)
+    expect(puts[0]).toEqual({ provider_key: OPENAI_KEY, model: 'gated_model' })
+
+    await expect(parseForm).toHaveAttribute('aria-busy', 'true')
+    await expect(page.getByText('Saving parsing settings…')).toBeVisible()
+    await expect(providerSelect).toBeDisabled()
+    await expect(modelInput).toBeDisabled()
+    await expect(saveButton).toBeDisabled()
+    await expect(cancelButton).toBeDisabled()
+    await expect(defaultsButton).toBeDisabled()
+    await expect(refreshButton).toBeDisabled()
+
+    // Repeated submit events reach the real form handler but send nothing more.
+    const dispatched = await parseForm.evaluate((form) => [0, 1].map(
+      () => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+    ))
+    expect(dispatched, 'Both submit events must have been handled by the form handler').toEqual([false, false])
+    await settle(page)
+    expect(puts).toHaveLength(1)
+
+    // Failure: safe fixed message, draft retained, controls restored.
+    responseGate.resolve()
+    await expect(page.getByRole('alert')).toContainText('The operation failed. Review your settings before trying again.')
+    expect(await page.locator('body').innerText()).not.toContain(secretMarker)
+    await expect(parseForm).toHaveAttribute('aria-busy', 'false')
+    await expect(modelInput).toHaveValue('  gated_model  ')
+    await expect(providerSelect).toHaveValue(OPENAI_KEY)
+    await expect(saveButton).toBeEnabled()
+    await expect(cancelButton).toBeEnabled()
+    await settle(page)
+    expect(puts).toHaveLength(1)
+
+    // A deliberate second attempt succeeds and is the only follow-up write.
+    await saveButton.click()
+    await expect(page.getByText('Posting parsing settings saved. They apply to the next Analyze request.')).toBeVisible()
+    await expect(page.getByText('Saved: OpenAI main · gated_model')).toBeVisible()
+    expect(puts).toHaveLength(2)
+    expect(puts[1]).toEqual({ provider_key: OPENAI_KEY, model: 'gated_model' })
+
+    // Leave and re-enter: the saved selection is re-read from the server fixture.
+    await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Profile', exact: true }).click()
+    await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'API', exact: true }).click()
+    await expect(page.getByText('Saved: OpenAI main · gated_model')).toBeVisible()
+    await expect(providerSelect).toHaveValue(OPENAI_KEY)
+    await expect(modelInput).toHaveValue('gated_model')
+    expect(puts).toHaveLength(2)
+    expect(unexpectedRequests, 'All non-Vite requests must be explicitly mocked').toEqual([])
+  } finally {
+    responseGate.resolve()
+  }
+})
+
+test('a lost provider edit response is reported as uncertain, not retried, and reconciled by refresh', async ({ page, context, baseURL }) => {
+  const settings = {
+    user: { display_name: null },
+    ai: {
+      providers: [
+        { provider_key: OPENAI_KEY, provider: 'openai', display_name: 'OpenAI main', monthly_budget_usd: null },
+        { provider_key: DEEPSEEK_KEY, provider: 'deepseek', display_name: 'DeepSeek alt', monthly_budget_usd: 4 },
+      ],
+      tasks: [],
+    },
+  }
+  const patches = []
+  const unexpectedRequests = []
+
+  await installMocks({
+    context, baseURL, settings, unexpectedRequests,
+    handlers: {
+      [`PATCH http://127.0.0.1:8000/settings/ai/providers/${OPENAI_KEY}`]: async (route, request) => {
+        patches.push(request.postDataJSON())
+        // The server persisted the change, but the client never receives the response.
+        settings.ai.providers[0] = {
+          provider_key: OPENAI_KEY, provider: 'openai', display_name: 'Server saved name', monthly_budget_usd: 3,
+        }
+        await route.abort('failed')
+      },
+    },
+  })
+
+  await openApiSettings(page)
+  const providers = page.getByRole('list', { name: 'Saved providers' })
+  await expect(providers.getByRole('listitem')).toHaveCount(2)
+  const deepseekRow = providers.getByRole('listitem')
+    .filter({ has: page.getByRole('heading', { name: 'DeepSeek alt', exact: true }) })
+  const deepseekText = await deepseekRow.textContent()
+
+  await providers.getByRole('listitem')
+    .filter({ has: page.getByRole('heading', { name: 'OpenAI main', exact: true }) })
+    .getByRole('button', { name: 'Edit provider', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Display name', { exact: true }).fill('Local draft name')
+  await dialog.getByRole('button', { name: 'Save changes', exact: true }).click()
+
+  const alert = dialog.getByRole('alert')
+  await expect(alert).toContainText('Could not confirm the settings change. Refresh Settings before trying again.')
+  await expect(alert).toContainText('If the result is uncertain, close this dialog and refresh Settings before retrying.')
+  await expect(dialog.locator('form')).toHaveAttribute('aria-busy', 'false')
+  await settle(page)
+  expect(patches).toHaveLength(1)
+  expect(patches[0]).toEqual({ display_name: 'Local draft name', monthly_budget_usd: null })
+
+  // The list is not updated optimistically, and nothing is retried on close.
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(page.getByRole('dialog', { includeHidden: true })).toHaveCount(0)
+  await expect(providers.getByRole('heading', { name: 'OpenAI main', exact: true })).toHaveCount(1)
+  await expect(providers.getByRole('heading', { name: 'Local draft name', exact: true })).toHaveCount(0)
+  await settle(page)
+  expect(patches).toHaveLength(1)
+
+  // Explicit refresh adopts the server state and keeps the other row unchanged.
+  await page.getByRole('button', { name: 'Refresh providers', exact: true }).click()
+  const reconciled = providers.getByRole('listitem')
+    .filter({ has: page.getByRole('heading', { name: 'Server saved name', exact: true }) })
+  await expect(reconciled).toHaveCount(1)
+  await expect(reconciled).toContainText('$3.00')
+  await expect(providers.getByRole('listitem')).toHaveCount(2)
+  await expect(deepseekRow).toHaveText(deepseekText)
+  expect(patches).toHaveLength(1)
+  expect(unexpectedRequests, 'All non-Vite requests must be explicitly mocked').toEqual([])
+})
+
+test('a lost posting parsing response keeps the draft, is not retried, and refresh adopts the server selection', async ({ page, context, baseURL }) => {
+  const settings = {
+    user: { display_name: null },
+    ai: {
+      providers: [{ provider_key: OPENAI_KEY, provider: 'openai', display_name: 'OpenAI main', monthly_budget_usd: null }],
+      tasks: [],
+    },
+  }
+  const puts = []
+  const unexpectedRequests = []
+
+  await installMocks({
+    context, baseURL, settings, unexpectedRequests,
+    handlers: {
+      'PUT http://127.0.0.1:8000/settings/ai/tasks/posting_parse': async (route, request) => {
+        puts.push(request.postDataJSON())
+        // Persisted under a different model string than the draft; the response is lost.
+        settings.ai.tasks = [{ task: 'posting_parse', provider_key: OPENAI_KEY, model: 'server_model' }]
+        await route.abort('failed')
+      },
+    },
+  })
+
+  await openApiSettings(page)
+  const providerSelect = page.getByRole('combobox', { name: 'Parsing provider', exact: true })
+  const modelInput = page.getByLabel('Parsing model', { exact: true })
+  await expect(page.getByText('Saved: environment credentials and the built-in default model.')).toBeVisible()
+
+  await providerSelect.selectOption(OPENAI_KEY)
+  await modelInput.fill('  draft_model  ')
+  await page.getByRole('button', { name: 'Save parsing settings', exact: true }).click()
+
+  const alert = page.getByRole('alert')
+  await expect(alert).toContainText('Could not confirm the settings change. Refresh Settings before trying again.')
+  await expect(alert).toContainText('use Refresh providers above to reload saved settings before retrying')
+  await expect(modelInput).toHaveValue('  draft_model  ')
+  await expect(page.getByText('Saved: environment credentials and the built-in default model.')).toBeVisible()
+  await settle(page)
+  expect(puts).toHaveLength(1)
+  expect(puts[0]).toEqual({ provider_key: OPENAI_KEY, model: 'draft_model' })
+
+  await page.getByRole('button', { name: 'Refresh providers', exact: true }).click()
+  await expect(page.getByText('Saved: OpenAI main · server_model')).toBeVisible()
+  await expect(modelInput).toHaveValue('server_model')
+  await expect(providerSelect).toHaveValue(OPENAI_KEY)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await settle(page)
+  expect(puts).toHaveLength(1)
   expect(unexpectedRequests, 'All non-Vite requests must be explicitly mocked').toEqual([])
 })

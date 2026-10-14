@@ -96,7 +96,7 @@ export function CreateAIProviderDialog({ onCreated, onClose }: CreateAIProviderD
       </header>
       <form className="create-provider-dialog__form" noValidate aria-busy={isSaving} onSubmit={handleSubmit}>
         <div className="create-provider-dialog__fields">
-          <p id="create-provider-description">Save a provider and its API key. Model and task selection will be added separately.</p>
+          <p id="create-provider-description">Save a provider and its API key.</p>
           <label htmlFor="provider-platform">Platform
             <select id="provider-platform" value={provider} disabled={isSaving} onChange={(event) => {
               const value = event.target.value

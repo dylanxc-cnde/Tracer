@@ -88,8 +88,6 @@ the exact final reviewed commit, after final dual review and controller
 submission. The local checks above, earlier checkpoint runs, and CI configuration
 do not prove that exact remote gate has passed.
 
-The existing Add provider dialog currently still contains a stale sentence saying
-model/task selection will be added separately; the selection is now available in
-the Posting parsing section described above. That copy is identified for a
-bounded source correction in this task and is not evidence that model selection
-is absent.
+The Add provider dialog saves a provider and its API key. Configure posting
+parsing separately in the Posting parsing section described above; only OpenAI
+providers are supported for parsing.
