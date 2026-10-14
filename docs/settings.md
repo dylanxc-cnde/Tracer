@@ -1,0 +1,95 @@
+# Settings: fields, ownership, and behavior
+
+Settings exposes local user preferences and the AI configuration currently
+consumed by Tracer. The descriptions below distinguish saved configuration from
+runtime guarantees: a saved value is not proof that a provider accepts a key,
+supports a model, or has billed a particular amount.
+
+## Profile
+
+| Setting | User flow and purpose | Save, read, and effect | Limits and recovery |
+| --- | --- | --- | --- |
+| Display name | Settings → Profile lets the user edit, clear, or cancel the greeting name. It is the existing personal preference used by Home, not a CandidateProfile or job-search fact. | `PATCH /settings/user` saves `user.display_name` in the single local `app_settings` SQLite JSON snapshot. Profile loads it with `GET /settings`; Home independently reads that saved value when Home mounts and uses it for the greeting. Empty input is saved as `null`. | Failed save retains the local draft; retry is user initiated. Leaving Profile discards an unsaved draft. Home re-entry reads settings again; there is no global Settings cache or cross-page pending-save synchronization. A save already sent is not cancelled by navigation. Job preferences and the broader candidate/job-goal profile remain unimplemented because they lack an accepted current field/consumer contract. |
+
+## API providers
+
+| Field or operation | User flow and purpose | Save, read, and effect | Limits and recovery |
+| --- | --- | --- | --- |
+| Provider ID and platform | Add a provider by choosing OpenAI or DeepSeek; the stable UUID identifies its configuration and credential. | Provider platform, UUID, display name and optional monthly budget are stored in the local `app_settings` SQLite snapshot and returned by `GET /settings`. UUID and platform are fixed when editing an existing provider. | The public settings response excludes API keys. A configured DeepSeek provider remains supported as stored configuration, but current posting parsing only supports OpenAI. |
+| Display name | Add or edit a provider nickname so its row and parsing-provider choice can be recognized. | Creation uses `POST /settings/ai/providers`; edits use `PATCH /settings/ai/providers/{provider_key}`. The backend trims and validates the name and saves a complete settings snapshot while preserving other settings. The API Settings view uses the returned provider object to update the matching row. | On failure, the dialog retains its draft and shows a safe error. If a write result is uncertain, refresh Settings before retrying; writes are not automatically retried. |
+| Monthly budget (USD) | Optional metadata for the user's own budget preference. Blank means no budget value; `0` is a saved zero, distinct from blank. | Saved with the provider metadata in SQLite and displayed in the provider row. | This value does **not** enforce a spending limit, measure usage, or prevent provider calls. Finite, non-negative numbers are accepted by the current UI/API contract. Native number-input `badInput` and non-finite browser input are not automatically covered by the current frontend suite. |
+| API key | Add a key when creating a provider or choose Replace API key to enter a new key without displaying the existing one. | The UI sends the key only in the write request. The backend stores it under the provider UUID in the current OS user's native credential store (macOS Keychain, Windows Credential Manager, or Linux Secret Service); it is not placed in the SQLite settings snapshot or returned by `GET /settings`. Replacing it uses `PUT /settings/ai/providers/{provider_key}/api-key`. | Key format and provider acceptance are not tested on save. The running environment must provide its system credential service; Linux requires an available Secret Service session and supporting libraries. If credential access fails, the app returns a sanitized error. A failed operation may be explicitly confirmed compensated or reported as uncertain; refresh does not verify the key. Do not paste keys into browser storage, logs, test fixtures, or support reports. |
+| Delete provider | Delete uses a confirmation checkbox for an unreferenced provider. The user must first clear any task selection using it; the interface does not silently disconnect tasks. | `DELETE /settings/ai/providers/{provider_key}` removes the provider configuration and stored key. Any task reference rejects deletion (`409`) without automatic unbinding. | SQLite and OS credential storage are separate stores, not one atomic transaction. On an operation failure, bounded compensation verifies the prior state where possible and returns a fixed error; if either store cannot be verified, the response marks the relevant state as uncertain. Do not infer rollback from an error. Refresh settings to inspect configuration, and check the OS credential store through its normal system tools if the key state is reported uncertain. |
+
+## Posting parsing selection
+
+| Setting or operation | User flow and purpose | Save, read, and effect | Limits and recovery |
+| --- | --- | --- | --- |
+| `posting_parse` provider and model | In Settings → API, choose an OpenAI provider and enter a model used by the existing Analyze action. This setting exists because posting parsing is the current consumer; it is not a general-purpose task selector. | `PUT /settings/ai/tasks/posting_parse` stores task name, provider UUID and model in the same local SQLite settings snapshot. The next explicit Analyze/parse request reads one current snapshot, gets the selected UUID's key from system credential storage and passes that key/model to the existing OpenAI Responses parser. The parser/client is created for the request and closed afterward; credentials and models are not cached across requests. | Saving does not contact OpenAI or validate key/model availability. Only OpenAI is supported for parsing. A missing or invalid saved provider/key/settings causes a safe error rather than a fallback. The UI retains a failed draft; close/refresh and reload settings to reconcile an unknown write result. An already running parse is not cancelled or retargeted by a settings change. |
+| Clear selection / environment default | Select Use environment defaults to remove the saved `posting_parse` choice. This is the explicit way to restore the pre-selection path. | `DELETE /settings/ai/tasks/posting_parse` removes just this task selection. A later explicit Analyze request with no saved selection uses the existing environment credential path (`OPENAI_API_KEY`) and the parser's built-in default model. | This path is not silently selected when a saved provider or credential is invalid. Settings changes themselves do not make AI calls. No DeepSeek parser adapter or model catalog is implemented. |
+
+The `.env.local` `OPENAI_API_KEY` setup in the root README is for the explicit
+environment/default path. When a provider key is stored in Settings, the backend
+requires access to the operating system's native credential service at runtime.
+Neither configuring a key nor saving a model proves external connectivity or
+model availability.
+
+## Persistence, concurrency, and recovery boundaries
+
+`SettingsStore` stores one complete validated non-secret settings snapshot in
+the `app_settings` table of the local SQLite database. Writers preserve fields
+they do not own. The AI settings routes serialize their read-modify-write and
+credential operations with a lock shared by that router instance; this does not
+coordinate other application processes or make SQLite and the OS credential
+store atomic together. Invalid stored settings are not silently replaced with
+defaults.
+
+All write requests are single attempts. Network errors, unreadable success
+responses, or server errors may leave the caller unsure whether a write
+committed. The interface does not automatically retry such requests: use
+Refresh providers and parsing settings to reload saved configuration before a
+manual retry. Refresh cannot read back or validate a secret. For deletion or
+key replacement, sanitized server errors distinguish verified restoration from
+credential/settings state that could not be confirmed; do not report those
+cases as a successful rollback.
+
+The API management dialogs keep edits as local drafts, disable duplicate writes
+while saving, block Escape/Cancel during a write, and retain drafts on ordinary
+failure. Closing or leaving discards local drafts; it does not cancel a request
+already sent. Reopening reads persisted public settings and a key input begins
+empty. This does not claim secure erasure from process memory.
+
+## Evidence and limitations
+
+The reviewed behavior snapshot's local evidence includes backend tests using
+temporary SQLite and fake credential/client objects; frontend Node request tests
+using fake `fetch`; and Chromium App interactions using closed HTTP/WebSocket
+mocks. The recorded stage-two backend run reported 947 passed. The stage-three
+frontend runner reported 28 request tests passed, 21 browser tests passed,
+successful lint/build/test-TSX checks, the targeted existing duplicate-submit
+mutation, a successful post-mutation browser run, and `git diff --check`. These
+results are local evidence for their recorded snapshots, not real user data,
+system-credential-service or external-provider acceptance.
+
+The duplicate-submit mutation targets the existing provider-creation guard; it
+does not serve as mutation evidence for the new management flows. The component
+bridge's `component suite` assertion includes every failing component's text,
+including `Duplicate submission`, so the target failure is identifiable rather
+than a generic browser startup failure. The native idle creation dialog has no
+independent mutation; management dialogs likewise lack dedicated idle close or
+focus mutations. Non-finite budget and native `badInput` cases are not automated.
+The browser suite does not establish visual, responsive, cross-browser, real
+backend, live keyring or live provider behavior. The runner did not record Node
+or Playwright binary fingerprints; identical runtime binaries must not be
+claimed.
+
+The remote `Python 3.12` and `Frontend` checks are a separate delivery gate for
+the exact final reviewed commit, after final dual review and controller
+submission. The local checks above, earlier checkpoint runs, and CI configuration
+do not prove that exact remote gate has passed.
+
+The existing Add provider dialog currently still contains a stale sentence saying
+model/task selection will be added separately; the selection is now available in
+the Posting parsing section described above. That copy is identified for a
+bounded source correction in this task and is not evidence that model selection
+is absent.
