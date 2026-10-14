@@ -103,16 +103,31 @@ npm run dev      # start the Vite development server
 npm run build    # type-check and create a production build
 npm run lint     # check the source with Oxlint
 npm run preview  # preview the production build locally
-npm run test:browser # run the single mocked-API Chromium regression
+npm run test:browser # run five App Chromium cases and the component-suite bridge
 ```
 
 CI is configured to run `npm ci`, `npm run lint`, `npm run build`, `npx playwright install chromium`,
 and `npm run test:browser` on pushes and pull requests, using Node.js 22. Install
 Chromium with that same Playwright command before running the browser test locally.
-The single automated interaction covers failed provider creation with mocked APIs,
-not real backend persistence, other manual browser cases, cross-browser behavior,
-responsive layouts or visual acceptance. A passing lint/build is not a browser
-check. Existing request tests and manual component suites are documented in
+The six browser tests cover five real-App Settings → API → Add provider cases
+with closed HTTP/WebSocket mocks: success, safe failure with retained draft,
+invalid input, explicitly gated saving/failure recovery, and idle Cancel/X/native
+Escape/backdrop/focus/reopening behavior. The remaining test bridges the existing 16-case
+React StrictMode component suite, using that page's own fake fetch for loading,
+refresh, budget/platform, duplicate-submit, error/reconciliation and late-callback
+checks. Its exact count/summary assertions are coupled to the component list and
+must be updated when that list changes. The 12 Node 24 request tests run separately
+with `node --test tests/settings-api.test.mjs`; they are not browser cases.
+
+Targeted isolated mutations detect removal of the saving close guard and the
+synchronous duplicate-submit guard (including `Duplicate submission` in the bridge
+error). The native idle case has green-run evidence only, no independent mutation.
+All keys are fake. Mocked late callbacks, empty key inputs and discarded drafts do
+not prove real storage, all navigation races, HTTP cancellation or secure memory
+erasure. Cross-browser behavior, responsive layouts and visual acceptance remain
+outside this automation. A passing lint/build is not a browser check, and local
+results or CI configuration do not prove the exact task commit's remote CI success.
+Commands, layer boundaries and component inspection are documented in
 [Settings tests](tests/README.md).
 
 ## Backend

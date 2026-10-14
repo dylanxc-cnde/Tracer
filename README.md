@@ -121,18 +121,40 @@ npm run test:browser
 ```
 
 CI is configured to run these checks on pushes and pull requests; this does not
-prove that a particular commit's remote CI has passed. The browser regressions
-cover three mocked-API Chromium interactions: failed provider creation preserves
+prove that a particular commit's remote CI has passed. `npm run test:browser` runs
+six Chromium tests: five real-App interactions with closed API/WebSocket mocks
+and one bridge to the existing 16-case React component suite. The App cases cover:
+failed provider creation preserves
 the draft and displays a safe error; successful creation removes the dialog,
 appends the server-returned provider without an extra GET, and reopens with an
 empty masked key; invalid drafts (empty/whitespace-only name or key, negative
 budget) show the exact validation message, focus the invalid field, retain all
 four draft values and the saved list, and leave the dialog open and controls
-enabled without a POST. Non-finite budgets and native number-input `badInput`
+enabled without a POST; a controlled pending POST checks the busy form/saving notice,
+disabled fields and submit/Cancel/X, and native keyboard Escape leaving the dialog
+open with its masked key, four-field draft and saved list intact. A POST-arrival
+signal and explicit response gate synchronize this case without fixed sleeps;
+releasing a fixed 500 failure restores controls and retains the draft, then editing
+and cancelling works with only one POST; idle Cancel/X/native Escape close,
+restore focus and discard the draft, with an empty password input on each reopen,
+while a real backdrop click keeps the draft and dialog intact with zero POSTs.
+
+The component bridge uses the suite's own fake fetch to cover loading/refresh
+recovery, both platforms and empty/zero budgets, synchronous duplicate submission,
+safe error categories, unknown-result refresh reconciliation and late callbacks
+after unmount. Its fixed 16-result count and summary must be updated when the
+component case list changes. Targeted isolated mutations detect removal of the
+saving close guard (post-Escape dialog assertion) and synchronous submit guard
+(`Duplicate submission` in the bridge error). The native idle case has no independent
+mutation evidence. These checks do not prove every race. The 12 Node 24 request
+tests run separately from the browser command; see the linked test instructions.
+
+Non-finite budgets and native number-input `badInput`
 are not automated. No fake key is displayed; an empty reopened input does not
 prove secure memory erasure. A passing build alone is not browser-interaction
-coverage. Remaining manual component cases, real backend persistence and
-credential storage, external providers, other browsers, responsive and visual
+coverage. Real backend persistence and credential storage, HTTP cancellation,
+all real navigation/late-response races,
+external providers, other browsers, responsive and visual
 acceptance remain outside these automated tests; see
 [Settings tests](frontend/tests/README.md).
 
