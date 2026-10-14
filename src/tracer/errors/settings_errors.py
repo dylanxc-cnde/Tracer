@@ -50,3 +50,9 @@ class AISettingsStateUncertainError(TracerError):
     """A settings write failed and the previous snapshot could not be verified."""
 
     code = "settings.ai_settings_state_uncertain"
+
+
+class PostingParserConfigurationError(TracerError):
+    """Saved parsing settings or their credential cannot be used safely."""
+
+    code = "settings.posting_parser_configuration_error"

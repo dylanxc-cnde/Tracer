@@ -37,6 +37,7 @@ def create_app(
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
     app = FastAPI()
+    credentials = api_key_store if api_key_store is not None else ApiKeyStore()
 
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation_error(
@@ -77,10 +78,11 @@ def create_app(
         create_postings_router(
             database_path=database_path,
             posting_parser=posting_parser,
+            api_key_store=credentials,
         )
     )
     app.include_router(
-        create_settings_router(database_path=database_path, api_key_store=api_key_store)
+        create_settings_router(database_path=database_path, api_key_store=credentials)
     )
 
     return app
