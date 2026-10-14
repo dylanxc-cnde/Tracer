@@ -122,10 +122,14 @@ npm run test:browser
 
 CI is configured to run these checks on pushes and pull requests; this does not
 prove that a particular commit's remote CI has passed. The browser regressions
-cover two mocked-API Chromium interactions: failed provider creation preserves
+cover three mocked-API Chromium interactions: failed provider creation preserves
 the draft and displays a safe error; successful creation removes the dialog,
 appends the server-returned provider without an extra GET, and reopens with an
-empty masked key. No fake key is displayed; an empty reopened input does not
+empty masked key; invalid drafts (empty/whitespace-only name or key, negative
+budget) show the exact validation message, focus the invalid field, retain all
+four draft values and the saved list, and leave the dialog open and controls
+enabled without a POST. Non-finite budgets and native number-input `badInput`
+are not automated. No fake key is displayed; an empty reopened input does not
 prove secure memory erasure. A passing build alone is not browser-interaction
 coverage. Remaining manual component cases, real backend persistence and
 credential storage, external providers, other browsers, responsive and visual
