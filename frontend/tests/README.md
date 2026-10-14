@@ -12,22 +12,28 @@ npm run test:browser
 
 Playwright starts its own loopback Vite server at `127.0.0.1:4173` with a strict
 port and does not reuse an existing server. Only
-`settings-providers.browser.test.mjs` is discovered: one headless Chromium test,
+`settings-providers.browser.test.mjs` is discovered: two headless Chromium tests,
 one worker, bounded timeouts and no retries. The existing Frontend CI job is
 configured to run this command after its original lint/build checks; Python CI
 is unchanged. Workflow configuration and local results do not prove that remote
 CI has passed; check the exact commit's GitHub Actions results separately.
 
-The test navigates the real App through Settings → API → Add provider. A closed
-network mock supplies one existing provider and a known creation failure, with
-a fake secret marker in the raw error. It checks the single POST payload,
-safe error, unchanged list, retained platform/name/key/budget draft, masked key,
-and re-enabled controls. No real backend, database, credential store or external
-provider is used. Do not enter real credentials in test fixtures.
+Both tests navigate the real App through Settings → API → Add provider using
+closed HTTP and WebSocket mocks. The failure case supplies one existing provider
+and a known creation failure, with a fake secret marker in the raw error. It
+checks the single POST payload, safe error, unchanged list, retained
+platform/name/key/budget draft, masked key, and re-enabled controls. The success
+case returns a new provider with a server-selected name and checks the single
+POST payload, appended server result and retained existing item, no extra GET,
+dialog removal, no visible fake key, and an empty password input on reopening.
+Reopening with an empty key does not prove secure memory erasure. No real
+backend, database, credential store or external provider is used. Do not enter
+real credentials in test fixtures.
 
-This is one mocked-API behavior regression, not full frontend acceptance. Other
-manual browser cases below, real backend persistence, cross-browser behavior,
-responsive layout and visual acceptance are not automated by this command.
+These are two mocked-API Chromium behavior regressions, not full frontend
+acceptance. The remaining manual component cases below, real backend persistence
+and credential storage, external providers, other browsers, responsive layout
+and visual acceptance are not automated by this command.
 
 Chromium also needs OS runtime libraries. If launch reports a missing library
 (for example `libnspr4.so`), browser installation alone is insufficient: report
