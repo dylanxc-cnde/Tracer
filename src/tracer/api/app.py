@@ -48,6 +48,15 @@ def create_app(
             return JSONResponse(
                 status_code=422, content={"detail": "Invalid AI provider settings."}
             )
+        if request.method in {"PATCH", "PUT", "DELETE"} and (
+            request.url.path.startswith("/settings/ai/providers/")
+            or request.url.path == "/settings/ai/tasks/posting_parse"
+        ):
+            # Even public-field requests may contain unexpected sensitive fields,
+            # or secrets in invalid path parameters. Do not echo any validation data.
+            return JSONResponse(
+                status_code=422, content={"detail": "Invalid AI settings."}
+            )
         return await request_validation_exception_handler(request, error)
 
     app.add_middleware(

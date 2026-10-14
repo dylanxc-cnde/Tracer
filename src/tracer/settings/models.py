@@ -5,6 +5,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
+POSTING_PARSE_TASK = "posting_parse"
+
+
 class UserSettings(BaseModel):
     """User-facing preferences, not account credentials or candidate facts."""
 
