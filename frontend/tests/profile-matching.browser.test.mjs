@@ -66,7 +66,7 @@ function postingDetails() {
 }
 
 const POSTING = postingDetails()
-const CARD = {
+export const CARD = {
   card_key: CARD_KEY, import_key: IMPORT_KEY, schema_version: 1, created_at: '2026-10-14T10:00:00Z',
   posting: POSTING, posting_alias: null, user_notes: null, tags: [],
 }
@@ -157,6 +157,16 @@ async function installBackend({ context, baseURL, routes = {}, settings = SETTIN
     'GET /settings': (route) => route.fulfill({ json: settings }),
     'GET /posting/card': (route) => route.fulfill({ json: [CARD] }),
     [`GET /posting/card/${CARD_KEY}/original`]: (route) => route.fulfill({ json: CARD }),
+    // Home is only entered here as the display-name page or the unchanged visual reference, so it
+    // gets an empty, valid projection. Home record behavior is covered by home-records.browser.test.mjs.
+    'GET /home/overview': (route) => route.fulfill({ json: {
+      today: { tasks: [], completed_tasks: [], completed_count: 0, events: [] },
+      upcoming: { events: [], tasks: [] },
+      your_search: { active: 0, awaiting_reply: 0, interviews: 0 },
+      applications: [], recent_jobs: [], recent_activity: [],
+      ai_usage: { status: 'not_recorded', tokens: null, estimated_cost_usd: null, providers: [] },
+    } }),
+    'GET /home/activity': (route) => route.fulfill({ json: { events: [], recording_started_at: null } }),
   }
   await context.route('**/*', async (route) => {
     const request = route.request()
@@ -1063,7 +1073,7 @@ function layoutProblems(root) {
 // the picture. A target counts as shown only when its whole box lies inside the window and
 // inside every clipping ancestor, and the element at its points is the target itself (not a
 // sticky header or overlay).
-function visibilityProblem(locator) {
+export function visibilityProblem(locator) {
   return locator.evaluate((el) => {
     const rect = el.getBoundingClientRect()
     if (rect.width === 0 || rect.height === 0) return 'has no box'
@@ -1096,7 +1106,7 @@ function visibilityProblem(locator) {
 // Scroll the nearest real scroll container so the first target sits a little below its top,
 // then require every named target to be demonstrably visible in that one frame. Margins are
 // tried in order so a sticky Card header cannot hide the first target.
-async function frameTargets(targets) {
+export async function frameTargets(targets) {
   const failures = []
   for (const margin of [96, 160, 24]) {
     await targets[0][1].scrollIntoViewIfNeeded()
@@ -1117,7 +1127,7 @@ async function frameTargets(targets) {
 }
 
 // Every scrolled container (and the window) at the moment of a first-screen capture.
-function scrollOffsets(page) {
+export function scrollOffsets(page) {
   return page.evaluate(() => {
     const moved = []
     if (window.scrollY > 0) moved.push(`window ${window.scrollY}`)

@@ -29,6 +29,31 @@ export async function answerPersonalReads(context) {
   return reads
 }
 
+// Entering Home reads the shared records. Scenarios here only use Home as the page that shows
+// the display name (or as a visual reference), so they answer ONLY GET /home/overview and
+// GET /home/activity with an empty, valid projection. Writes still fall through to the closed
+// mock. The Home record behavior itself is covered by home-records.browser.test.mjs.
+export async function answerEmptyHome(context) {
+  await context.route((url) => url.origin === API_ORIGIN && (url.pathname === '/home/overview' || url.pathname === '/home/activity'), async (route) => {
+    const request = route.request()
+    if (request.method() !== 'GET') {
+      await route.fallback()
+      return
+    }
+    if (new URL(request.url()).pathname === '/home/overview') {
+      await route.fulfill({ json: {
+        today: { tasks: [], completed_tasks: [], completed_count: 0, events: [] },
+        upcoming: { events: [], tasks: [] },
+        your_search: { active: 0, awaiting_reply: 0, interviews: 0 },
+        applications: [], recent_jobs: [], recent_activity: [],
+        ai_usage: { status: 'not_recorded', tokens: null, estimated_cost_usd: null, providers: [] },
+      } })
+    } else {
+      await route.fulfill({ json: { events: [], recording_started_at: null } })
+    }
+  })
+}
+
 async function installMocks({ context, baseURL, settings, handlers, unexpectedRequests }) {
   await context.route('**/*', async (route) => {
     const request = route.request()
@@ -57,6 +82,7 @@ async function installMocks({ context, baseURL, settings, handlers, unexpectedRe
       socket.close()
     }
   })
+  await answerEmptyHome(context)
   return answerPersonalReads(context)
 }
 
@@ -826,6 +852,7 @@ test('display name saves trimmed, clears to null, and cancels a draft', async ({
   })
 
   await answerPersonalReads(context)
+  await answerEmptyHome(context)
 
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()
@@ -890,6 +917,7 @@ test('a failed display name save retains the draft and shows a fixed error', asy
   })
 
   await answerPersonalReads(context)
+  await answerEmptyHome(context)
 
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()
@@ -935,6 +963,7 @@ test('the saved display name reaches Home and re-entering Settings restores it',
   })
 
   await answerPersonalReads(context)
+  await answerEmptyHome(context)
 
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Home', exact: true }).click()

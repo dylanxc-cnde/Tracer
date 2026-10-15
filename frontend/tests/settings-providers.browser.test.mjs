@@ -3,8 +3,16 @@ import { expect, test } from '@playwright/test'
 // Playwright only discovers this file; importing the management scenarios keeps the
 // full provider/parsing maintenance journey, and the Profile/Goal/Match review
 // scenarios, in the same closed-mock browser suite.
-import { answerPersonalReads } from './settings-management.browser.test.mjs'
+import { answerEmptyHome, answerPersonalReads as answerProfileReads } from './settings-management.browser.test.mjs'
 import './profile-matching.browser.test.mjs'
+import './home-records.browser.test.mjs'
+
+// These provider scenarios enter the app on Home. Home reads are answered with an empty,
+// valid projection while every other request still reaches the closed mock.
+async function answerPersonalReads(context) {
+  await answerEmptyHome(context)
+  return answerProfileReads(context)
+}
 
 test('successful provider creation appends the server result and reopens with an empty masked key', async ({ page, context, baseURL }) => {
   const savedProvider = {
