@@ -187,16 +187,24 @@ const count = (calls, key) => calls.filter((call) => call === key).length
 const settle = (page) => page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 250)))
 const mainNavigation = (page) => page.getByRole('navigation', { name: 'Main navigation' })
 
-async function openWorkspace(page) {
+const settingsSections = (page) => page.getByRole('navigation', { name: 'Settings sections' })
+const userSection = (page) => page.getByRole('region', { name: 'User information', exact: true })
+const profileSection = (page) => page.getByRole('region', { name: 'Background and skills', exact: true })
+const goalSection = (page) => page.getByRole('region', { name: 'Job preferences', exact: true })
+
+// Settings opens on its Profile category: the personal domains load on arrival, with no
+// intermediate "open" step. Returns once both domain regions are on screen.
+async function openProfile(page) {
   await page.goto('/')
   await mainNavigation(page).getByRole('button', { name: 'Settings', exact: true }).click()
-  await page.getByRole('button', { name: 'Open Profile and Goal', exact: true }).click()
-  const workspace = page.getByRole('region', { name: 'Profile and Goal', exact: true })
-  await expect(workspace).toBeVisible()
-  return workspace
+  await expect(profileSection(page)).toBeVisible()
+  await expect(goalSection(page)).toBeVisible()
 }
-const profileSection = (page) => page.getByRole('region', { name: 'Confirmed evidence', exact: true })
-const goalSection = (page) => page.getByRole('region', { name: 'Job-search goal', exact: true })
+
+const SAVE_PROFILE = 'Save background and skills'
+const SAVE_GOAL = 'Save job preferences'
+const CONFIRM_PROFILE = /I confirm these facts and supporting details/
+const CONFIRM_GOAL = /I confirm these goals and preferences/
 
 async function openCard(page) {
   await page.goto('/')
@@ -246,39 +254,60 @@ test('Profile and Goal are cancelled, skipped and confirmed separately with thei
     },
   })
 
-  await openWorkspace(page)
+  await openProfile(page)
   const profile = profileSection(page)
   const goal = goalSection(page)
-  await expect(profile).toContainText('Not recorded yet')
-  await expect(goal).toContainText('Not recorded yet')
-  await expect(profile).toContainText('Not providing evidence means unknown, not a gap.')
-  const saveProfile = profile.getByRole('button', { name: 'Save Profile', exact: true })
-  // Nothing is confirmed by merely opening the workspace.
-  await expect(saveProfile).toBeDisabled()
+  // Entering Profile is the only thing that reads the two domains; nothing is written.
+  await expect.poll(() => count(calls, 'GET /goal')).toBe(1)
+  expect(count(calls, 'GET /profile')).toBe(1)
+  // Nothing was ever saved: each region explains its purpose and offers the start action.
+  // Unfilled information is unknown and never presented as a gap.
+  await expect(profile).toContainText('No background or skills added yet.')
+  await expect(profile).toContainText('Unfilled information stays unknown.')
+  await expect(goal).toContainText('No preferences added yet.')
+  await expect(goal).toContainText('Unfilled information stays unknown.')
+  await expect(profile.getByRole('textbox')).toHaveCount(0)
+  await expect(profile.getByRole('button', { name: SAVE_PROFILE, exact: true })).toHaveCount(0)
+  expect(puts.profile).toHaveLength(0)
+  expect(puts.goal).toHaveLength(0)
 
-  // A cancelled draft sends no write and leaves the section unrecorded.
-  await profile.getByRole('button', { name: 'Add evidence', exact: true }).click()
+  // A cancelled draft sends no write and leaves the region unrecorded.
+  const startProfile = profile.getByRole('button', { name: 'Add background and skills', exact: true })
+  await startProfile.click()
+  await expect(profile.locator('legend')).toBeFocused()
+  await profile.getByRole('button', { name: 'Add background or skill', exact: true }).click()
   await profile.getByRole('textbox', { name: 'Confirmed fact' }).fill('Unbestätigter Entwurf (DEMO)')
-  await profile.getByRole('button', { name: 'Cancel Profile changes', exact: true }).click()
+  await profile.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(profile).toContainText('Draft cancelled. No write was sent.')
-  await expect(profile.getByRole('textbox', { name: 'Confirmed fact' })).toHaveCount(0)
+  await expect(profile).toContainText('No background or skills added yet.')
+  await expect(profile.getByRole('textbox')).toHaveCount(0)
+  await expect(startProfile).toBeFocused()
   expect(puts.profile).toHaveLength(0)
 
   // Two entries; the optional description of the second one is skipped (unknown).
-  const add = profile.getByRole('button', { name: 'Add evidence', exact: true })
+  await startProfile.click()
+  const add = profile.getByRole('button', { name: 'Add background or skill', exact: true })
   await add.click()
   await add.click()
+  const saveProfile = profile.getByRole('button', { name: SAVE_PROFILE, exact: true })
   await profile.getByRole('combobox', { name: /^Type/ }).first().selectOption({ label: 'qualification' })
   await profile.getByRole('textbox', { name: 'Confirmed fact' }).nth(0).fill(NOT_ENROLLED)
-  await profile.getByRole('textbox', { name: /Evidence or explanation/ }).nth(0).fill('Exmatrikulation zum 31.03.2025 (DEMO)')
+  await profile.getByRole('textbox', { name: /^Supporting details/ }).nth(0).fill('Exmatrikulation zum 31.03.2025 (DEMO)')
   await profile.getByRole('textbox', { name: 'Confirmed fact' }).nth(1).fill('Python')
+  // Nothing is written without an explicit confirmation.
   await expect(saveProfile).toBeDisabled()
-  await profile.getByRole('checkbox', { name: /I confirm these facts and evidence/ }).check()
+  await profile.getByRole('checkbox', { name: CONFIRM_PROFILE }).check()
   await expect(saveProfile).toBeEnabled()
   await saveProfile.click()
 
-  await expect(profile).toContainText('Saved revision 1')
-  await expect(profile).toContainText('Confirmed evidence saved and confirmed.')
+  // Success returns this region to reading mode with the server's confirmed document.
+  await expect(profile).toContainText('Background and skills saved and confirmed.')
+  await expect(profile.getByRole('textbox')).toHaveCount(0)
+  await expect(profile).toContainText('Saved · confirmed by you')
+  await expect(profile).toContainText(NOT_ENROLLED)
+  await expect(profile).toContainText('Exmatrikulation zum 31.03.2025 (DEMO)')
+  // The skipped description was sent as unknown; the server text is what is shown.
+  await expect(profile).toContainText(SKILL_DETAIL)
   expect(puts.profile).toEqual([{
     expected_revision: 0,
     evidence: [
@@ -286,34 +315,75 @@ test('Profile and Goal are cancelled, skipped and confirmed separately with thei
       { evidence_id: null, kind: 'skill', label: 'Python', description: null },
     ],
   }])
-  // The server's confirmed document is adopted, including its stable ids and text.
-  await expect(profile.getByRole('textbox', { name: /Evidence or explanation/ }).nth(1)).toHaveValue(SKILL_DETAIL)
-  // Saving the Profile confirms nothing about the Goal.
-  await expect(goal).toContainText('Not recorded yet')
+  // Saving background and skills confirms nothing about job preferences.
+  await expect(goal).toContainText('No preferences added yet.')
   expect(puts.goal).toHaveLength(0)
 
-  // The Goal is confirmed on its own: objective skipped, one required constraint.
-  await goal.getByRole('button', { name: 'Add constraint', exact: true }).click()
-  await goal.getByRole('textbox', { name: /^Constraint$/ }).fill('Nur Berlin')
+  // The Goal is confirmed on its own, using only the keyboard: objective skipped, one required
+  // preference. Focus lands in the opened form and Tab reaches its first field.
+  const editGoal = goal.getByRole('button', { name: 'Set job preferences', exact: true })
+  await editGoal.focus()
+  await page.keyboard.press('Enter')
+  await expect(goal.locator('legend')).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(goal.getByRole('textbox', { name: /^Objective/ })).toBeFocused()
+  await goal.getByRole('button', { name: 'Add preference', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await goal.getByRole('textbox', { name: /^Preference/ }).focus()
+  await page.keyboard.type('Nur Berlin')
   await goal.getByRole('combobox', { name: /^Priority/ }).selectOption({ label: 'Required' })
-  await goal.getByRole('checkbox', { name: /I confirm these goals and constraints/ }).check()
-  await goal.getByRole('button', { name: 'Save Goal', exact: true }).click()
-  await expect(goal).toContainText('Saved revision 1')
+  const saveGoal = goal.getByRole('button', { name: SAVE_GOAL, exact: true })
+  await expect(saveGoal).toBeDisabled()
+  await goal.getByRole('checkbox', { name: CONFIRM_GOAL }).focus()
+  await page.keyboard.press('Space')
+  await expect(saveGoal).toBeEnabled()
+
+  // While the Goal draft is open, saving the Profile (a re-render of the other region with a
+  // new server baseline) must neither clear nor write the Goal draft.
+  const editProfile = profile.getByRole('button', { name: 'Edit', exact: true })
+  await editProfile.click()
+  await profile.getByRole('textbox', { name: /^Supporting details/ }).nth(1).fill('Vier Kursprojekte (DEMO)')
+  await profile.getByRole('checkbox', { name: CONFIRM_PROFILE }).check()
+  await saveProfile.click()
+  await expect(profile.getByRole('textbox')).toHaveCount(0)
+  // The server's document is adopted over the local text, with its stable ids and revision.
+  await expect(profile).toContainText(SKILL_DETAIL)
+  await expect(profile).not.toContainText('Vier Kursprojekte (DEMO)')
+  expect(puts.profile).toHaveLength(2)
+  expect(puts.profile[1]).toEqual({
+    expected_revision: 1,
+    evidence: [
+      { evidence_id: E_QUAL, kind: 'qualification', label: NOT_ENROLLED, description: 'Exmatrikulation zum 31.03.2025 (DEMO)' },
+      { evidence_id: E_SKILL, kind: 'skill', label: 'Python', description: 'Vier Kursprojekte (DEMO)' },
+    ],
+  })
+  expect(puts.goal).toHaveLength(0)
+  await expect(goal.getByRole('textbox', { name: /^Preference/ })).toHaveValue('Nur Berlin')
+  await expect(saveGoal).toBeEnabled()
+
+  await saveGoal.focus()
+  await page.keyboard.press('Enter')
+  await expect(goal).toContainText('Job preferences saved and confirmed.')
+  await expect(goal.getByRole('textbox')).toHaveCount(0)
+  await expect(goal).toContainText('Nur Berlin')
+  // Closing the form after a save returns keyboard focus to its Edit action.
+  await expect(goal.getByRole('button', { name: 'Edit', exact: true })).toBeFocused()
   expect(puts.goal).toEqual([{
     expected_revision: 0, objective: null,
     constraints: [{ constraint_id: null, kind: 'location', label: 'Nur Berlin', description: null, importance: 'required' }],
   }])
-  expect(puts.profile).toHaveLength(1)
+  expect(puts.profile).toHaveLength(2)
 
-  // Closing returns focus to its trigger; reopening reads what was saved.
-  await page.getByRole('button', { name: 'Close workspace', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Open Profile and Goal', exact: true })).toBeFocused()
-  await page.getByRole('button', { name: 'Open Profile and Goal', exact: true }).click()
-  await expect(profileSection(page)).toContainText('Saved revision 1')
-  await expect(profileSection(page).getByRole('textbox', { name: 'Confirmed fact' }).first()).toHaveValue(NOT_ENROLLED)
-  await expect(goalSection(page).getByRole('textbox', { name: /^Constraint$/ })).toHaveValue('Nur Berlin')
+  // Leaving Settings and returning reads what the server saved; nothing is written again.
+  await settingsSections(page).getByRole('button', { name: 'API', exact: true }).click()
+  await settingsSections(page).getByRole('button', { name: 'Profile', exact: true }).click()
+  await expect(profileSection(page)).toContainText(NOT_ENROLLED)
+  await expect(goalSection(page)).toContainText('Nur Berlin')
+  await expect(profileSection(page).getByRole('textbox')).toHaveCount(0)
   await settle(page)
-  expect(count(calls, 'PUT /profile')).toBe(1)
+  expect(count(calls, 'GET /profile')).toBe(2)
+  expect(count(calls, 'GET /goal')).toBe(2)
+  expect(count(calls, 'PUT /profile')).toBe(2)
   expect(count(calls, 'PUT /goal')).toBe(1)
   expect(calls.filter((call) => call.startsWith('PATCH') || call.startsWith('POST'))).toEqual([])
   expect(unexpected, 'All non-Vite requests must be explicitly mocked').toEqual([])
@@ -459,35 +529,48 @@ test('Profile read failure, rejected save and a lost save response keep the draf
     },
   })
 
-  await openWorkspace(page)
+  await openProfile(page)
   const profile = profileSection(page)
+  const goal = goalSection(page)
+  // A failed read is not an empty Profile: no "nothing added yet" text and no start action,
+  // only the failure and an explicit retry. The other region's genuinely empty state is unaffected.
   await expect(profile.getByRole('alert')).toHaveText('Could not load local data. Try reading again.')
-  await expect(goalSection(page).getByRole('alert')).toHaveCount(0)
-  await expect(profile.getByRole('textbox', { name: 'Confirmed fact' })).toHaveCount(0)
+  await expect(profile).not.toContainText('No background or skills added yet')
+  await expect(profile.getByRole('button', { name: 'Add background and skills', exact: true })).toHaveCount(0)
+  await expect(goal.getByRole('alert')).toHaveCount(0)
+  await expect(goal).toContainText('No preferences added yet.')
+  await expect(profile.getByRole('textbox')).toHaveCount(0)
+  expect(await page.locator('body').innerText()).not.toContain(private_detail)
   await settle(page)
   // A failed read is never retried automatically.
   expect(count(calls, 'GET /profile')).toBe(1)
-  await profile.getByRole('button', { name: 'Read saved Profile', exact: true }).click()
+  await profile.getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(profile).toContainText('Saved data read.')
+  await expect(profile.getByRole('alert')).toHaveCount(0)
   expect(count(calls, 'GET /profile')).toBe(2)
+  // Only now that the read succeeded is nothing-saved shown, with its start action.
+  await expect(profile).toContainText('No background or skills added yet.')
 
-  await profile.getByRole('button', { name: 'Add evidence', exact: true }).click()
+  await profile.getByRole('button', { name: 'Add background and skills', exact: true }).click()
+  await profile.getByRole('button', { name: 'Add background or skill', exact: true }).click()
   await profile.getByRole('textbox', { name: 'Confirmed fact' }).fill('Python')
-  await profile.getByRole('textbox', { name: /Evidence or explanation/ }).fill(SKILL_DETAIL)
-  await profile.getByRole('checkbox', { name: /I confirm these facts and evidence/ }).check()
-  const save = profile.getByRole('button', { name: 'Save Profile', exact: true })
+  await profile.getByRole('textbox', { name: /^Supporting details/ }).fill(SKILL_DETAIL)
+  await profile.getByRole('checkbox', { name: CONFIRM_PROFILE }).check()
+  const save = profile.getByRole('button', { name: SAVE_PROFILE, exact: true })
+  const cancel = profile.getByRole('button', { name: 'Cancel', exact: true })
   await save.click()
 
-  // While the request is pending the section is busy and nothing else can be sent.
+  // While the request is pending the region is busy and nothing else can be sent.
   await expect(profile).toContainText('Working…')
   await expect(save).toBeDisabled()
-  await expect(profile.getByRole('button', { name: 'Cancel Profile changes', exact: true })).toBeDisabled()
+  await expect(cancel).toBeDisabled()
   await settle(page)
   expect(puts).toHaveLength(1)
   hold.resolve()
 
-  // A rejected save keeps the draft, shows a safe message and allows another attempt.
+  // A rejected save keeps the draft, shows a safe message beside it and allows another attempt.
   await expect(profile.getByRole('alert')).toHaveText('Check the entries and confirmed evidence. This change was rejected.')
+  await expect(profile).toContainText('Your draft is still here.')
   expect(await page.locator('body').innerText()).not.toContain(private_detail)
   await expect(profile.getByRole('textbox', { name: 'Confirmed fact' })).toHaveValue('Python')
   await expect(profile.getByRole('button', { name: /^Read saved Profile/ })).toHaveCount(0)
@@ -496,28 +579,242 @@ test('Profile read failure, rejected save and a lost save response keep the draf
 
   // Unknown outcome: no automatic replay, writes are locked until the user reads.
   await expect(profile.getByRole('alert')).toHaveText('Save outcome unknown. Read saved data before another write.')
+  await expect(profile).toContainText('do not repeat a save whose result is uncertain')
   await expect(save).toBeDisabled()
+  await expect(cancel).toBeDisabled()
   await settle(page)
   expect(puts).toHaveLength(2)
   expect(puts[0]).toEqual(puts[1])
+  expect(count(calls, 'GET /profile')).toBe(2)
   await expect(profile.getByRole('textbox', { name: 'Confirmed fact' })).toHaveValue('Python')
+  // The recovery action sits in the same region as the failure it resolves.
   await profile.getByRole('button', { name: 'Read saved Profile', exact: true }).click()
   await expect(profile).toContainText('Saved version for comparison')
   await expect(profile).toContainText('Revision 1')
+  // The server's saved content is shown for comparison while the retained draft stays below.
+  await expect(profile).toContainText(NOT_ENROLLED)
   await expect(profile).toContainText('Further writes stay locked.')
   await expect(save).toBeDisabled()
+  expect(puts).toHaveLength(2)
   // The draft is kept until the user explicitly adopts the saved version.
   await expect(profile.getByRole('textbox', { name: 'Confirmed fact' })).toHaveValue('Python')
   await profile.getByRole('button', { name: 'Use saved version', exact: true }).click()
-  await expect(profile).toContainText('Saved revision 1')
-  await expect(profile.getByRole('textbox', { name: /Evidence or explanation/ }).first()).toHaveValue(
-    profileDoc(1).evidence[0].description,
-  )
+  await expect(profile).toContainText('Saved version adopted.')
+  await expect(profile.getByRole('textbox')).toHaveCount(0)
+  await expect(profile).toContainText(NOT_ENROLLED)
+  await expect(profile).toContainText(profileDoc(1).evidence[0].description)
   // Adopting the saved version re-requires confirmation; the lost save was never replayed.
+  await profile.getByRole('button', { name: 'Edit', exact: true }).click()
   await expect(save).toBeDisabled()
+  await profile.getByRole('button', { name: 'Cancel', exact: true }).click()
   await settle(page)
   expect(puts).toHaveLength(2)
+  expect(count(calls, 'GET /profile')).toBe(3)
   expect(unexpected, 'All non-Vite requests must be explicitly mocked').toEqual([])
+})
+
+// --------------------------------------------------------------- PUX_ENTRY / PUX_CONFLICT / PUX_NAV
+
+const GOAL_OBJECTIVE = 'Werkstudentenstelle in Datenanalyse mit Bezug zur Energiewirtschaft (DEMO)'
+
+test('Settings opens straight on saved Background and skills and Job preferences without a nested workspace entry', async ({ page, context, baseURL }) => {
+  const { calls, unexpected } = await installBackend({
+    context, baseURL, routes: {
+      'GET /profile': (route) => route.fulfill({ json: longProfile() }),
+      'GET /goal': (route) => route.fulfill({ json: { ...goalDoc(1), objective: GOAL_OBJECTIVE } }),
+    },
+  })
+
+  // No other page reads personal data.
+  await page.goto('/')
+  await mainNavigation(page).getByRole('button', { name: 'Home', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Demo Student')
+  await settle(page)
+  expect(count(calls, 'GET /profile') + count(calls, 'GET /goal')).toBe(0)
+
+  // Arriving on Settings shows content at once; the Profile category is the default.
+  await mainNavigation(page).getByRole('button', { name: 'Settings', exact: true }).click()
+  const profile = profileSection(page)
+  const goal = goalSection(page)
+  await expect(settingsSections(page).getByRole('button', { name: 'Profile', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(userSection(page).getByLabel('Display name', { exact: true })).toHaveValue('Demo Student')
+  await expect(page.getByRole('button', { name: 'Open Profile and Goal' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Close workspace' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Profile and Goal' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Profile and Goal' })).toHaveCount(0)
+
+  // Saved content is read-only until the user asks to edit that region.
+  await expect(profile).toContainText('Saved · confirmed by you')
+  await expect(profile).toContainText(NOT_ENROLLED)
+  await expect(profile).toContainText(SKILL_DETAIL)
+  await expect(profile).toContainText('Werkstudententätigkeit in der Netzentgeltabrechnung eines Verteilnetzbetreibers (DEMO)')
+  await expect(profile.getByRole('listitem')).toHaveCount(3)
+  await expect(goal).toContainText(GOAL_OBJECTIVE)
+  await expect(goal).toContainText('Nur Berlin')
+  for (const region of [profile, goal]) {
+    await expect(region.getByRole('textbox')).toHaveCount(0)
+    await expect(region.getByRole('button', { name: 'Edit', exact: true })).toBeVisible()
+  }
+  await expect(profile.getByRole('button', { name: SAVE_PROFILE, exact: true })).toHaveCount(0)
+  await expect(goal.getByRole('button', { name: SAVE_GOAL, exact: true })).toHaveCount(0)
+  // Internal vocabulary is not needed to read the page.
+  const pageText = await page.getByRole('region', { name: 'Profile', exact: true }).innerText()
+  expect(pageText).not.toMatch(/\b(evidence|constraint|revision|workspace)\b/i)
+
+  // Each domain was read exactly once; the other Settings category does not add reads.
+  await expect.poll(() => count(calls, 'GET /goal')).toBe(1)
+  expect(count(calls, 'GET /profile')).toBe(1)
+  await settingsSections(page).getByRole('button', { name: 'API', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Posting parsing', exact: true })).toBeVisible()
+  await settle(page)
+  expect(count(calls, 'GET /profile')).toBe(1)
+  expect(count(calls, 'GET /goal')).toBe(1)
+  expect(calls.filter((call) => !call.startsWith('GET'))).toEqual([])
+  expect(unexpected, 'All non-Vite requests must be explicitly mocked').toEqual([])
+})
+
+test('a version conflict keeps the Goal draft beside its recovery, never overwrites newer data and adopts it only on request', async ({ page, context, baseURL }) => {
+  const NEWER_LABEL = 'Berlin oder Remote (DEMO)'
+  const OLD_DRAFT = 'Nur München (DEMO)'
+  const newerGoal = (revision, label) => {
+    const doc = goalDoc(revision)
+    return { ...doc, constraints: [{ ...doc.constraints[0], label }] }
+  }
+  let server = goalDoc(1)
+  const puts = []
+  const { calls, unexpected } = await installBackend({
+    context, baseURL, routes: {
+      'GET /profile': (route) => route.fulfill({ json: null }),
+      'GET /goal': (route) => route.fulfill({ json: server }),
+      'PUT /goal': (route, request) => {
+        const body = request.postDataJSON()
+        puts.push(body)
+        if (puts.length === 1) {
+          // Someone else saved revision 2 first; the stale write is rejected.
+          server = newerGoal(2, NEWER_LABEL)
+          return route.fulfill({ status: 409, json: { detail: 'PRIVATE-CONFLICT-DETAIL' } })
+        }
+        server = newerGoal(3, body.constraints[0].label)
+        return route.fulfill({ json: server })
+      },
+    },
+  })
+
+  await openProfile(page)
+  const goal = goalSection(page)
+  await expect(goal).toContainText('Nur Berlin')
+  await goal.getByRole('button', { name: 'Edit', exact: true }).click()
+  const preference = goal.getByRole('textbox', { name: /^Preference/ })
+  await preference.fill(OLD_DRAFT)
+  await goal.getByRole('checkbox', { name: CONFIRM_GOAL }).check()
+  const save = goal.getByRole('button', { name: SAVE_GOAL, exact: true })
+  await save.click()
+
+  // The conflict is explained next to the draft; the stale draft is kept but cannot be re-sent.
+  await expect(goal.getByRole('alert')).toHaveText('Inputs changed. Read saved data and compare before confirming again.')
+  expect(await page.locator('body').innerText()).not.toContain('PRIVATE-CONFLICT-DETAIL')
+  await expect(preference).toHaveValue(OLD_DRAFT)
+  await expect(save).toBeDisabled()
+  await settle(page)
+  expect(puts).toEqual([{
+    expected_revision: 1, objective: null,
+    constraints: [{ constraint_id: C_LOC, kind: 'location', label: OLD_DRAFT, description: null, importance: 'required' }],
+  }])
+  // Nothing is re-read or re-sent on its own.
+  expect(count(calls, 'GET /goal')).toBe(1)
+
+  await goal.getByRole('button', { name: 'Read saved Goal', exact: true }).click()
+  await expect(goal).toContainText('Saved version for comparison')
+  await expect(goal).toContainText('Revision 2')
+  await expect(goal).toContainText(NEWER_LABEL)
+  await expect(preference).toHaveValue(OLD_DRAFT)
+  await expect(save).toBeDisabled()
+  expect(puts).toHaveLength(1)
+
+  // Only the explicit action replaces the retained draft with the newer saved content.
+  await goal.getByRole('button', { name: 'Use saved version', exact: true }).click()
+  await expect(goal).toContainText(NEWER_LABEL)
+  await expect(goal).not.toContainText(OLD_DRAFT)
+  await goal.getByRole('button', { name: 'Edit', exact: true }).click()
+  await expect(preference).toHaveValue(NEWER_LABEL)
+  await expect(save).toBeDisabled()
+  await goal.getByRole('checkbox', { name: CONFIRM_GOAL }).check()
+  await save.click()
+  await expect(goal).toContainText('Job preferences saved and confirmed.')
+  // The new write is built on the newer revision and its identity, never on the old draft.
+  expect(puts).toHaveLength(2)
+  expect(puts[1]).toEqual({
+    expected_revision: 2, objective: null,
+    constraints: [{ constraint_id: C_LOC, kind: 'location', label: NEWER_LABEL, description: null, importance: 'required' }],
+  })
+  await expect(goal).not.toContainText(OLD_DRAFT)
+  expect(calls.filter((call) => call.startsWith('PUT /profile'))).toEqual([])
+  expect(unexpected, 'All non-Vite requests must be explicitly mocked').toEqual([])
+})
+
+test('leaving Settings during a pending save drops local drafts without cancelling the write, and the late response cannot reach the re-entered page', async ({ page, context, baseURL }) => {
+  const COMMITTED = 'Vier Kursprojekte (DEMO)'
+  const LOCAL_ONLY = 'Entwurf nur lokal (DEMO)'
+  let server = profileDoc(1)
+  const hold = deferred()
+  const puts = []
+  const { calls, unexpected } = await installBackend({
+    context, baseURL, routes: {
+      'GET /profile': (route) => route.fulfill({ json: server }),
+      'GET /goal': (route) => route.fulfill({ json: goalDoc(1) }),
+      'PUT /profile': async (route, request) => {
+        puts.push(request.postDataJSON())
+        await hold.promise
+        const doc = profileDoc(2)
+        server = { ...doc, evidence: doc.evidence.map((entry) => entry.evidence_id === E_SKILL ? { ...entry, description: COMMITTED } : entry) }
+        await route.fulfill({ json: server })
+      },
+    },
+  })
+
+  try {
+    await openProfile(page)
+    const profile = profileSection(page)
+    const goal = goalSection(page)
+    // An unsaved Goal draft and a Profile save that is still in flight.
+    await goal.getByRole('button', { name: 'Edit', exact: true }).click()
+    await goal.getByRole('textbox', { name: /^Preference/ }).fill(LOCAL_ONLY)
+    await profile.getByRole('button', { name: 'Edit', exact: true }).click()
+    await profile.getByRole('textbox', { name: /^Supporting details/ }).nth(1).fill(COMMITTED)
+    await profile.getByRole('checkbox', { name: CONFIRM_PROFILE }).check()
+    await profile.getByRole('button', { name: SAVE_PROFILE, exact: true }).click()
+    await expect.poll(() => puts.length).toBe(1)
+    await expect(profile).toContainText('Working…')
+
+    // Leaving and coming back reads the server again; the local drafts are gone.
+    await settingsSections(page).getByRole('button', { name: 'API', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Posting parsing', exact: true })).toBeVisible()
+    await settingsSections(page).getByRole('button', { name: 'Profile', exact: true }).click()
+    await expect(profileSection(page)).toContainText(SKILL_DETAIL)
+    await expect(goalSection(page)).toContainText('Nur Berlin')
+    await expect(goalSection(page)).not.toContainText(LOCAL_ONLY)
+    await expect(page.getByRole('region', { name: 'Profile', exact: true }).getByRole('textbox', { name: /^(Confirmed fact|Preference|Supporting|Objective)/ })).toHaveCount(0)
+    expect(count(calls, 'GET /profile')).toBe(2)
+    expect(count(calls, 'GET /goal')).toBe(2)
+
+    // The abandoned request finishes after re-entry: its response belongs to the old page.
+    hold.resolve()
+    await settle(page)
+    await expect(profileSection(page)).toContainText(SKILL_DETAIL)
+    await expect(profileSection(page)).not.toContainText(COMMITTED)
+    await expect(profileSection(page)).not.toContainText('saved and confirmed')
+    await expect(profileSection(page).getByRole('alert')).toHaveCount(0)
+
+    // Leaving did not undo the write: an explicit read now shows what the server committed.
+    await profileSection(page).getByRole('button', { name: 'Refresh saved background and skills', exact: true }).click()
+    await expect(profileSection(page)).toContainText(COMMITTED)
+    expect(puts).toHaveLength(1)
+    expect(count(calls, 'PUT /goal')).toBe(0)
+    expect(count(calls, 'GET /profile')).toBe(3)
+    expect(unexpected, 'All non-Vite requests must be explicitly mocked').toEqual([])
+  } finally {
+    hold.resolve()
+  }
 })
 
 test('match review load failure, a lost judgment response and a late old response never overwrite the current review', async ({ page, context, baseURL }) => {
@@ -781,7 +1078,14 @@ function visibilityProblem(locator) {
     // The corner probe is inset past a typical 12px border radius: a point on the very corner
     // of a rounded box is outside its painted shape and would report the parent as "covering" it.
     const inset = Math.min(12, Math.min(rect.width, rect.height) / 4)
-    for (const [x, y] of [[rect.left + rect.width / 2, rect.top + rect.height / 2], [rect.left + inset, rect.top + inset]]) {
+    // An inline element that wraps (long German text in a narrow window) has a bounding box that
+    // also spans empty space beside its lines, so probing the box centre would hit the parent.
+    // Probe the centre of each real line box instead; the target must still be what is hit there.
+    const lineBoxes = [...el.getClientRects()].filter((box) => box.width > 0 && box.height > 0)
+    const points = lineBoxes.length > 1
+      ? lineBoxes.map((box) => [box.left + box.width / 2, box.top + box.height / 2])
+      : [[rect.left + rect.width / 2, rect.top + rect.height / 2], [rect.left + inset, rect.top + inset]]
+    for (const [x, y] of points) {
       const hit = document.elementFromPoint(x, y)
       if (!hit || !el.contains(hit)) return `covered by ${hit ? `${hit.tagName.toLowerCase()}.${String(hit.className).slice(0, 40)}` : 'nothing'}`
     }
@@ -812,6 +1116,37 @@ async function frameTargets(targets) {
   throw new Error(`Evidence targets are not all visible in one frame. ${failures.join(' | ')}`)
 }
 
+// Every scrolled container (and the window) at the moment of a first-screen capture.
+function scrollOffsets(page) {
+  return page.evaluate(() => {
+    const moved = []
+    if (window.scrollY > 0) moved.push(`window ${window.scrollY}`)
+    for (const element of document.querySelectorAll('*')) {
+      if (element.scrollTop > 0) moved.push(`${element.tagName.toLowerCase()}.${String(element.className).slice(0, 40)} ${element.scrollTop}`)
+    }
+    return moved
+  })
+}
+
+// A field row has no unused column: it declares no more grid columns than it has fields, and
+// the fields reach its right edge without leaving it. Narrow stacked rows satisfy this too.
+async function expectFilledRow(row, fields, what) {
+  const measured = await row.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    const boxes = [...element.children].map((child) => child.getBoundingClientRect())
+    return {
+      children: boxes.length,
+      columns: getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length,
+      rowRight: rect.right, maxRight: Math.max(...boxes.map((box) => box.right)),
+    }
+  })
+  expect(measured.children, `${what}: expected ${fields} fields in the row`).toBe(fields)
+  expect(measured.columns, `${what}: no column without a field`).toBeLessThanOrEqual(fields)
+  expect(measured.maxRight, `${what}: fields reach the row's right edge`).toBeGreaterThanOrEqual(measured.rowRight - 2)
+  expect(measured.maxRight, `${what}: fields stay inside the row`).toBeLessThanOrEqual(measured.rowRight + 1)
+  return measured
+}
+
 async function captureProfileMatchEvidence({ page, context, baseURL }, testInfo, viewport) {
   testInfo.setTimeout(90_000)
   const label = `${viewport.width}x${viewport.height}`
@@ -824,6 +1159,12 @@ async function captureProfileMatchEvidence({ page, context, baseURL }, testInfo,
       'GET /profile': (route) => route.fulfill({ json: savedProfile }),
       'GET /goal': (route) => route.fulfill({ json: savedGoal }),
       'PUT /profile': (route) => route.fulfill({ status: 422, json: { detail: 'DEMO rejection' } }),
+      // A newer revision exists on the server, so the Goal write is rejected as a conflict.
+      'PUT /goal': (route) => {
+        const newer = goalDoc(2)
+        savedGoal = { ...newer, constraints: [{ ...newer.constraints[0], label: 'Berlin oder Remote (DEMO)' }] }
+        return route.fulfill({ status: 409, json: { detail: 'DEMO conflict' } })
+      },
       [`GET ${matchPath()}`]: (route) => readMode === 'fail'
         ? route.fulfill({ status: 500, json: { detail: 'DEMO failure' } })
         : route.fulfill({ json: view }),
@@ -836,14 +1177,30 @@ async function captureProfileMatchEvidence({ page, context, baseURL }, testInfo,
   }
   // `targets` are [name, locator] pairs naming what this picture is meant to show; all of
   // them must be inside the frame, so a green run cannot photograph unrelated content.
-  async function capture(state, root, targets = []) {
+  // `firstScreen` marks the untouched arrival view: nothing may be scrolled into place, so
+  // every scroll offset must be zero and every target must already sit inside the window.
+  // `image: false` still asserts geometry and targets but adds no picture (the unchanged Match
+  // states keep their earlier pictures only as historical references).
+  async function capture(state, root, targets = [], { firstScreen = false, image = true } = {}) {
     // The unchanged Home reference is only photographed; its own layout is not under test.
     const problems = root ? await layoutProblems(root) : []
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
-    geometry.states[state] = { documentOverflow: overflow, layoutProblems: problems, shown: targets.map(([name]) => name) }
+    geometry.states[state] = { documentOverflow: overflow, layoutProblems: problems, shown: targets.map(([name]) => name), firstScreen }
     expect(overflow, `${state}: the page must not scroll horizontally`).toBeLessThanOrEqual(1)
     expect(problems, `${state}: nothing may leave the viewport or be clipped`).toEqual([])
-    if (targets.length > 0) await frameTargets(targets)
+    if (firstScreen) {
+      const scrolled = await scrollOffsets(page)
+      geometry.states[state].scrollOffsets = scrolled
+      expect(scrolled, `${state}: the first screen must be captured unscrolled`).toEqual([])
+      const hidden = []
+      for (const [name, locator] of targets) {
+        const problem = await visibilityProblem(locator)
+        if (problem) hidden.push(`${name}: ${problem}`)
+      }
+      expect(hidden, `${state}: every named target must be visible without scrolling`).toEqual([])
+    } else if (targets.length > 0) await frameTargets(targets)
+    geometry.states[state].boxes = Object.fromEntries(await Promise.all(targets.map(async ([name, locator]) => [name, await locator.boundingBox()])))
+    if (!image) return
     // Run artifacts on disk, not committed baselines, and never a visual approval.
     const file = testInfo.outputPath(`profile-match-${label}-${state}.png`)
     await page.screenshot({ path: file, animations: 'disabled', caret: 'hide' })
@@ -856,77 +1213,126 @@ async function captureProfileMatchEvidence({ page, context, baseURL }, testInfo,
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Demo Student')
   await capture('home-reference', null)
 
-  // Empty workspace, then the keyboard path: focus lands on the heading, Tab reaches Close.
-  await mainNavigation(page).getByRole('button', { name: 'Settings', exact: true }).click()
-  const trigger = page.getByRole('button', { name: 'Open Profile and Goal', exact: true })
-  await trigger.click()
-  const workspace = page.getByRole('region', { name: 'Profile and Goal', exact: true })
-  await expect(workspace.getByRole('heading', { name: 'Profile and Goal', level: 2 })).toBeFocused()
-  await page.keyboard.press('Tab')
-  await expect(workspace.getByRole('button', { name: 'Close workspace', exact: true })).toBeFocused()
-  await expect(profileSection(page)).toContainText('Not recorded yet')
-  await expect(goalSection(page)).toContainText('Not recorded yet')
   const profile = profileSection(page)
   const goal = goalSection(page)
-  await capture('workspace-empty', workspace, [
-    ['Profile heading', profile.getByRole('heading', { name: 'Confirmed evidence', level: 3 })],
-    ['Profile "Not recorded yet"', profile.getByText('Not recorded yet', { exact: true })],
-    ['Profile empty-state text', profile.getByText(/^No evidence recorded\./)],
-    ['Add evidence', profile.getByRole('button', { name: 'Add evidence', exact: true })],
-    ['Save Profile', profile.getByRole('button', { name: 'Save Profile', exact: true })],
-  ])
-  await capture('workspace-empty-goal', workspace, [
-    ['Goal heading', goal.getByRole('heading', { name: 'Job-search goal', level: 3 })],
-    ['Goal "Not recorded yet"', goal.getByText('Not recorded yet', { exact: true })],
-    ['Goal objective field', goal.getByRole('textbox', { name: /^Objective/ })],
-    ['Goal empty-state text', goal.getByText(/^No constraints recorded\./)],
-    ['Add constraint', goal.getByRole('button', { name: 'Add constraint', exact: true })],
-    ['Save Goal', goal.getByRole('button', { name: 'Save Goal', exact: true })],
-  ])
-  await page.keyboard.press('Escape')
-  await expect(workspace).toHaveCount(0)
-  await expect(trigger).toBeFocused()
+  const user = userSection(page)
+  const sections = settingsSections(page)
+  const workspace = page.getByRole('region', { name: 'Profile', exact: true })
+  const enterSettings = async () => {
+    // Always from the real main navigation: Settings re-opens on Profile at scroll position zero.
+    await mainNavigation(page).getByRole('button', { name: 'Home', exact: true }).click()
+    await mainNavigation(page).getByRole('button', { name: 'Settings', exact: true }).click()
+  }
+  const arrival = (extra) => [
+    ['Settings sections navigation', sections],
+    ['User information heading', user.getByRole('heading', { name: 'User information', level: 2 })],
+    ['Display name field', user.getByLabel('Display name', { exact: true })],
+    ['Background and skills heading', profile.getByRole('heading', { name: 'Background and skills', level: 2 })],
+    ...extra,
+  ]
 
-  // Long confirmed content, then a rejected save keeps it visible beside a clear error.
+  // First entry with nothing saved: the very first screen, never scrolled, shows the page
+  // frame, the display name and the start of Background and skills with its start action.
+  await mainNavigation(page).getByRole('button', { name: 'Settings', exact: true }).click()
+  await expect(profile).toContainText('No background or skills added yet.')
+  await expect(goal).toContainText('No preferences added yet.')
+  await capture('first-entry-empty', workspace, arrival([
+    ['Background and skills empty text', profile.getByText(/^No background or skills added yet\./)],
+    ['Add background and skills', profile.getByRole('button', { name: 'Add background and skills', exact: true })],
+  ]), { firstScreen: true })
+
+  // First entry with long saved German content.
   savedProfile = longProfile()
   savedGoal = goalDoc(1)
-  await trigger.click()
-  await expect(profileSection(page)).toContainText('Saved revision 1')
-  await expect(profileSection(page).getByRole('textbox', { name: 'Confirmed fact' })).toHaveCount(3)
-  await expect(profileSection(page).getByRole('textbox', { name: 'Confirmed fact' }).first()).toHaveValue(NOT_ENROLLED)
+  await enterSettings()
+  await expect(profile.getByRole('listitem')).toHaveCount(3)
+  await expect(goal).toContainText('Nur Berlin')
+  await capture('first-entry-saved', workspace, arrival([
+    ['Background and skills Edit', profile.getByRole('button', { name: 'Edit', exact: true })],
+    ['First saved fact', profile.getByText(NOT_ENROLLED, { exact: true })],
+  ]), { firstScreen: true })
+  // Additional frames below: scrolled on purpose, to show the rest of the saved content.
+  await capture('saved-long-scrolled', workspace, [
+    ['Third (long German) saved fact', profile.getByText('Werkstudententätigkeit in der Netzentgeltabrechnung eines Verteilnetzbetreibers (DEMO)', { exact: true })],
+    ['Third (long German) details', profile.getByText(/^Monatliche Plausibilitätsprüfungen/)],
+  ])
+  await capture('saved-goal-scrolled', workspace, [
+    ['Job preferences heading', goal.getByRole('heading', { name: 'Job preferences', level: 2 })],
+    ['Job preferences Edit', goal.getByRole('button', { name: 'Edit', exact: true })],
+    ['Saved preference', goal.getByText('Nur Berlin', { exact: true })],
+  ])
+
+  // Editing Background and skills: a two-field row, and Save/Cancel kept together.
+  await profile.getByRole('button', { name: 'Edit', exact: true }).click()
+  await expect(profile.locator('legend')).toBeFocused()
   const facts = profile.getByRole('textbox', { name: 'Confirmed fact' })
-  const explanations = profile.getByRole('textbox', { name: /^Evidence or explanation/ })
-  await expect(goal).toContainText('Saved revision 1')
-  await capture('workspace-filled', workspace, [
-    ['Profile heading', profile.getByRole('heading', { name: 'Confirmed evidence', level: 3 })],
-    ['Profile saved revision', profile.getByText('Saved revision 1', { exact: true })],
-    ['First confirmed fact', facts.nth(0)],
-    ['First evidence explanation', explanations.nth(0)],
+  const details = profile.getByRole('textbox', { name: /^Supporting details/ })
+  await expect(facts).toHaveCount(3)
+  await capture('profile-edit', workspace, [
+    ['Edit form legend', profile.locator('legend')],
+    ['First fact field', facts.nth(0)],
+    ['First details field', details.nth(0)],
   ])
-  await capture('workspace-filled-long', workspace, [
-    ['Third (long German) confirmed fact', facts.nth(2)],
-    ['Third (long German) explanation', explanations.nth(2)],
+  geometry.states['profile-edit'].row = await expectFilledRow(profile.locator('[class*="candidate-workspace__row"]').first(), 2, 'Profile field row')
+  const confirmProfile = profile.getByRole('checkbox', { name: CONFIRM_PROFILE })
+  const saveProfile = profile.getByRole('button', { name: SAVE_PROFILE, exact: true })
+  const cancelProfile = profile.getByRole('button', { name: 'Cancel', exact: true })
+  await capture('profile-edit-actions-scrolled', workspace, [
+    ['Confirmation checkbox', confirmProfile],
+    ['Save background and skills', saveProfile],
+    ['Cancel', cancelProfile],
   ])
-  await capture('workspace-filled-goal', workspace, [
-    ['Goal heading', goal.getByRole('heading', { name: 'Job-search goal', level: 3 })],
-    ['Goal saved revision', goal.getByText('Saved revision 1', { exact: true })],
-    ['Goal constraint', goal.getByRole('textbox', { name: /^Constraint$/ })],
-  ])
-  // At narrow widths the stacked Goal form is taller than one window, so its save action is
-  // evidenced in its own frame together with the constraint it saves rather than with the heading.
-  await capture('workspace-filled-goal-actions', workspace, [
-    ['Goal constraint', goal.getByRole('textbox', { name: /^Constraint$/ })],
-    ['Save Goal', goal.getByRole('button', { name: 'Save Goal', exact: true })],
-  ])
-  await profile.getByRole('checkbox', { name: /I confirm these facts and evidence/ }).check()
-  await profile.getByRole('button', { name: 'Save Profile', exact: true }).click()
+  const saveBox = await saveProfile.boundingBox()
+  const cancelBox = await cancelProfile.boundingBox()
+  expect(Math.abs(saveBox.y - cancelBox.y), 'Save and Cancel share one row').toBeLessThanOrEqual(2)
+  expect(cancelBox.x, 'Cancel follows Save').toBeGreaterThan(saveBox.x)
+
+  // A rejected save stays beside the retained draft, with its next step.
+  await confirmProfile.check()
+  await saveProfile.click()
   await expect(profile.getByRole('alert')).toContainText('This change was rejected.')
-  // The rejection stays beside the retained confirmed facts, not just somewhere in the DOM.
-  await capture('workspace-save-error', workspace, [
-    ['Profile heading', profile.getByRole('heading', { name: 'Confirmed evidence', level: 3 })],
+  await capture('profile-save-error', workspace, [
+    ['Background and skills heading', profile.getByRole('heading', { name: 'Background and skills', level: 2 })],
     ['Save rejection alert', profile.getByRole('alert')],
-    ['Retained first confirmed fact', facts.nth(0)],
+    ['Draft kept notice', profile.getByText(/^Your draft is still here\./)],
+    ['Retained first fact', facts.nth(0)],
   ])
+  await capture('profile-save-error-actions-scrolled', workspace, [
+    ['Confirmation checkbox', confirmProfile],
+    ['Save background and skills', saveProfile],
+    ['Cancel', cancelProfile],
+  ])
+  await cancelProfile.click()
+  await expect(profile).toContainText('Draft cancelled. No write was sent.')
+
+  // Job preferences: a three-field row, then a version conflict with its recovery action.
+  await goal.getByRole('button', { name: 'Edit', exact: true }).click()
+  const preference = goal.getByRole('textbox', { name: /^Preference/ })
+  await capture('goal-edit', workspace, [
+    ['Edit form legend', goal.locator('legend')],
+    ['Type field', goal.getByRole('combobox', { name: /^Type/ })],
+    ['Preference field', preference],
+    ['Priority field', goal.getByRole('combobox', { name: /^Priority/ })],
+  ])
+  geometry.states['goal-edit'].row = await expectFilledRow(goal.locator('[class*="candidate-workspace__row"]').first(), 3, 'Goal field row')
+  await preference.fill('Nur München (DEMO)')
+  await goal.getByRole('checkbox', { name: CONFIRM_GOAL }).check()
+  await goal.getByRole('button', { name: SAVE_GOAL, exact: true }).click()
+  await expect(goal.getByRole('alert')).toContainText('Inputs changed.')
+  await capture('goal-conflict', workspace, [
+    ['Job preferences heading', goal.getByRole('heading', { name: 'Job preferences', level: 2 })],
+    ['Conflict alert', goal.getByRole('alert')],
+    ['Read saved Goal', goal.getByRole('button', { name: 'Read saved Goal', exact: true })],
+  ])
+  await goal.getByRole('button', { name: 'Read saved Goal', exact: true }).click()
+  await expect(goal).toContainText('Saved version for comparison')
+  await capture('goal-conflict-compare', workspace, [
+    ['Comparison heading', goal.getByRole('heading', { name: 'Saved version for comparison' })],
+    ['Newer saved preference', goal.getByText('Berlin oder Remote (DEMO)', { exact: true })],
+    ['Use saved version', goal.getByRole('button', { name: 'Use saved version', exact: true })],
+  ])
+  await goal.getByRole('button', { name: 'Use saved version', exact: true }).click()
+  await expect(goal).toContainText('Saved version adopted.')
 
   // Match review on the long German Card: empty, normal, editor, read error, stale.
   await mainNavigation(page).getByRole('button', { name: 'Card library', exact: true }).click()
@@ -939,7 +1345,7 @@ async function captureProfileMatchEvidence({ page, context, baseURL }, testInfo,
   await page.keyboard.press('Tab')
   await expect(panel.getByRole('button', { name: 'Close match review', exact: true })).toBeFocused()
   await expect(panel).toContainText('No review recorded.')
-  await capture('match-empty', panel)
+  await capture('match-empty', panel, [], { image: false })
   // Escape closes only the review, not the Card, and returns focus to its entry.
   await page.keyboard.press('Escape')
   await expect(panel).toHaveCount(0)
@@ -967,16 +1373,16 @@ async function captureProfileMatchEvidence({ page, context, baseURL }, testInfo,
     ['Eligibility gate gap', summary.getByText(/required eligibility gate; abilities do not override it/)],
     ['Preference conflict gap', summary.getByText(/preference conflict, not lack of eligibility/)],
     ['Next steps heading', summary.getByRole('heading', { name: 'Next steps', level: 4 })],
-  ])
+  ], { image: false })
   for (const text of ['Eligibility', 'requirement 1', 'requirement 2', 'Preferences']) await openGroup(page, panel, text)
   await groupIn(page, panel, 'Preferences').scrollIntoViewIfNeeded()
-  await capture('match-groups', panel)
+  await capture('match-groups', panel, [], { image: false })
 
   await groupIn(page, panel, 'Eligibility').getByRole('button', { name: /^Confirm or correct/ }).click()
   const editor = panel.locator('form.posting-match__editor')
   await expect(editor).toBeVisible()
   await editor.scrollIntoViewIfNeeded()
-  await capture('match-editor', panel)
+  await capture('match-editor', panel, [], { image: false })
   await editor.getByRole('button', { name: 'Cancel judgment changes', exact: true }).click()
   await expect(editor).toHaveCount(0)
 
@@ -984,14 +1390,14 @@ async function captureProfileMatchEvidence({ page, context, baseURL }, testInfo,
   await panel.getByRole('button', { name: 'Read saved review', exact: true }).click()
   await expect(panel.getByRole('alert')).toContainText('Could not read the review.')
   await panel.scrollIntoViewIfNeeded()
-  await capture('match-read-error', panel)
+  await capture('match-read-error', panel, [], { image: false })
 
   readMode = 'ok'
   view = STALE_VIEW()
   await panel.getByRole('button', { name: 'Read saved review', exact: true }).click()
   await expect(panel).toContainText('Needs re-evaluation: profile.')
   await panel.scrollIntoViewIfNeeded()
-  await capture('match-stale', panel)
+  await capture('match-stale', panel, [], { image: false })
 
   const geometryFile = testInfo.outputPath(`profile-match-${label}-geometry.json`)
   await writeFile(geometryFile, JSON.stringify(geometry, null, 2), 'utf8')

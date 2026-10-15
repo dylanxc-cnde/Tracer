@@ -8,6 +8,27 @@ import { expect, test } from '@playwright/test'
 const OPENAI_KEY = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const DEEPSEEK_KEY = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 
+const API_ORIGIN = 'http://127.0.0.1:8000'
+
+// Settings opens on its Profile category, which reads the two personal domains on arrival.
+// This answers ONLY GET /profile and GET /goal with "nothing saved" (null) and counts them; any
+// other method falls through to the closed mock, so an unexpected personal write still fails.
+// Register it AFTER the closed '**/*' route: Playwright runs later routes first. Provider and
+// parsing scenarios do not assert on personal data, so null is the simplest truthful answer.
+export async function answerPersonalReads(context) {
+  const reads = { profile: 0, goal: 0 }
+  await context.route((url) => url.origin === API_ORIGIN && (url.pathname === '/profile' || url.pathname === '/goal'), async (route) => {
+    const request = route.request()
+    if (request.method() !== 'GET') {
+      await route.fallback()
+      return
+    }
+    reads[new URL(request.url()).pathname.slice(1)] += 1
+    await route.fulfill({ json: null })
+  })
+  return reads
+}
+
 async function installMocks({ context, baseURL, settings, handlers, unexpectedRequests }) {
   await context.route('**/*', async (route) => {
     const request = route.request()
@@ -36,6 +57,7 @@ async function installMocks({ context, baseURL, settings, handlers, unexpectedRe
       socket.close()
     }
   })
+  return answerPersonalReads(context)
 }
 
 // Gives any wrongly issued follow-up request time to reach the closed mock before
@@ -114,7 +136,7 @@ test('editing a provider adopts the server result and preserves other rows', asy
   const patches = []
   const unexpectedRequests = []
 
-  await installMocks({
+  const personalReads = await installMocks({
     context, baseURL, settings, unexpectedRequests,
     handlers: {
       [`PATCH http://127.0.0.1:8000/settings/ai/providers/${OPENAI_KEY}`]: async (route, request) => {
@@ -127,6 +149,10 @@ test('editing a provider adopts the server result and preserves other rows', asy
   await openApiSettings(page)
   const providers = page.getByRole('list', { name: 'Saved providers' })
   await expect(providers.getByRole('listitem')).toHaveCount(2)
+  // The default Profile category read each personal domain once on arrival; switching to the
+  // API category added no personal reads of its own (these reads are not API-tab preloading).
+  await settle(page)
+  expect(personalReads).toEqual({ profile: 1, goal: 1 })
   const deepseekText = await providers.getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: 'DeepSeek alt', exact: true }) }).textContent()
 
@@ -799,10 +825,15 @@ test('display name saves trimmed, clears to null, and cancels a draft', async ({
     }
   })
 
+  await answerPersonalReads(context)
+
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Profile', exact: true }).click()
 
+  // The Profile category also holds the personal domain regions; display-name feedback is
+  // scoped to its own region so their status/alert messages are never mistaken for it.
+  const userInformation = page.getByRole('region', { name: 'User information', exact: true })
   const nameInput = page.getByLabel('Display name', { exact: true })
   await expect(nameInput).toBeVisible()
   await expect(nameInput).toHaveValue('')
@@ -810,7 +841,7 @@ test('display name saves trimmed, clears to null, and cancels a draft', async ({
   // Save a trimmed name.
   await nameInput.fill('  Ada Lovelace  ')
   await page.getByRole('button', { name: 'Save changes', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('Changes saved.')
+  await expect(userInformation.getByRole('status')).toContainText('Changes saved.')
   await expect(nameInput).toHaveValue('Ada Lovelace')
   expect(patches).toEqual([{ display_name: 'Ada Lovelace' }])
 
@@ -858,15 +889,18 @@ test('a failed display name save retains the draft and shows a fixed error', asy
     }
   })
 
+  await answerPersonalReads(context)
+
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Profile', exact: true }).click()
 
+  const userInformation = page.getByRole('region', { name: 'User information', exact: true })
   const nameInput = page.getByLabel('Display name', { exact: true })
   await nameInput.fill('  Ada Lovelace  ')
   await page.getByRole('button', { name: 'Save changes', exact: true }).click()
 
-  await expect(page.getByRole('alert')).toContainText('Failed to save user settings (500). Please try again.')
+  await expect(userInformation.getByRole('alert')).toContainText('Failed to save user settings (500). Please try again.')
   await expect(nameInput).toHaveValue('  Ada Lovelace  ')
   expect(await page.locator('body').innerText()).not.toContain(secretMarker)
 
@@ -899,6 +933,8 @@ test('the saved display name reaches Home and re-entering Settings restores it',
       socket.close()
     }
   })
+
+  await answerPersonalReads(context)
 
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Home', exact: true }).click()
@@ -944,22 +980,24 @@ test('a failed initial profile load offers retry, then a real save reaches Home 
   await mainNavigation.getByRole('button', { name: 'Settings', exact: true }).click()
   await settingsSections.getByRole('button', { name: 'Profile', exact: true }).click()
 
-  // A failed read never shows an editable, empty-looking form.
-  await expect(page.getByRole('alert')).toContainText('Could not load valid settings. Please try again.')
+  // A failed read never shows an editable, empty-looking form. Only the display-name region is
+  // under test here; the personal domain regions below it have their own messages.
+  const userInformation = page.getByRole('region', { name: 'User information', exact: true })
+  await expect(userInformation.getByRole('alert')).toContainText('Could not load valid settings. Please try again.')
   await expect(page.getByLabel('Display name', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0)
   expect(await page.locator('body').innerText()).not.toContain(secretMarker)
   expect(patches).toHaveLength(0)
 
-  await page.getByRole('button', { name: 'Try again', exact: true }).click()
+  await userInformation.getByRole('button', { name: 'Try again', exact: true }).click()
   const nameInput = page.getByLabel('Display name', { exact: true })
   await expect(nameInput).toBeVisible()
   await expect(nameInput).toHaveValue('')
-  await expect(page.getByRole('alert')).toHaveCount(0)
+  await expect(userInformation.getByRole('alert')).toHaveCount(0)
 
   await nameInput.fill('  Grace Hopper  ')
   await page.getByRole('button', { name: 'Save changes', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('Changes saved.')
+  await expect(userInformation.getByRole('status')).toContainText('Changes saved.')
   await expect(nameInput).toHaveValue('Grace Hopper')
   expect(patches).toEqual([{ display_name: 'Grace Hopper' }])
 
@@ -990,7 +1028,7 @@ test('posting parsing validates, blocks controls while saving, retains a failed 
   const unexpectedRequests = []
   const responseGate = Promise.withResolvers()
 
-  await installMocks({
+  const personalReads = await installMocks({
     context, baseURL, settings, unexpectedRequests,
     handlers: {
       'PUT http://127.0.0.1:8000/settings/ai/tasks/posting_parse': async (route, request) => {
@@ -1096,6 +1134,10 @@ test('posting parsing validates, blocks controls while saving, retains a failed 
     await expect(providerSelect).toHaveValue(OPENAI_KEY)
     await expect(modelInput).toHaveValue('gated_model')
     expect(puts).toHaveLength(2)
+    // Settings opened on Profile once (first read) and the explicit Profile re-entry read both
+    // personal domains again; the API category itself never preloads them.
+    await settle(page)
+    expect(personalReads).toEqual({ profile: 2, goal: 2 })
     expect(unexpectedRequests, 'All non-Vite requests must be explicitly mocked').toEqual([])
   } finally {
     responseGate.resolve()
