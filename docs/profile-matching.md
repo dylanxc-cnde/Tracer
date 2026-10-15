@@ -82,7 +82,7 @@ new confirmation; there is no cross-page pending-operation cache.
 ## Review a current Card locally
 
 Open an already saved current Card in reading mode and choose **Review match**.
-Only this explicit entry runs `GET /posting/card/{card_key}/match`. The original
+Only this explicit entry runs `GET /matching/card/{card_key}`. The original
 read-only viewer and Card editing mode mount no match component, read no match
 data and issue no match write. Existing Requirements editing and source/original
 operations are unchanged. Switching into Card edit mode unmounts the review;
@@ -154,7 +154,8 @@ review **Needs re-evaluation**, show old snapshot revisions, and disable judgmen
 writes. Server CAS also rejects races with `409` rather than accepting an obsolete
 comparison. Old evidence is resolved only from the saved review's snapshots, not
 from newly edited/deleted current entries. The UI reads the latest assessment;
-the API also retains immutable revisions via `/match/history`.
+the API also retains immutable revisions via `/matching/card/{card_key}/history`, which lists the latest revision of each
+assessment.
 
 ## Local data, first enable and failure recovery
 

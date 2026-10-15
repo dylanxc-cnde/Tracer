@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test'
 
 // Playwright only discovers this file; importing the management scenarios keeps the
-// full provider/parsing maintenance journey in the same closed-mock browser suite.
+// full provider/parsing maintenance journey, and the Profile/Goal/Match review
+// scenarios, in the same closed-mock browser suite.
 import './settings-management.browser.test.mjs'
+import './profile-matching.browser.test.mjs'
 
 test('successful provider creation appends the server result and reopens with an empty masked key', async ({ page, context, baseURL }) => {
   const savedProvider = {

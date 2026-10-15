@@ -45,8 +45,8 @@ def create_app(
     async def handle_request_validation_error(
         request: Request, error: RequestValidationError
     ) -> JSONResponse:
-        if request.url.path in {"/profile", "/goal"} or (
-            request.url.path.startswith("/posting/card/") and "/match" in request.url.path
+        if request.url.path in {"/profile", "/goal"} or request.url.path.startswith(
+            "/matching/card/"
         ):
             # Personal request validation must not echo facts or evidence text.
             return JSONResponse(status_code=422, content={"detail": "personal.invalid_request"})

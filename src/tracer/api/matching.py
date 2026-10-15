@@ -12,7 +12,9 @@ from tracer.profiles.store import InvalidReference, RevisionConflict
 
 def create_matching_router(*, database_path: Path) -> APIRouter:
     service = MatchService(database_path)
-    router = APIRouter(prefix="/posting/card/{card_key}/match", tags=["matching"])
+    # Deliberately outside "/posting/": that namespace and its "postings" tag are
+    # reserved for posting import/card routes (see tests/api/test_posting_routes.py).
+    router = APIRouter(prefix="/matching/card/{card_key}", tags=["matching"])
 
     def perform(operation):
         try:

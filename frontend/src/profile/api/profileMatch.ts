@@ -99,7 +99,7 @@ export const getCandidateProfile = () => request<CandidateProfile | null>('/prof
 export const getJobSearchGoal = () => request<JobSearchGoal | null>('/goal', 'GET', goal)
 export const saveCandidateProfile = (body: SaveProfileRequest) => request<CandidateProfile>('/profile', 'PUT', v => v !== null && profile(v), body)
 export const saveJobSearchGoal = (body: SaveGoalRequest) => request<JobSearchGoal>('/goal', 'PUT', v => v !== null && goal(v), body)
-const base = (key: string) => `/posting/card/${encodeURIComponent(key)}/match`
+const base = (key: string) => `/matching/card/${encodeURIComponent(key)}`
 export const getPostingMatch = (key: string) => request<MatchView>(base(key), 'GET', match)
 export const evaluatePostingMatch = (key: string, fingerprint: string) => request<MatchView>(`${base(key)}/evaluate`, 'POST', match, { expected_inputs: fingerprint })
 export const savePostingJudgment = (key: string, matchId: string, targetId: string, body: SaveJudgmentRequest) => request<MatchView>(`${base(key)}/${encodeURIComponent(matchId)}/judgment/${encodeURIComponent(targetId)}`, 'PUT', match, body)

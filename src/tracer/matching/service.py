@@ -150,7 +150,12 @@ class MatchService:
                 if not records:
                     raise
                 inputs = None
-            return tuple(self._view(inputs, record) for record in records)
+            # The store keeps every judgment revision; history lists each assessment
+            # once, at its latest revision (records are ordered newest first).
+            latest: dict[UUID, MatchRecord] = {}
+            for record in records:
+                latest.setdefault(record.match_id, record)
+            return tuple(self._view(inputs, record) for record in latest.values())
 
     @staticmethod
     def _groups(posting: PostingDetails, goal: JobSearchGoal | None) -> tuple[MatchGroup, ...]:
