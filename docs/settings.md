@@ -11,16 +11,30 @@ supports a model, or has billed a particular amount.
 | --- | --- | --- | --- |
 | Display name | Settings → Profile lets the user edit, clear, or cancel the greeting name. It is the existing personal preference used by Home, not a CandidateProfile or job-search fact. | `PATCH /settings/user` saves `user.display_name` in the single local `app_settings` SQLite JSON snapshot. Profile loads it with `GET /settings`; Home independently reads that saved value when Home mounts and uses it for the greeting. Empty input is saved as `null`. | Failed save retains the local draft; retry is user initiated. Leaving Profile discards an unsaved draft. Home re-entry reads settings again; there is no global Settings cache or cross-page pending-save synchronization. A save already sent is not cancelled by navigation. |
 
-**Open Profile and Goal** explicitly mounts the new local personal workspace.
-Only then does it read `GET /profile` and `GET /goal`. Confirmed candidate evidence
-and job-search constraints have separate forms, confirmations, PUT endpoints,
-saved revisions and feedback. They do not modify AppSettings, the greeting or
-credentials. Empty optional data stays unknown. Match review is an explicit
-operation in a saved current Card's reading mode, not a background AI call.
+Entering **Profile** directly reads `GET /profile` and `GET /goal`, independently
+of the existing Display name request. **Background and skills** and **Job
+preferences** show saved content first, with a local Edit entry; empty
+sections have brief filling entries. There is no nested Open/Close workspace.
+Other pages and the API category do not preload these domains.
+
+Each domain has its own draft, explicit confirmation, Save/Cancel, PUT endpoint,
+saved revision and feedback. Success returns to the server-confirmed reading
+state; Cancel restores only that section's baseline without a request. Edits and
+removals revoke confirmation. These operations do not modify AppSettings, the
+greeting or credentials. Empty optional data stays unknown, not a confirmed gap;
+failed reads remain errors. Normal reading hides technical revisions; conflicts
+or uncertain saves retain the draft, lock writes and expose Read saved Profile/Goal,
+comparison and explicit Use saved version. Read failures do not unlock writes.
+Saving disables local editing/cancellation; category/page exit still discards
+local drafts, not HTTP requests. Re-entry reads again; reading mode also has a
+manual Refresh action when an earlier request may not yet have settled.
+Match review remains an explicit operation in a saved current Card's reading mode,
+not a background AI call.
 See [Local Profile, Goal and match review](profile-matching.md) for operation,
 version invalidation, response-loss reconciliation and first-enable backup rules.
-This new integration has source inspection only at this checkpoint; the old
-Settings evidence below does not establish that it works or approve its visuals.
+This interaction repair has source inspection only at this checkpoint. The old
+Settings and `beda68121a11b9e2619292b01b5a65efa699dba4` Profile/Goal/Match
+engineering evidence does not establish this revised flow or approve its visuals.
 
 ## API providers
 
@@ -129,12 +143,12 @@ and two geometry files at 1440×1000 and 900×1000. The controlled decision
 documentation lag identified as SET-ST1-DOC1, not a fresh execution or new review.
 
 Stage-0 images remain comparison baselines, not current-page results. The Settings
-approval does not approve the new Profile/Goal/Match layout. Its new behavior,
+approval does not approve the repaired Profile/Goal layout. Its changed behavior,
 screenshots, keyboard checks and current lint/build/regression results remain
 pending the assigned tester, deterministic runner and independent stage review.
 Real browser-to-backend, native keyring and supplier behavior are not established
 by the Settings mock/temporary-database evidence. No live product calls were made
-or are authorized in this Profile/Goal/Match source unit.
+or are authorized in this Profile interaction repair.
 
 The earlier `066cd76` behavior snapshot reported 21 browser tests passed; this is
 historical evidence and is not rewritten to include later scenarios. On the later

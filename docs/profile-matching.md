@@ -2,17 +2,25 @@
 
 ## Information hierarchy and real-content layout plan
 
-This plan precedes the API integration in this source unit. It uses the existing
-Settings workspace and Card dialog, not a separate demo product. The Home shell,
+This is the real-content plan for the Profile interaction repair within the
+existing Settings page, not a separate demo product. The Home shell,
 Inter, semantic colors and navigation remain unchanged.
 
-- Settings → Profile keeps Display name in User information. A clearly labelled
-  **Open Profile and Goal** action opens the local workspace on demand. No new
-  personal API request runs merely by opening the existing Settings page.
-- Two stacked, independent sections show **Confirmed evidence** and **Job-search
-  goal**. Each has its own saved revision, draft, explicit confirmation, Save and
-  Cancel. Add/remove entries are secondary actions. Empty entries can be skipped;
-  absence means unknown, never an inferred failure.
+- Settings → Profile keeps Display name in **User information** and directly
+  loads **Background and skills** and **Job preferences**. There is no extra
+  Open/Close workspace gate or repeated page title. Other pages and the API
+  category do not mount these personal-domain readers.
+- Both independent sections first show saved server content, not editable inputs.
+  **Edit** opens that section's draft; an empty section offers a direct
+  filling entry. Each has its own explicit confirmation, Save and Cancel. Save and
+  Cancel stay adjacent; removing an entry is secondary. Profile has a two-field
+  row (type/fact), Goal a three-field row (type/preference/priority). Narrow windows
+  stack the fields without leaving an empty third column in Profile.
+- Reading rows show type, full label, supporting details when supplied and Goal
+  priority. Normal reading does not show UUIDs or revision numbers. Empty content
+  explains what can be added; absent information stays unknown, never a failure.
+  Recovery alone shows saved revisions for comparison. A failed load is an error
+  with Try again, not an empty state or an invitation to overwrite unread data.
 - Long-content reference: “Werkstudentin im Bereich datenbasierte Mobilitäts- und
   Infrastrukturplanung”, evidence “Python-Datenanalyse im universitären Projekt
   zur Auswertung kommunaler Verkehrsdaten”, and location constraint “Berlin und
@@ -29,21 +37,32 @@ Inter, semantic colors and navigation remain unchanged.
   unknown. Missing posting information stays unknown. Old input revisions are
   labelled **Needs re-evaluation** and remain readable, but cannot be corrected.
   Re-evaluation creates fresh targets, without silently importing old judgments.
-- Load failures leave Retry and Close available. Save failures retain drafts.
+- Profile load failures leave Try again available; Card review retains its Close.
+  Save failures retain drafts.
   Unknown write outcomes lock further writes until a user-initiated read; the
   retained draft and saved state are compared before adopting saved data or
   explicitly starting a new confirmation. Leaving never claims to undo a request.
 
 Browser behavior, responsive screenshots, keyboard/focus checks and user visual
 acceptance for this new layout are pending the assigned tester/runner/reviewer.
-The Settings visual approval does not approve this new workspace.
+The old Settings or Profile engineering checkpoints do not approve this repaired
+page. The two requested viewports are 1440×1000 and 900×1000; first-entry images
+must start at the real Profile entrance without scrolling to hide the page top.
 
 ## Save confirmed evidence and a goal
 
-Open Settings → Profile → **Open Profile and Goal**. Merely entering Settings
-still uses the existing AppSettings request only. Display name remains its
-existing, independent operation. Opening the workspace reads `/profile` and
-`/goal`; a failed read is not treated as an empty document.
+Open Settings → Profile (the default Settings category). Profile mounts the two
+domain readers and reads `/profile` and `/goal`, while Display name uses its
+existing, independent AppSettings request. Switching to API or another page
+unmounts these readers; neither preloads personal data. A failed read is not
+treated as an empty document.
+
+Saved content is readable by default. Select **Edit** in the relevant section,
+**Add background and skills** or **Set job preferences** for an empty
+section. Editing one section does not remount the other or replace its draft.
+Select its Save after explicit confirmation, or Cancel to return to reading mode.
+Keyboard entry focuses the local editor heading; saving/cancelling returns focus
+to its filling/Edit button. Escape no longer closes a nested workspace.
 
 Profile evidence can be a qualification, skill, language, experience or
 certificate. Enter a confirmed fact and optional description of its basis.
@@ -60,7 +79,8 @@ IDs; edits preserve server-issued IDs. Local React row keys are not persisted
 as evidence identities. Confirming removals omits those entries from the new
 current document; immutable saved revisions retain their old evidence.
 
-The response updates that form's saved baseline and revision. A never-recorded
+The successful response updates only that form's saved baseline and revision,
+then returns to reading the server-confirmed content. A never-recorded
 document is `null`; explicitly saving an empty document records a revision but
 does not create evidence of a gap. Cancel restores the last successfully read or
 saved document with no request. Saving disables local controls and a synchronous
@@ -74,9 +94,10 @@ facts, notes and revision, then explicitly **Use saved version** to discard the
 retained draft and adopt server IDs before editing/confirming again. There is no
 automatic retry or silent revision replacement. This prevents replaying a
 creation whose response was lost. Read failures keep both the draft and lock.
-Closing or switching pages discards component-local drafts and ignores late
-responses; it does not cancel or roll back a request already sent. Reopening
-reads again. If an earlier write has not settled, manually read again before a
+Switching category or page discards component-local drafts and ignores late
+domain responses; it does not cancel or roll back a request already sent. Re-entry
+reads again. If an earlier write has not settled, use **Refresh saved background
+and skills / job preferences** in reading mode before a
 new confirmation; there is no cross-page pending-operation cache.
 
 ## Review a current Card locally
@@ -188,18 +209,21 @@ without deleting saved revisions or modifying old facts.
 
 ## Evidence boundary at this source checkpoint
 
-Inspected actual routes `src/tracer/api/profiles.py` and `matching.py`, DTOs in
-`profiles/models.py` and `matching/models.py`, and the local service's input
-fingerprints, reference checks and aggregation. Frontend DTOs mirror these
-contracts; the request layer uses one fetch attempt, validates consumed response
+The prior implementation inspected routes `src/tracer/api/profiles.py` and
+`matching.py`, DTOs in `profiles/models.py` and `matching/models.py`, and the local
+service's fingerprints, reference checks and aggregation. This repair rechecks the
+unchanged frontend DTO/request contract; the request layer uses one fetch attempt, validates consumed response
 shape and never echoes server response bodies. Profile and Goal save feedback
-and baseline revisions are independent. Domain components are mounted only by
-their explicit entry points. Card edit/original paths never mount the review.
+and baseline revisions are independent. Personal domains mount with Settings
+Profile; match review still mounts only at its explicit Card entry. Card
+edit/original paths never mount the review.
 
-The assigned source unit touches only the eleven authorized frontend/doc paths.
-The existing Settings checkpoint's 29 mocked browser / 28 request / 947 fake or
-temporary-backend results and its visual approval remain historical evidence,
-not verification of this new integration. No lint/build/type/browser/pytest/diff
+This repair touches only four authorized UI/style files and the three existing
+guides. It does not change request/types, backend, Card matching or API management.
+The existing Settings checkpoint's results and visual approval remain historical.
+Profile/Goal/Match checkpoint `beda68121a11b9e2619292b01b5a65efa699dba4` also
+predates this repair; its engineering evidence does not verify the changed entry
+and reading/editing flow or constitute user visual approval. No lint/build/type/browser/pytest/diff
 check command has been run by this author under runner_protocol=1. The assigned
 Claude test group, runner checks, screenshots and independent stage review are
 next; no new test count, green result or user visual approval is prefilled here.

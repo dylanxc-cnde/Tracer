@@ -60,29 +60,46 @@ Mocked App behavior does not establish real settings persistence, OS credential
 storage, external provider access, all navigation races, HTTP cancellation,
 other-browser compatibility, responsive behavior or visual acceptance.
 
-## Profile / Goal / local match integration (pending validation)
+## Profile interaction repair (pending validation)
 
-New personal-domain UI source is integrated in the real Settings Profile and
-current Card reading mode. Initial Settings/ordinary Card entry does not request
-personal or match endpoints; **Open Profile and Goal** and **Review match** are
-explicit entry points. The assigned Claude tester still needs to author the
-approved coherent browser group and import it through the discovered entry
-above, without changing Playwright configuration or weakening existing tests.
-This documentation does not predeclare test counts, screenshots or passing runs
-for that new group. Existing Settings mocks remain closed.
+The personal domains now load directly in Settings → Profile, including default
+Profile entry. The page shows saved **Background and skills** and **Job
+preferences**, separate local Edit/Start controls, and explicit confirmation and
+Save/Cancel in each editor. API category/other pages do not preload them. **Review
+match** remains explicit in current Card reading mode; ordinary Card/edit/original
+entry does not request matching. There is no nested Open/Close workspace.
 
-The authorized group covers separate local confirmations/saves, skip/unknown,
+The existing `profile-matching.browser.test.mjs` is already imported through the
+discovered entry. The assigned Claude tester adapts that coherent group and the
+affected Settings scenarios, without changing Playwright configuration, skipping
+tests or weakening existing assertions. Closed Settings mocks must explicitly
+answer the two new-on-Profile-entry GETs; other unexpected requests remain blocked.
+The component suite bridge's title containing `component suite` and its assertion
+listing all failing component text, including Duplicate submission, must remain.
+This guide predeclares no new test counts, screenshots or passing runs.
+
+The authorized repair group covers direct entry, saved/empty reading and separate
+local editing, confirmation, save and cancel, another section's draft surviving
+re-renders/saves, keyboard use, skip/unknown,
 failure retention, lost-response manual reads, stale-input reviews, judgment-only
 correction, and original/editing Card boundaries. Profile/Goal facts remain local;
 there is no live AI call to mock into a false automatic-match claim. Tests must
 not silently upgrade facts or turn an absent evidence entry into a confirmed gap.
 See `docs/profile-matching.md` for the API/operation contract and five approved
 cases. Browser mocks check real App controls but not real SQLite persistence.
-The new backend group must use temporary SQLite and verify app reconstruction,
-snapshot references and unchanged Card/Settings data. It does not authorize
+The prior backend group uses temporary SQLite and verifies app reconstruction,
+snapshot references and unchanged Card/Settings data. The current repair changes
+no backend, DTO or matching rule; reuse requires host file/mode comparison, not a
+fresh invented run. It does not authorize
 first-enable writes to the user's old database or claim a real browser/backend
 end-to-end run. New behavior, static checks, images and visual acceptance are
-pending; the unchanged 29-test Settings evidence is not a green run for new code.
+pending. Prior Profile/Goal/Match checkpoint
+`beda68121a11b9e2619292b01b5a65efa699dba4` and the older Settings counts remain
+historical evidence, not green runs for this repair or user visual approval.
+Capture 1440×1000 and 900×1000 first entry at the actual Settings entrance, saved
+long content, editing, empty and error/conflict states. Do not scroll the first
+entry screenshot to a subsection. Report behavior, geometry and direct image
+observation separately; neither passing assertions nor screenshots approve design.
 
 ## Separate request tests and component inspection
 
