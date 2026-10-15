@@ -41,11 +41,22 @@ The browser app currently has Home, Import Posting, Card Library, Activity,
 Import History, and Settings. Profile loads the saved display name and saves
 changes only when you select Save changes; Cancel restores the last saved name.
 Leaving Profile discards unsaved edits. API Settings manages provider metadata
-and write-only credentials and selects the provider/model for posting parsing;
-Job preferences and Activity remain placeholders. Home reads your saved display name for its greeting;
-the remaining personal and Discover sections are layout prototypes. Its full-year
-activity heatmap uses clearly labeled demo data, not recorded job-search activity.
+and write-only credentials and selects the provider/model for posting parsing.
+The separate Activity page remains a placeholder. Home reads your saved display
+name and local shared records: tasks, scheduled events, explicit applications,
+recent saved jobs and recorded workspace operations. Add task, Complete,
+Add/Adjust event and Record application use inline controls; saving a job never
+creates an application. The annual activity calendar uses recorded operations,
+with earlier dates marked not recorded, not demo history. AI usage distinguishes
+budget preferences from unobtained token/cost records. Discover, recommendations,
+Market brief and Ask Tracer remain disabled layout previews.
 It's not yet a packaged desktop app.
+
+The Home frontend source is pending browser/static validation and visual review;
+previous green Settings/Profile evidence is not a passing run for this change.
+See [Home records](docs/home.md) for API contracts, failure/retry behavior and
+the separate backup/validation approval required before real-database
+activation. Development and screenshots use synthetic records, not your database.
 
 ## Run locally
 

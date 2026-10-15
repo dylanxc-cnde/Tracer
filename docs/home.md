@@ -160,10 +160,98 @@ Restore a verified backup only with separate explicit authorization: restoration
 can discard changes made since the backup. Never regenerate Provider UUIDs or
 copy secret values into reports.
 
+## Frontend flow and boundaries
+
+Home now reads `/home/overview` on entry, at local date changes and on explicit
+Refresh Home. The greeting still reads the display name through AppSettings.
+`home/types/home.ts` mirrors the JSON contract; `home/api/home.ts` constructs
+the local-midnight UTC windows, issues Home requests and maps fixed safe errors.
+Components never issue raw Home fetches. Clock ticks do not reload records.
+The activity request covers January 1 through the next January 1 in device-local
+time. A confirmed write refreshes both overview and activity; the personal
+sections all consume the newly returned overview, not separate copies of facts.
+
+`HomeRecords` owns Today, Upcoming, Your search and Recent jobs. Each inline
+editor owns its local draft, UUID and synchronous submission guard. Task title
+and optional due date stay in place after Add; the next title input receives
+focus without scrolling to the new row. The task list reserves a small amount
+of space. Today's task list includes overdue/undated tasks, with a separate
+completed count and expandable list. The next remaining event is highlighted
+only if a real event exists; there is no fake interview card.
+
+Upcoming combines the next 14 days' due-date tasks and recorded events. Add
+event / Adjust open a bounded inline editor with title, type and local start/end
+times; editing an existing event also allows explicit cancellation. Times are
+converted to UTC at submit. Cancel editing discards only the local editor; it
+does not cancel an already sent write. During submission it is disabled.
+No task editing/deletion or automatic Card-deadline import is added.
+
+Your search offers Record application: it reads the complete saved Card list
+through the existing posting API, lets the user select a job and defaults the
+date fact to today. Recent jobs offers the same form preselected for that Card.
+The selected job's full title and company wrap below the native selector, so a
+long title does not depend on the control's clipped display or a hover tooltip.
+The confirmation text explicitly says the application has already been submitted;
+the POST is caused only by the user's form submission. Existing applications
+show their confirmed status, including “Job deleted” for missing references.
+Recent jobs can open the existing Details reader in read-only mode; edits remain
+in Card Library. Neither opening nor saving a Card creates an application.
+
+`HomeActivity` shows recent operations, the real annual calendar and public
+provider budget preferences. It deduplicates activity IDs before local-date
+counting. Earlier unrecorded days have dashed cells and “Not recorded” accessible
+labels; future dates are identified separately. No recording start or historical
+count is invented. No provider budget, an unset budget, a zero budget, a positive
+budget and unobtained token/cost data are distinct states. Budgets are not limits.
+
+### Failure and lifetime handling
+
+- Initial read failures show an error and Retry, not an empty state. An unsuccessful
+  refresh can retain last-loaded records and local editors, clearly labeled as
+  stale. Activity failures have their own Retry and do not masquerade as zeros.
+- Known rejected writes preserve the draft and permit correction or manual retry.
+  Identical creation retries keep the same UUID. Correcting a definitely rejected
+  creation produces a new request identity. No error body or private input is
+  echoed into an error message or log.
+- A network failure, unreadable success response or unclassified server failure
+  after a write locks the draft and asks for **Refresh to check**. No write is
+  automatically resent. If the read finds the expected saved record, the editor
+  adopts that outcome. If the current projection cannot confirm it (for example,
+  an event was moved outside the 14-day window), the user may explicitly retry
+  the **same frozen request**. Its UUID and payload remain unchanged. Backend
+  creation replay and no-op adjustment/completion protect that manual retry.
+- Once a write has been confirmed, a subsequent read failure is reported as
+  “Saved, but ... could not be loaded”; it is not a reason to submit a new record.
+- Each editor/row has a synchronous guard as well as disabled submission controls.
+  Read generations ignore older results. Unmounted pages/editors ignore late
+  responses; leaving the page does not claim to revoke the server operation.
+  Unsaved drafts are page-local and are discarded when Home is unmounted, not
+  persisted in browser storage. Other mounted editors survive ordinary refreshes.
+
+Discover, Recommended jobs, Market brief and Ask Tracer remain the existing
+disabled previews, with the original layout and independent scroll region.
+They are not consumers of the new records and trigger no external services.
+
 ## Verification status
 
-Backend source inspection only at this checkpoint. The assigned tester will
-write the Home behavior group; the deterministic runner must execute it and the
-existing pytest regression suite plus diff checks. No new execution result,
-temporary-database persistence result, frontend integration, real-user database
-activation, external-provider call or visual approval is claimed here.
+The stage-1 backend runner `run-bf36be0c350c291f` recorded 1022 passing pytest
+tests, including the 44-case Home group, and a successful diff check. The
+independent stage review checked the corrected nonempty event/restart assertion.
+Those temporary-database/fake tests are historical evidence for that backend
+snapshot, not a new frontend run or real-user activation.
+
+This frontend source checkpoint has **not run** lint, build, test types, browser
+checks or new Home scenarios. The assigned tester must adapt existing closed
+Home-entry mocks and author the coherent browser group; the deterministic runner
+then executes the authorized checks. Prior Settings/Profile green runs do not
+cover new Home requests. No new test count or passing check is predeclared.
+
+Use isolated synthetic long German/English content at 1440×1000 and 900×1000.
+Capture real Home entry at scrollTop=0, empty state, lower activity/usage, loading
+failure, task-save failure and the application form. The archived before Home
+frames may be reused only with their snapshot/source evidence. Report behavior,
+scroll-viewport geometry and actual image observation separately. No browser
+screenshots, visual approval, real browser-to-backend integration, real-user
+database activation, external-provider call or exact-final-HEAD CI success is
+claimed by this frontend source unit. The existing final reviews and CI gates
+remain required for complete Beta delivery; Home completion alone is not Beta.

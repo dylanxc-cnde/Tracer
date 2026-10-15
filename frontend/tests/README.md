@@ -1,4 +1,4 @@
-# Settings tests
+# Frontend behavior tests
 
 ## Automated Chromium regression
 
@@ -100,6 +100,45 @@ Capture 1440×1000 and 900×1000 first entry at the actual Settings entrance, sa
 long content, editing, empty and error/conflict states. Do not scroll the first
 entry screenshot to a subsection. Report behavior, geometry and direct image
 observation separately; neither passing assertions nor screenshots approve design.
+
+## Home shared records (frontend validation pending)
+
+The new Home frontend consumes `/home/overview` and `/home/activity`. The assigned
+Claude tester must add the authorized `home-records.browser.test.mjs` group through
+the already discovered browser entry; this author step has not edited tests or
+Playwright configuration. Settings/Profile cases that enter Home must explicitly
+mock both reads, while still rejecting all unexpected requests. Do not weaken
+their existing name, draft, conflict, navigation or Card assertions. Preserve
+the `component suite` bridge title and all failing component text in its assertion
+error, including `Duplicate submission`.
+
+Expected behavior comes from `docs/home.md` and D06397dc9, not the placeholder
+screen: seeded/empty records, local-date/UTC request windows, explicit task and
+application creation, completion, event adjustment and projection refresh;
+known save failure with a retained draft, manual read after an uncertain outcome,
+no automatic resend, identical UUID/payload on a manual creation retry, duplicate
+submission protection, ignored late responses after leaving Home and keyboard
+operation. Verify real long titles and deleted-Card labels. Activity uses stable
+event IDs and local dates, marks earlier days not recorded, and never backfills
+old Cards or counts AI reads. AI usage shows unset/zero/positive provider budgets
+separately from unobtained token/cost data. Reuse valid existing coverage rather
+than expanding a hypothetical edge-case matrix.
+
+The stage-1 backend runner `run-bf36be0c350c291f` recorded 1022 passing pytest
+tests, including 44 Home cases, with temporary SQLite/app reconstruction and
+no credentials or external calls. That does not establish a browser-to-real-API
+roundtrip or real-user activation. The new Home browser group, static checks,
+geometry and screenshots remain **unrun** at this frontend source checkpoint;
+older Settings/Profile browser counts are historical and are not new results.
+
+Use isolated mocks at 1440×1000 and 900×1000. Capture the actual first Home
+screen from the navigation entrance without scrolling, then empty personal data,
+lower activity/usage, overview failure, task failure and the inline application
+form. Reuse existing Playwright helpers and archived before Home frames, not a
+new capture framework. For lower frames scroll the real Personal overview
+container to a named bounded target. Behavioral assertions, geometry and direct
+image observation are separate evidence; none grants user visual approval or
+the exact-final-HEAD remote CI gate.
 
 ## Separate request tests and component inspection
 
