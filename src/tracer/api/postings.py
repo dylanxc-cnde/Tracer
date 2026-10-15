@@ -1,4 +1,6 @@
+import sqlite3
 from pathlib import Path
+from typing import Callable, Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, status
@@ -36,6 +38,7 @@ def create_postings_router(
     database_path: Path,
     posting_parser: OpenAIPostingParser | None = None,
     api_key_store: ApiKeyStore | None = None,
+    activity_hook: Callable[[Literal["card_saved", "card_updated"], PostingCard], None] | None = None,
 ) -> APIRouter:
     """Create the routes for posting imports and cards.
 
@@ -43,6 +46,7 @@ def create_postings_router(
         database_path: The SQLite database file to use.
         posting_parser: An optional parser supplied by tests or the caller.
         api_key_store: Optional shared, lazily initialized credential storage.
+        activity_hook: Optional best-effort recorder, called after committed Card writes.
 
     Returns:
         The configured postings router.
@@ -63,6 +67,15 @@ def create_postings_router(
         # existing runtime, including callers that replace it with a fake SDK.
         client_factory=lambda **kwargs: OpenAI(**kwargs),
     )
+
+    def record_activity(kind: Literal["card_saved", "card_updated"], card: PostingCard) -> None:
+        if activity_hook is not None:
+            try:
+                activity_hook(kind, card)
+            except sqlite3.Error:
+                # The Card is already committed. Activity is not a second save
+                # prerequisite, and raw database errors may contain private data.
+                pass
 
     def get_posting_import(import_key: UUID) -> PostingImportRequest:
         request = posting_import_request_store.get(import_key)
@@ -153,13 +166,15 @@ def create_postings_router(
     ) -> PostingCard:
         get_posting_import(request.import_key)
 
-        return create_posting_card_service.create(
+        card = create_posting_card_service.create(
             import_key=request.import_key,
             posting=request.posting,
             posting_alias=request.posting_alias,
             user_notes=request.user_notes,
             tags=request.tags,
         )
+        record_activity("card_saved", card)
+        return card
 
     @router.get("/card/{card_key}")
     def read_posting_card(card_key: UUID) -> PostingCard:
@@ -192,6 +207,7 @@ def create_postings_router(
         card_key: UUID,
         request: UpdatePostingCardRequest,
     ) -> PostingCard:
+        previous = posting_card_store.get_by_card_key(card_key) if activity_hook is not None else None
         card = update_posting_card_service.update_user_content(
             card_key=card_key,
             request=request,
@@ -202,6 +218,8 @@ def create_postings_router(
                 detail="Posting card not found",
             )
 
+        if previous is not None and card != previous:
+            record_activity("card_updated", card)
         return card
 
     @router.delete(
