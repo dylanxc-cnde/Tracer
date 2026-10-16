@@ -17,6 +17,7 @@ from .home import create_home_router
 from .matching import create_matching_router
 from .postings import create_postings_router
 from .profiles import create_profiles_router
+from .search import create_search_router
 from .settings import create_settings_router
 
 
@@ -49,6 +50,8 @@ def create_app(
     async def handle_request_validation_error(
         request: Request, error: RequestValidationError
     ) -> JSONResponse:
+        if request.url.path == "/search" or request.url.path.startswith("/search/"):
+            return JSONResponse(status_code=422, content={"detail": "search.invalid_request"})
         if request.url.path == "/home" or request.url.path.startswith("/home/"):
             return JSONResponse(status_code=422, content={"detail": "home.invalid_request"})
         if request.url.path in {"/profile", "/goal"} or request.url.path.startswith(
@@ -102,6 +105,7 @@ def create_app(
     # must not create their tables or confirm empty personal facts.
     app.include_router(create_profiles_router(database_path=database_path))
     app.include_router(create_matching_router(database_path=database_path))
+    app.include_router(create_search_router(database_path=database_path))
     # Legacy Settings tables already initialize during app registration. Home
     # reads use only get(); the new Home tables remain lazy until an explicit write.
     app.include_router(create_home_router(
