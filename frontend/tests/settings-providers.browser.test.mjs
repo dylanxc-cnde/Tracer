@@ -6,6 +6,7 @@ import { expect, test } from '@playwright/test'
 import { answerEmptyHome, answerPersonalReads as answerProfileReads } from './settings-management.browser.test.mjs'
 import './profile-matching.browser.test.mjs'
 import './home-records.browser.test.mjs'
+import './search-agent.browser.test.mjs'
 
 // These provider scenarios enter the app on Home. Home reads are answered with an empty,
 // valid projection while every other request still reaches the closed mock.
