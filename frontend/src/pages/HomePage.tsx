@@ -1,6 +1,9 @@
-import { cloneElement, useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityCalendar } from 'react-activity-calendar'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { HomeGreeting } from '../components/home/HomeGreeting'
+import { HomeRecords } from '../components/home/HomeRecords'
+import { HomeActivity } from '../components/home/HomeActivity'
+import { getHomeActivity, getHomeOverview, HomeApiError, localDate, overviewWindow } from '../home/api/home'
+import type { HomeActivityData, HomeOverview } from '../home/types/home'
 import { getSettings } from '../settings/api/settings'
 import type { AppSettings } from '../settings/types/appSettings'
 import {
@@ -8,16 +11,11 @@ import {
   IconBookmark,
   IconBuilding,
   IconBulb,
-  IconCalendarEvent,
-  IconChevronDown,
   IconChevronRight,
   IconDots,
   IconExternalLink,
   IconFileText,
-  IconMail,
-  IconPlus,
   IconSparkles,
-  IconVideo,
 } from '@tabler/icons-react'
 
 function formatHomeTime(time: Date): string {
@@ -29,22 +27,11 @@ function formatHomeTime(time: Date): string {
   })
 }
 
-function createDemoSearchActivity(year: number, today: string) {
-  const activities = []
-  // UTC is only used to enumerate date-only cells without daylight-saving shifts.
-  const day = new Date(Date.UTC(year, 0, 1))
-
-  while (day.getUTCFullYear() === year) {
-    const date = day.toISOString().slice(0, 10)
-    // Fixed sample values let us review the layout without inventing user history.
-    const sample = (day.getUTCDate() * 17 + day.getUTCMonth() * 11) % 19
-    const count = date > today ? 0 : Math.max(0, sample - 9)
-
-    activities.push({ date, count, level: Math.min(4, Math.ceil(count / 2)) })
-    day.setUTCDate(day.getUTCDate() + 1)
-  }
-
-  return activities
+function homeSummary(data: HomeOverview): string {
+  const tasks = data.today.tasks.length
+  const events = data.today.events.length
+  if (!tasks && !events && !data.your_search.active) return 'A new day for your search. Add a next step when you are ready.'
+  return `${tasks} pending ${tasks === 1 ? 'task' : 'tasks'} for today, ${events} scheduled ${events === 1 ? 'event' : 'events'} and ${data.your_search.active} active ${data.your_search.active === 1 ? 'application' : 'applications'}.`
 }
 
 export function HomePage() {
@@ -53,6 +40,15 @@ export function HomePage() {
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [settingsLoadAttempt, setSettingsLoadAttempt] = useState(0)
   const settingsRequest = useRef<Promise<AppSettings> | null>(null)
+  const [overview, setOverview] = useState<HomeOverview | null>(null)
+  const [overviewError, setOverviewError] = useState<string | null>(null)
+  const [overviewLoading, setOverviewLoading] = useState(true)
+  const [activity, setActivity] = useState<HomeActivityData | null>(null)
+  const [activityError, setActivityError] = useState<string | null>(null)
+  const [activityLoading, setActivityLoading] = useState(true)
+  const active = useRef(false)
+  const readGeneration = useRef(0)
+  const activityGeneration = useRef(0)
   // Use the device's local time; no profile or server timezone is needed yet.
   const [clockTimes, setClockTimes] = useState(() => {
     const currentTime = new Date()
@@ -61,305 +57,107 @@ export function HomePage() {
   })
 
   useEffect(() => {
+    active.current = true
     // Read the clock again so delayed ticks do not accumulate drift.
     const intervalId = window.setInterval(() => {
       const currentTime = new Date()
-      setClockTimes((previous) => ({
-        currentTime,
-        previousTime: previous.currentTime,
-      }))
+      setClockTimes((previous) => ({ currentTime, previousTime: previous.currentTime }))
     }, 1_000)
-
-    return () => window.clearInterval(intervalId)
+    return () => {
+      active.current = false
+      readGeneration.current += 1
+      activityGeneration.current += 1
+      window.clearInterval(intervalId)
+    }
   }, [])
 
   useEffect(() => {
     let isActive = true
     // Reuse the request during Strict Mode replay; clock ticks do not reload settings.
     const request = settingsRequest.current ??= getSettings()
-
     async function loadDisplayName() {
       try {
         const settings = await request
-        if (isActive) {
-          setDisplayName(settings.user.display_name)
-        }
+        if (isActive) setDisplayName(settings.user.display_name)
       } catch (caughtError: unknown) {
-        if (isActive) {
-          setSettingsError(caughtError instanceof Error
-            ? caughtError.message
-            : 'Your display name could not be loaded. Please try again.')
-        }
+        if (isActive) setSettingsError(caughtError instanceof Error
+          ? caughtError.message : 'Your display name could not be loaded. Please try again.')
       }
     }
-
     void loadDisplayName()
     // Ignore late results after leaving Home; this does not cancel the HTTP request.
-    return () => {
-      isActive = false
-    }
+    return () => { isActive = false }
   }, [settingsLoadAttempt])
 
   function handleRetrySettings() {
     setSettingsError(null)
-    // Discard the rejected Promise so Retry starts a new read.
     settingsRequest.current = null
     setSettingsLoadAttempt((attempt) => attempt + 1)
   }
-
   const { currentTime, previousTime } = clockTimes
-  const date = [
-    currentTime.getFullYear(),
-    String(currentTime.getMonth() + 1).padStart(2, '0'),
-    String(currentTime.getDate()).padStart(2, '0'),
-  ].join('-')
-  const displayDate = currentTime.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
+  const date = localDate(currentTime)
+  const year = currentTime.getFullYear()
+  const displayDate = currentTime.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
   const time = formatHomeTime(currentTime)
   const previousTimeText = formatHomeTime(previousTime)
-  const year = currentTime.getFullYear()
-  // The clock ticks every second, but the demo calendar only changes each day.
-  const demoActivity = useMemo(() => createDemoSearchActivity(year, date), [year, date])
+
+  const refreshActivity = useCallback(async () => {
+    const generation = ++activityGeneration.current
+    setActivityLoading(true)
+    try {
+      const result = await getHomeActivity(year)
+      if (active.current && generation === activityGeneration.current) { setActivity(result); setActivityError(null) }
+    } catch (caught) {
+      if (active.current && generation === activityGeneration.current) setActivityError(caught instanceof HomeApiError ? caught.message : 'Activity could not be loaded. Please retry.')
+    } finally {
+      if (active.current && generation === activityGeneration.current) setActivityLoading(false)
+    }
+  }, [year])
+  const refreshOverview = useCallback(async () => {
+    const generation = ++readGeneration.current
+    setOverviewLoading(true)
+    try {
+      const result = await getHomeOverview(overviewWindow(date))
+      if (active.current && generation === readGeneration.current) { setOverview(result); setOverviewError(null) }
+      return result
+    } catch (caught) {
+      if (active.current && generation === readGeneration.current) setOverviewError(caught instanceof HomeApiError ? caught.message : 'Home could not be loaded. Please retry.')
+      throw caught
+    } finally {
+      if (active.current && generation === readGeneration.current) setOverviewLoading(false)
+    }
+  }, [date])
+  const refreshRecords = useCallback(async () => {
+    // Refresh both projections after every confirmed write; an activity failure
+    // is shown independently and never turns a confirmed save into a failed one.
+    const [result] = await Promise.all([refreshOverview(), refreshActivity()])
+    return result
+  }, [refreshOverview, refreshActivity])
+  useEffect(() => {
+    void refreshOverview().catch(() => {})
+    void refreshActivity()
+    // Midnight/date changes reload records; the per-second clock does not.
+  }, [refreshOverview, refreshActivity])
 
   return (
     <>
       <section className="home-page__personal" aria-labelledby="home-greeting-title">
-        <div
-          className="home-page__overview home-page__scroll-region"
-          role="region"
-          aria-label="Personal overview"
-          aria-describedby="home-preview-note"
-          tabIndex={0}
-        >
-          <p className="home-page__visually-hidden" id="home-preview-note">
-            Layout preview. Text bars, dates and counts are placeholders, not loading indicators.
-            Preview controls are unavailable.
-          </p>
+        <div className="home-page__overview home-page__scroll-region" role="region" aria-label="Personal overview" tabIndex={0}>
           <div className="home-page__first-screen">
             <header className="home-page__intro">
               <time className="home-page__eyebrow" dateTime={date}>{displayDate}</time>
               <HomeGreeting hour={currentTime.getHours()} displayName={displayName} />
-              {settingsError && (
-                <div className="home-page__settings-feedback">
-                  <p role="alert">{settingsError}</p>
-                  <button
-                    className="home-page__settings-retry"
-                    type="button"
-                    onClick={handleRetrySettings}
-                    aria-label="Retry loading your display name"
-                  >
-                    Retry
-                  </button>
-                </div>
-              )}
-              <div className="home-page__summary-preview" role="img" aria-label="Daily summary placeholder">
-                <span className="home-page__placeholder-line home-page__placeholder-line--long" />
-              </div>
+              {settingsError && <div className="home-page__settings-feedback"><p role="alert">{settingsError}</p><button className="home-page__settings-retry" type="button" onClick={handleRetrySettings} aria-label="Retry loading your display name">Retry</button></div>}
+              {overview && <p className="home-page__summary">{homeSummary(overview)}</p>}
             </header>
-
-            <div className="home-page__schedule-columns">
-              <section aria-labelledby="home-today-title">
-                <div className="home-page__section-heading">
-                  <h2 className="home-page__section-title" id="home-today-title">Today</h2>
-                  <span className="home-page__count">— tasks</span>
-                  <button className="home-page__preview-button home-page__text-action" type="button" disabled>
-                    <IconPlus aria-hidden="true" /> Add task
-                  </button>
-                </div>
-
-                <article className="home-page__featured-event" aria-label="Interview layout placeholder">
-                  <svg
-                    className="home-page__event-pattern"
-                    viewBox="0 0 560 180"
-                    preserveAspectRatio="xMidYMid slice"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path d="M360 -40C366 32 318 73 282 119S227 190 236 221H560V-40Z" />
-                    <path d="M418 28C467 14 497 54 498 96S530 155 575 166V224H304C318 154 351 49 418 28Z" />
-                    <path d="M0 166C80 111 155 174 245 122S347 72 389 84C316 141 323 180 311 220H0Z" />
-                  </svg>
-                  <div className="home-page__event-topline">
-                    <span className="home-page__eyebrow">Next up · Interview</span>
-                    <span className="home-page__time-badge" aria-label="Time placeholder">—:— – —:—</span>
-                  </div>
-                  <div className="home-page__event-copy" aria-hidden="true">
-                    <span className="home-page__placeholder-line home-page__placeholder-line--title" />
-                    <span className="home-page__placeholder-line home-page__placeholder-line--medium" />
-                  </div>
-                  <div className="home-page__event-footer">
-                    <span className="home-page__event-format">
-                      <IconVideo aria-hidden="true" /> Video call · — min
-                    </span>
-                    <button className="home-page__preview-button home-page__prepare-button" type="button" disabled>
-                      Prepare interview <IconArrowRight aria-hidden="true" />
-                    </button>
-                  </div>
-                </article>
-
-                <ul className="home-page__task-list" aria-label="Task placeholders">
-                  {[0, 1].map((slot) => (
-                    <li className="home-page__task-row" key={slot} aria-label="Task placeholder">
-                      <span className="home-page__checkbox-placeholder" aria-hidden="true" />
-                      <div className="home-page__row-copy" aria-hidden="true">
-                        <span className="home-page__placeholder-line home-page__placeholder-line--title" />
-                        <span className="home-page__placeholder-line home-page__placeholder-line--medium" />
-                      </div>
-                      <button className="home-page__preview-button home-page__icon-button" type="button" disabled aria-label="Task details preview">
-                        <IconChevronRight aria-hidden="true" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <button className="home-page__preview-button home-page__completed" type="button" disabled>
-                  — completed today <IconChevronDown aria-hidden="true" />
-                </button>
-              </section>
-
-              <section className="home-page__upcoming" aria-labelledby="home-upcoming-title">
-                <div className="home-page__section-heading">
-                  <h2 className="home-page__section-title" id="home-upcoming-title">Upcoming</h2>
-                  <button className="home-page__preview-button home-page__text-action" type="button" disabled>
-                    Next 14 days <IconArrowRight aria-hidden="true" />
-                  </button>
-                </div>
-                <ul className="home-page__upcoming-list" aria-label="Upcoming event placeholders">
-                  {[0, 1, 2].map((slot) => (
-                    <li className="home-page__upcoming-row" key={slot} aria-label="Upcoming event placeholder">
-                      <span className="home-page__date-tile" aria-hidden="true">
-                        <span className="home-page__placeholder-line" />
-                        <span>—</span>
-                      </span>
-                      <div className="home-page__row-copy" aria-hidden="true">
-                        <span className="home-page__placeholder-line home-page__placeholder-line--title" />
-                        <span className="home-page__placeholder-line home-page__placeholder-line--medium" />
-                        <span className="home-page__placeholder-line home-page__placeholder-line--short" />
-                      </div>
-                      <IconCalendarEvent className="home-page__row-icon" aria-hidden="true" />
-                    </li>
-                  ))}
-                </ul>
-              </section>
+            <div className="home-page__record-status" aria-busy={overviewLoading}>
+              {overviewError && <div className="home-page__load-error"><p role="alert">{overviewError}</p>{overview && <p>Showing the last loaded records, not a confirmed current overview. Drafts remain here.</p>}<button className="home-page__record-action" type="button" disabled={overviewLoading} onClick={() => void refreshRecords().catch(() => {})}>Retry Home</button></div>}
+              {overviewLoading && <p role="status">{overview ? 'Refreshing records…' : 'Loading Home…'}</p>}
+              {overview && <button className="home-page__record-action" type="button" disabled={overviewLoading} onClick={() => void refreshRecords().catch(() => {})}>Refresh Home</button>}
             </div>
-
-            <section aria-labelledby="home-search-title">
-              <div className="home-page__section-heading">
-                <h2 className="home-page__section-title" id="home-search-title">Your search</h2>
-              </div>
-              <dl className="home-page__metrics">
-                <div className="home-page__metric">
-                  <span className="home-page__metric-icon home-page__metric-icon--applications" aria-hidden="true"><IconFileText /></span>
-                  <dt>Active applications</dt>
-                  <dd>—</dd>
-                </div>
-                <div className="home-page__metric">
-                  <span className="home-page__metric-icon" aria-hidden="true"><IconMail /></span>
-                  <dt>Awaiting reply</dt>
-                  <dd>—</dd>
-                </div>
-                <div className="home-page__metric">
-                  <span className="home-page__metric-icon" aria-hidden="true"><IconCalendarEvent /></span>
-                  <dt>Interviews in next 7 days</dt>
-                  <dd>—</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="home-page__recent-jobs" aria-labelledby="home-recent-jobs-title">
-              <div className="home-page__section-heading">
-                <h2 className="home-page__section-title" id="home-recent-jobs-title">Recent jobs</h2>
-                <button className="home-page__preview-button home-page__text-action" type="button" disabled>
-                  View library <IconArrowRight aria-hidden="true" />
-                </button>
-              </div>
-              <ul className="home-page__recent-list" aria-label="Saved job placeholders">
-                {[0, 1, 2].map((slot) => (
-                  <li className="home-page__recent-row" key={slot} aria-label="Saved job placeholder">
-                    <span className="home-page__company-mark" aria-hidden="true"><IconBuilding /></span>
-                    <div className="home-page__row-copy" aria-hidden="true">
-                      <span className="home-page__placeholder-line home-page__placeholder-line--title" />
-                      <span className="home-page__placeholder-line home-page__placeholder-line--medium" />
-                    </div>
-                    <span className="home-page__saved-time" aria-hidden="true"><span className="home-page__placeholder-line" /></span>
-                    <button className="home-page__preview-button home-page__icon-button" type="button" disabled aria-label="Bookmark preview">
-                      <IconBookmark aria-hidden="true" />
-                    </button>
-                    <button className="home-page__preview-button home-page__icon-button" type="button" disabled aria-label="Job details preview">
-                      <IconChevronRight aria-hidden="true" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            {overview && <HomeRecords data={overview} today={date} refresh={refreshRecords} />}
           </div>
-
-          <section className="home-page__activity" aria-labelledby="home-activity-title">
-            <div className="home-page__section-heading">
-              <h2 className="home-page__section-title" id="home-activity-title">Search activity</h2>
-              <span className="home-page__activity-period">{year} · Demo</span>
-            </div>
-            <p className="home-page__activity-note" id="home-activity-note">
-              Demo activity for layout review, not your recorded history.
-            </p>
-            <div
-              className="home-page__activity-scroll"
-              role="region"
-              aria-labelledby="home-activity-title"
-              aria-describedby="home-activity-note"
-              tabIndex={0}
-            >
-              <ActivityCalendar
-                data={demoActivity}
-                className="home-page__activity-calendar"
-                colorScheme="light"
-                blockSize={11}
-                blockMargin={3}
-                blockRadius={3}
-                fontSize={14}
-                weekStart={1}
-                showWeekdayLabels={['mon', 'wed', 'fri', 'sun']}
-                showTotalCount={true}
-                theme={{ light: ['var(--color-surface-muted)', 'var(--color-action-primary)'] }}
-                labels={{ legend: { less: 'Less', more: 'More' } }}
-                renderBlock={(block, activity) => {
-                  const isFuture = activity.date > date
-                  const label = isFuture
-                    ? `${activity.date}: future date, no activity recorded`
-                    : `${activity.date}: ${activity.count} demo activities`
-
-                  return cloneElement(block, {
-                    role: 'img',
-                    'aria-label': label,
-                    className: isFuture ? 'home-page__activity-day--future' : undefined,
-                    children: <title>{label}</title>,
-                  })
-                }}
-              />
-            </div>
-          </section>
-
-          <section aria-labelledby="home-recent-activity-title">
-            <div className="home-page__section-heading">
-              <h2 className="home-page__section-title" id="home-recent-activity-title">Recent activity</h2>
-            </div>
-            <div className="home-page__activity-preview" role="img" aria-label="Recent activity placeholder">
-              <span className="home-page__placeholder-line home-page__placeholder-line--long" />
-              <span className="home-page__placeholder-line home-page__placeholder-line--medium" />
-            </div>
-          </section>
-
-          <section className="home-page__usage" aria-labelledby="home-usage-title">
-            <h2 className="home-page__usage-title" id="home-usage-title">AI usage</h2>
-            <dl className="home-page__usage-metrics">
-              <div><dt>Estimated cost this month</dt><dd>—</dd></div>
-              <div><dt>Monthly budget</dt><dd>—</dd></div>
-              <div><dt>Tokens this month</dt><dd>—</dd></div>
-            </dl>
-          </section>
+          <HomeActivity overview={overviewError ? null : overview} activity={activity} error={activityError} loading={activityLoading} year={year} today={date} retry={() => void refreshActivity()} />
         </div>
       </section>
 
@@ -369,6 +167,10 @@ export function HomePage() {
         aria-describedby="home-preview-note"
         data-scrolled={hasScrolledDiscover}
       >
+        <p className="home-page__visually-hidden" id="home-preview-note">
+          Discover is a layout preview. Text bars, dates and counts are placeholders, not loading indicators.
+          Preview controls are unavailable.
+        </p>
         <header className="home-page__header">
           <div className="home-page__section-heading">
             <h2 className="home-page__discover-title" id="home-discover-title">Discover</h2>

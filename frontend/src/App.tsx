@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconClock, IconCopy, IconDownload, IconHistory, IconHome, IconSearch, IconSettings } from '@tabler/icons-react'
+import { IconClock, IconCopy, IconDownload, IconHistory, IconHome, IconSettings } from '@tabler/icons-react'
 import './App.css'
 import { ActivityPage } from './pages/ActivityPage'
 import { CardLibraryPage } from './pages/CardLibraryPage'
@@ -7,6 +7,7 @@ import { HomePage } from './pages/HomePage'
 import { ImportHistoryPage } from './pages/ImportHistoryPage'
 import { PostingImportPage } from './pages/PostingImportPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { GlobalSearch } from './components/search/GlobalSearch'
 
 type AppPage =
   | 'home'
@@ -24,18 +25,7 @@ function App() {
       <header className="app-shell__topbar">
         <p className="app-shell__brand">Tracer</p>
 
-        {/* Search and its shortcut hint are visual placeholders only. */}
-        <div className="app-shell__search-placeholder">
-          <IconSearch aria-hidden="true" focusable="false" />
-          <span>Search your workspace…</span>
-          <kbd
-            className="app-shell__search-shortcut"
-            title="Shortcut preview only"
-            aria-hidden="true"
-          >
-            Ctrl K
-          </kbd>
-        </div>
+        <GlobalSearch onGoHome={() => setCurrentPage('home')} />
 
         <div className="app-shell__topbar-meta">
           <span className="app-shell__preview-badge">UI preview</span>

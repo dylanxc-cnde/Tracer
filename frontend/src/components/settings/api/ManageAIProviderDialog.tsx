@@ -10,6 +10,7 @@ export type ProviderOperation = 'edit' | 'key' | 'delete'
 type Props = {
   provider: AIProviderSettings
   mode: ProviderOperation
+  returnFocusId: string
   references: AITaskSettings[]
   onUpdated: (provider: AIProviderSettings) => void
   onDeleted: (providerKey: string) => void
@@ -17,7 +18,7 @@ type Props = {
   onClose: () => void
 }
 
-export function ManageAIProviderDialog({ provider, mode, references, onUpdated, onDeleted, onKeyReplaced, onClose }: Props) {
+export function ManageAIProviderDialog({ provider, mode, returnFocusId, references, onUpdated, onDeleted, onKeyReplaced, onClose }: Props) {
   const [displayName, setDisplayName] = useState(provider.display_name)
   const [budget, setBudget] = useState(provider.monthly_budget_usd === null ? '' : String(provider.monthly_budget_usd))
   const [apiKey, setApiKey] = useState('')
@@ -34,16 +35,17 @@ export function ManageAIProviderDialog({ provider, mode, references, onUpdated, 
   useEffect(() => {
     isMounted.current = true
     const dialog = dialogRef.current
-    const previousFocus = document.activeElement
     dialog?.showModal()
     dialog?.querySelector<HTMLInputElement>('input:not(:disabled)')?.focus()
     return () => {
       isMounted.current = false
       dialog?.close()
-      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus()
-      else document.getElementById('settings-refresh-providers')?.focus()
+      // The menu item opener is unmounted. Restore the persistent row trigger,
+      // or the refresh action when a successful delete removed that row.
+      const target = document.getElementById(returnFocusId) ?? document.getElementById('settings-refresh-providers')
+      target?.focus()
     }
-  }, [])
+  }, [returnFocusId])
 
   function handleClose() {
     if (!isSubmitting.current) onClose()
@@ -117,7 +119,7 @@ export function ManageAIProviderDialog({ provider, mode, references, onUpdated, 
       <form noValidate aria-busy={isSaving} onSubmit={handleSubmit}>
         <div className="manage-provider-dialog__fields">
           <p id="manage-provider-description">{provider.display_name} · {provider.provider === 'openai' ? 'OpenAI' : 'DeepSeek'}</p>
-          <p className="manage-provider-dialog__identity">Provider ID: {provider.provider_key}. Platform and ID cannot be changed.</p>
+          <p>The provider platform cannot be changed. Its existing configuration and credential identity are preserved.</p>
           {mode === 'edit' && <>
             <label htmlFor="manage-provider-name">Display name
               <input id="manage-provider-name" value={displayName} disabled={isSaving} required

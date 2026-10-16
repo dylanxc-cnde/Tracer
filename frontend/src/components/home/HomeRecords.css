@@ -1,0 +1,133 @@
+.home-page__summary {
+  margin: 0;
+  max-width: 66ch;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.home-page__record-action,
+.home-page__record-primary,
+.home-page__job-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: var(--font-size-caption);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  color: var(--color-action-primary);
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.home-page__record-action svg { width: 18px; height: 18px; flex: none; }
+.home-page__record-primary { color: var(--color-text-inverse); background: var(--color-action-primary); border-color: var(--color-action-primary); }
+.home-page__record-primary:hover:not(:disabled) { background: var(--color-action-hover); }
+.home-page__record-action:hover:not(:disabled),
+.home-page__job-title:hover { background: var(--color-action-soft); border-color: var(--color-action-primary); }
+.home-page__record-action:disabled,
+.home-page__record-primary:disabled { opacity: 0.65; cursor: wait; }
+.home-page__record-action:focus-visible,
+.home-page__record-primary:focus-visible,
+.home-page__job-title:focus-visible,
+.home-page__record-form :is(input, select):focus-visible,
+.home-page__completed summary:focus-visible,
+.home-page__application-history summary:focus-visible { outline: 2px solid var(--color-action-primary); outline-offset: 3px; }
+.home-page__section-heading > .home-page__record-action { margin-left: auto; }
+
+.home-page__record-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+}
+.home-page__record-form fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.home-page__record-form label { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: var(--font-size-caption); }
+.home-page__record-form :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 5px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  font: inherit;
+}
+.home-page__record-form input:disabled,
+.home-page__record-form select:disabled { color: var(--color-text-secondary); }
+.home-page__record-form p { margin: 0; font-size: var(--font-size-caption); line-height: 1.6; }
+/* Native selects can truncate a long label; the selected job remains readable below. */
+.home-page__selected-job { overflow-wrap: anywhere; }
+.home-page__record-form .home-page__check-label { flex-direction: row; align-items: center; grid-column: 1 / -1; }
+.home-page__check-label input { width: 18px; min-height: 18px; }
+.home-page__task-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); align-items: end; }
+.home-page__task-form > button { justify-self: start; }
+.home-page__task-form .home-page__write-feedback { grid-column: 1 / -1; }
+.home-page__record-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.home-page__optional, .home-page__empty { color: var(--color-text-secondary); }
+.home-page__empty { margin: 12px 0; font-size: var(--font-size-caption); line-height: 1.6; }
+.home-page__write-feedback:empty { display: none; }
+.home-page__write-feedback p { margin: 8px 0; overflow-wrap: anywhere; font-size: var(--font-size-caption); line-height: 1.6; }
+.home-page__write-feedback [role="alert"],
+.home-page__load-error [role="alert"],
+.home-page__record-form > [role="alert"] { color: var(--color-danger); }
+.home-page__load-error { padding: 12px 0; }
+.home-page__load-error p { margin: 0 0 8px; overflow-wrap: anywhere; }
+
+.home-page__stable-list { min-height: 84px; }
+.home-page__task-row { gap: 12px; align-items: flex-start; }
+.home-page__task-row .home-page__record-action { flex: none; }
+.home-page__personal .home-page__row-copy strong, .home-page__personal .home-page__row-copy span,
+.home-page__featured-event strong, .home-page__application-history li { overflow-wrap: anywhere; }
+.home-page__personal .home-page__row-copy strong { font-size: var(--font-size-caption); font-weight: 600; line-height: 1.5; }
+.home-page__personal .home-page__row-copy span, .home-page__personal .home-page__row-copy time { font-size: var(--font-size-caption); color: var(--color-text-secondary); line-height: 1.5; }
+.home-page__featured-event { min-height: auto; gap: 12px; }
+.home-page__featured-event .home-page__record-action { align-self: flex-start; }
+.home-page__record-upcoming { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.home-page__record-upcoming > button { justify-self: start; }
+.home-page__record-upcoming .home-page__row-copy { gap: 4px; }
+.home-page__record-job { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.home-page__record-job .home-page__row-copy { flex: 1; min-width: min(200px, 100%); gap: 4px; }
+.home-page__job-title { justify-content: flex-start; text-align: left; padding: 0; min-height: 30px; border-color: transparent; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.home-page__completed { display: block; font-size: var(--font-size-caption); }
+.home-page__completed summary, .home-page__application-history summary { cursor: pointer; padding: 8px 0; }
+.home-page__application-history { margin-top: 12px; font-size: var(--font-size-caption); }
+.home-page__application-history li { padding: 6px 0; }
+.home-page__record-activity { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--font-size-caption); }
+.home-page__record-activity time { color: var(--color-text-secondary); }
+.home-page__activity-day--unrecorded { fill: var(--color-surface); stroke: var(--color-border-strong); stroke-dasharray: 2 2; }
+.home-page__budget-title { margin: 16px 0 8px; font-size: var(--font-size-caption); font-weight: 600; }
+.home-page__personal .home-page__usage-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.home-page__personal .home-page__usage-metrics > div { min-width: 0; flex-wrap: wrap; }
+.home-page__provider-budgets { margin: 0; font-size: var(--font-size-caption); }
+.home-page__provider-budgets > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 8px 0; }
+.home-page__provider-budgets dt { overflow-wrap: anywhere; min-width: 0; }
+.home-page__provider-budgets dd { margin: 0; }
+
+@media (max-width: 1100px) {
+  .home-page__personal .home-page__schedule-columns { grid-template-columns: minmax(0, 1fr); }
+  .home-page__personal .home-page__upcoming { padding-left: 0; border-left: 0; padding-top: 12px; border-top: 1px solid var(--color-border-subtle); }
+  .home-page__record-form fieldset { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .home-page__personal .home-page__usage-metrics { grid-template-columns: minmax(0, 1fr); }
+  .home-page__task-form { grid-template-columns: minmax(0, 1fr); }
+  .home-page__task-row { flex-wrap: wrap; }
+}

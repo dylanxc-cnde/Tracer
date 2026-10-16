@@ -1,8 +1,19 @@
 import { expect, test } from '@playwright/test'
 
 // Playwright only discovers this file; importing the management scenarios keeps the
-// full provider/parsing maintenance journey in the same closed-mock browser suite.
-import './settings-management.browser.test.mjs'
+// full provider/parsing maintenance journey, and the Profile/Goal/Match review
+// scenarios, in the same closed-mock browser suite.
+import { answerEmptyHome, answerPersonalReads as answerProfileReads } from './settings-management.browser.test.mjs'
+import './profile-matching.browser.test.mjs'
+import './home-records.browser.test.mjs'
+import './search-agent.browser.test.mjs'
+
+// These provider scenarios enter the app on Home. Home reads are answered with an empty,
+// valid projection while every other request still reaches the closed mock.
+async function answerPersonalReads(context) {
+  await answerEmptyHome(context)
+  return answerProfileReads(context)
+}
 
 test('successful provider creation appends the server result and reopens with an empty masked key', async ({ page, context, baseURL }) => {
   const savedProvider = {
@@ -51,6 +62,9 @@ test('successful provider creation appends the server result and reopens with an
       socket.close()
     }
   })
+
+  // Settings opens on Profile first, which reads the personal domains; answer only those GETs.
+  await answerPersonalReads(context)
 
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()
@@ -150,6 +164,8 @@ test('failed provider creation preserves the draft and shows only a safe error',
     }
   })
 
+  await answerPersonalReads(context)
+
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'API', exact: true }).click()
@@ -245,6 +261,8 @@ test('invalid provider drafts show validation errors without posting or losing t
       socket.close()
     }
   })
+
+  await answerPersonalReads(context)
 
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()
@@ -351,6 +369,8 @@ test('pending provider creation blocks native Escape and restores the retained d
       socket.close()
     }
   })
+
+  await answerPersonalReads(context)
 
   try {
     await page.goto('/')
@@ -535,6 +555,8 @@ test('native idle dialog discards the draft on Cancel, X and Escape and restores
       socket.close()
     }
   })
+
+  await answerPersonalReads(context)
 
   await page.goto('/')
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Settings', exact: true }).click()

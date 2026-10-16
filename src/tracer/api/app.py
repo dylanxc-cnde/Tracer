@@ -6,12 +6,18 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from tracer.home.store import HomeStore
 from tracer.postings.parsers.openai_posting_parser import (
     OpenAIPostingParser,
 )
 from tracer.settings.api_key_store import ApiKeyStore
+from tracer.settings.settings_store import SettingsStore
 
+from .home import create_home_router
+from .matching import create_matching_router
 from .postings import create_postings_router
+from .profiles import create_profiles_router
+from .search import create_search_router
 from .settings import create_settings_router
 
 
@@ -38,11 +44,21 @@ def create_app(
 
     app = FastAPI()
     credentials = api_key_store if api_key_store is not None else ApiKeyStore()
+    home_store = HomeStore(database_path)
 
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation_error(
         request: Request, error: RequestValidationError
     ) -> JSONResponse:
+        if request.url.path == "/search" or request.url.path.startswith("/search/"):
+            return JSONResponse(status_code=422, content={"detail": "search.invalid_request"})
+        if request.url.path == "/home" or request.url.path.startswith("/home/"):
+            return JSONResponse(status_code=422, content={"detail": "home.invalid_request"})
+        if request.url.path in {"/profile", "/goal"} or request.url.path.startswith(
+            "/matching/card/"
+        ):
+            # Personal request validation must not echo facts or evidence text.
+            return JSONResponse(status_code=422, content={"detail": "personal.invalid_request"})
         if request.method == "POST" and request.url.path == "/settings/ai/providers":
             # Validation errors can echo the full request, including secrets.
             # Do not serialize input, field names, context, or the raw error here.
@@ -79,11 +95,22 @@ def create_app(
             database_path=database_path,
             posting_parser=posting_parser,
             api_key_store=credentials,
+            activity_hook=home_store.record_card_activity,
         )
     )
     app.include_router(
         create_settings_router(database_path=database_path, api_key_store=credentials)
     )
+    # New local entities are lazy: registration and unrelated Settings requests
+    # must not create their tables or confirm empty personal facts.
+    app.include_router(create_profiles_router(database_path=database_path))
+    app.include_router(create_matching_router(database_path=database_path))
+    app.include_router(create_search_router(database_path=database_path))
+    # Legacy Settings tables already initialize during app registration. Home
+    # reads use only get(); the new Home tables remain lazy until an explicit write.
+    app.include_router(create_home_router(
+        database_path=database_path, settings_store=SettingsStore(database_path),
+    ))
 
     return app
 

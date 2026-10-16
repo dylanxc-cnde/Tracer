@@ -33,7 +33,7 @@
 }
 
 .api-settings__group {
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--color-border-subtle);
   border-radius: 16px;
   background: var(--color-surface);
@@ -49,9 +49,10 @@
 
 .api-settings__row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.45fr);
-  gap: 24px;
-  padding: 20px 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.28fr) 44px;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
   overflow-wrap: anywhere;
 }
 
@@ -78,12 +79,62 @@
 .api-settings__note { font-size: var(--font-size-caption); }
 
 .api-settings__budget p { font-variant-numeric: tabular-nums; }
+.api-settings__saved-state { font-size: var(--font-size-caption); }
 
 .api-settings__provider-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  position: relative;
+  align-self: start;
+}
+
+.api-settings__menu-trigger {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-color: transparent;
+}
+
+.api-settings__menu-trigger[aria-expanded="true"] {
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+}
+
+.api-settings__menu {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  right: 0;
+  box-sizing: border-box;
+  width: 220px;
+  max-width: calc(100vw - 48px);
+  padding: 6px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-dialog);
+}
+
+.api-settings__menu button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border-color: transparent;
+  text-align: left;
+  font-weight: 400;
+}
+
+.api-settings__menu .api-settings__menu-delete {
+  margin-top: 4px;
+  border-top: 1px solid var(--color-border-subtle);
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
+  color: var(--color-danger);
+}
+
+.api-settings__menu button:focus-visible,
+.api-settings__menu-trigger:focus-visible {
+  outline: 3px solid var(--color-action-primary);
+  outline-offset: 2px;
 }
 
 .api-settings__empty {
@@ -102,8 +153,10 @@
 
 @media (max-width: 600px) {
   .api-settings__row {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 44px;
     gap: 12px;
-    padding: 20px;
+    padding: 16px;
   }
+  .api-settings__budget { grid-column: 1; }
+  .api-settings__provider-actions { grid-column: 2; grid-row: 1; }
 }

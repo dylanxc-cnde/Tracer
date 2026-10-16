@@ -37,6 +37,7 @@ import { PostingCardContact } from './components/PostingCardContact'
 import { PostingCardAboutCompany } from './components/PostingCardAboutCompany'
 import { PostingCardSourceEvidence } from './components/PostingCardSourceEvidence'
 import { PostingCardSaveError } from './components/PostingCardSaveError'
+import { PostingCardMatch } from './components/PostingCardMatch'
 
 type PostingCardDetailsProps = {
   card: PostingCard
@@ -262,6 +263,7 @@ export function PostingCardDetails({
       </header>
 
       <div className="posting-card-details__content">
+        {!isReadOnly && !editor.isEditing && <PostingCardMatch key={`${card.card_key}:${JSON.stringify(card.posting)}`} cardKey={card.card_key} />}
         <section className="posting-card-details__section">
           <h3>What you’ll do</h3>
 

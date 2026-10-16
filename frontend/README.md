@@ -42,6 +42,14 @@ and Card creation and updates.
   are shown in the page.
 - Settings → Profile reads and saves the local display name; Settings → API
   manages saved AI providers and the provider/model used for posting parsing.
+- Home's personal sections read local shared task/event/application/Card records,
+  with inline Add task, Complete, Add/Adjust event and Record application controls.
+  Each explicit confirmed write refreshes the overview and real annual activity.
+  The greeting still uses AppSettings; the summary is deterministic and local.
+  Earlier calendar dates are not recorded, not zero/demo history. AI token/cost
+  records are not obtained; public budget preferences are shown separately.
+  Discover/Market/recommendations/Ask Tracer remain disabled previews. This new
+  frontend source is pending static/browser execution and user visual acceptance.
 
 You can bring a posting in, save it, come back to it, and edit its role content,
 job classification, eligibility, addresses, work modes, work conditions, compensation,
@@ -72,6 +80,10 @@ src/components/posting-card/details/     Card Details and its editor hook
 src/postings/context/                    shared Import session and domain actions
 src/postings/types/                      TypeScript API JSON contracts
 src/postings/api/postings.ts             HTTP functions for posting routes
+src/home/types/home.ts                   Home JSON request/projection contracts
+src/home/api/home.ts                     Home HTTP, safe errors and local UTC windows
+src/components/home/HomeRecords.tsx      inline records, drafts and write recovery
+src/components/home/HomeActivity.tsx     activity calendar, operations and AI usage
 ```
 
 React components use these functions instead of writing HTTP requests directly.
@@ -85,6 +97,19 @@ Section components receive their draft values and callbacks from Card Details.
 The editor Hook owns changes and validation, normalizes the draft into an update
 request, and passes it to the page's save action. Cancel discards the draft;
 successful saving updates the page's Card state from the API response.
+
+HomePage owns shared overview/year reads and invalidation, not individual fact
+copies. Home record components use the Home API module (and the existing Card
+list API for the application selector); no raw fetches live in display components.
+Drafts are local to their editor. Known failures preserve them; uncertain writes
+require a manual read before an explicit same-request retry. Matching saved
+records found on that read are adopted without a write. Creation retries retain
+the UUID/payload; controls have synchronous duplicate guards. Mounted editors
+survive refreshes, while leaving Home discards local drafts and ignores late
+responses without claiming server cancellation. Recent jobs open the existing
+read-only Details reader; Card editing remains in Card Library. See
+[Home contracts and activation](../docs/home.md). Real-database writes require
+separate backup/validation approval; this source checkpoint used no real data.
 
 ## Run it
 

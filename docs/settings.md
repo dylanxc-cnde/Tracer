@@ -9,9 +9,50 @@ supports a model, or has billed a particular amount.
 
 | Setting | User flow and purpose | Save, read, and effect | Limits and recovery |
 | --- | --- | --- | --- |
-| Display name | Settings → Profile lets the user edit, clear, or cancel the greeting name. It is the existing personal preference used by Home, not a CandidateProfile or job-search fact. | `PATCH /settings/user` saves `user.display_name` in the single local `app_settings` SQLite JSON snapshot. Profile loads it with `GET /settings`; Home independently reads that saved value when Home mounts and uses it for the greeting. Empty input is saved as `null`. | Failed save retains the local draft; retry is user initiated. Leaving Profile discards an unsaved draft. Home re-entry reads settings again; there is no global Settings cache or cross-page pending-save synchronization. A save already sent is not cancelled by navigation. Job preferences and the broader candidate/job-goal profile remain unimplemented because they lack an accepted current field/consumer contract. |
+| Display name | Settings → Profile lets the user edit, clear, or cancel the greeting name. It is the existing personal preference used by Home, not a CandidateProfile or job-search fact. | `PATCH /settings/user` saves `user.display_name` in the single local `app_settings` SQLite JSON snapshot. Profile loads it with `GET /settings`; Home independently reads that saved value when Home mounts and uses it for the greeting. Empty input is saved as `null`. | Failed save retains the local draft; retry is user initiated. Leaving Profile discards an unsaved draft. Home re-entry reads settings again; there is no global Settings cache or cross-page pending-save synchronization. A save already sent is not cancelled by navigation. |
+
+Entering **Profile** directly reads `GET /profile` and `GET /goal`, independently
+of the existing Display name request. **Background and skills** and **Job
+preferences** show saved content first, with a local Edit entry; empty
+sections have brief filling entries. There is no nested Open/Close workspace.
+Other pages and the API category do not preload these domains.
+
+Each domain has its own draft, explicit confirmation, Save/Cancel, PUT endpoint,
+saved revision and feedback. Success returns to the server-confirmed reading
+state; Cancel restores only that section's baseline without a request. Edits and
+removals revoke confirmation. These operations do not modify AppSettings, the
+greeting or credentials. Empty optional data stays unknown, not a confirmed gap;
+failed reads remain errors. Normal reading hides technical revisions; conflicts
+or uncertain saves retain the draft, lock writes and expose Read saved Profile/Goal,
+comparison and explicit Use saved version. Read failures do not unlock writes.
+Saving disables local editing/cancellation; category/page exit still discards
+local drafts, not HTTP requests. Re-entry reads again; reading mode also has a
+manual Refresh action when an earlier request may not yet have settled.
+Match review remains an explicit operation in a saved current Card's reading mode,
+not a background AI call.
+See [Local Profile, Goal and match review](profile-matching.md) for operation,
+version invalidation, response-loss reconciliation and first-enable backup rules.
+This interaction repair has source inspection only at this checkpoint. The old
+Settings and `beda68121a11b9e2619292b01b5a65efa699dba4` Profile/Goal/Match
+engineering evidence does not establish this revised flow or approve its visuals.
 
 ## API providers
+
+Settings → API keeps **Add provider** as the primary action. Each saved row shows
+its nickname, platform, budget preference and **Saved configuration**, not a
+connection-health claim. The always-visible three-dot **Provider actions for
+<nickname>** button opens Edit provider, Replace API key and a separated dangerous
+Delete provider action. Enter/Space or ArrowDown opens the menu, arrows and
+Home/End move between actions, and Escape closes it and returns focus to the row
+button. Tab or an outside interaction dismisses the menu. Cancelling or completing
+a maintenance dialog returns to that persistent row button; after deletion removes
+the row, focus returns to Refresh providers. These are the implemented interaction
+rules; the recorded Settings browser evidence and snapshot-specific user visual
+acceptance are described below, separately from the new personal workspace.
+
+Ordinary maintenance text does not display the UUID. The same stable UUID still
+identifies API requests, task references and system credentials; hiding it does
+not replace, regenerate or rename that identity.
 
 | Field or operation | User flow and purpose | Save, read, and effect | Limits and recovery |
 | --- | --- | --- | --- |
@@ -22,6 +63,30 @@ supports a model, or has billed a particular amount.
 | Delete provider | Delete uses a confirmation checkbox for an unreferenced provider. The user must first clear any task selection using it; the interface does not silently disconnect tasks. | `DELETE /settings/ai/providers/{provider_key}` removes the provider configuration and stored key. Any task reference rejects deletion (`409`) without automatic unbinding. | SQLite and OS credential storage are separate stores, not one atomic transaction. On an operation failure, bounded compensation verifies the prior state where possible and returns a fixed error; if either store cannot be verified, the response marks the relevant state as uncertain. Do not infer rollback from an error. Refresh settings to inspect configuration, and check the OS credential store through its normal system tools if the key state is reported uncertain. |
 
 ## Posting parsing selection
+
+The section first shows the **Current saved selection** for the next Analyze
+request, or explicitly shows **Environment credentials and the built-in default
+model** when no selection is saved. This summary reads the latest loaded or saved
+public snapshot, never the input draft. It makes no claim that the environment
+credentials, account or model are available.
+
+Choose **Edit parsing settings** to open an inline **Edit draft**. **Save parsing
+settings** sends the existing PUT and uses its response to update the summary and
+close the draft; a failure keeps the draft and the safe error/reconciliation
+instructions. **Cancel parsing changes** discards and hides the draft without a
+write, including an unchanged draft. **Use environment defaults** is available in
+the editor for an existing selection and explicitly sends DELETE for only
+`posting_parse`; it is not an inferred fallback. Cancelling or saving returns to
+the Edit button. Saving disables the draft controls and prevents local duplicate
+submissions; Refresh and provider maintenance cannot write concurrently.
+
+Models are still entered by technical ID. The editor describes the required
+OpenAI Responses structured outputs and web search capability for URL parsing.
+The expandable technical note names `gpt-5.6-luna` only as a code-default example,
+**not** a tested recommendation or verified catalog. Account/model availability
+must be checked separately. The summary keeps the safety and cost boundary
+visible: saving makes no AI call, Analyze sends the imported posting to OpenAI and
+may incur charges, and saved budgets do not enforce a limit.
 
 | Setting or operation | User flow and purpose | Save, read, and effect | Limits and recovery |
 | --- | --- | --- | --- |
@@ -56,10 +121,34 @@ cases as a successful rollback.
 The API management dialogs keep edits as local drafts, disable duplicate writes
 while saving, block Escape/Cancel during a write, and retain drafts on ordinary
 failure. Closing or leaving discards local drafts; it does not cancel a request
-already sent. Reopening reads persisted public settings and a key input begins
-empty. This does not claim secure erasure from process memory.
+already sent. Reopening a management dialog uses the parent's most recently
+loaded or saved public snapshot, **not** a new network read; Refresh or re-entering
+the API section performs `GET /settings`. A replacement-key input begins empty.
+This does not claim secure erasure from process memory. Parsing drafts likewise
+disappear on API exit or Refresh. Navigation does not cancel a sent write; return
+and Refresh to reconcile its result before retrying. Refresh does not verify a key.
 
 ## Evidence and limitations
+
+The earlier author-time pending-validation note was superseded by the Settings
+checkpoint **546050b0c85e7edfcf3c396899d328e9257602cd**. Sol xhigh independently
+reviewed the product, Claude-authored tests and actual page evidence in
+`msg_13c6df65d001SWqAYgBkH4qM1j.json`. Runner `run-cef506e8d2193bee` recorded
+**29 browser tests**, **28 request tests**, **947 backend tests**, and successful
+lint/build/test-types/diff checks. The 29 include the earlier 25 plus parsing-draft
+cancellation, keyboard menu use, and two viewport evidence scenarios. The archived
+manifest `operator-stage-review-materials-20261014/manifest.json` records 16 PNGs
+and two geometry files at 1440×1000 and 900×1000. The controlled decision
+**D56231d95** accepted that exact Settings visual checkpoint. This resolves the
+documentation lag identified as SET-ST1-DOC1, not a fresh execution or new review.
+
+Stage-0 images remain comparison baselines, not current-page results. The Settings
+approval does not approve the repaired Profile/Goal layout. Its changed behavior,
+screenshots, keyboard checks and current lint/build/regression results remain
+pending the assigned tester, deterministic runner and independent stage review.
+Real browser-to-backend, native keyring and supplier behavior are not established
+by the Settings mock/temporary-database evidence. No live product calls were made
+or are authorized in this Profile interaction repair.
 
 The earlier `066cd76` behavior snapshot reported 21 browser tests passed; this is
 historical evidence and is not rewritten to include later scenarios. On the later

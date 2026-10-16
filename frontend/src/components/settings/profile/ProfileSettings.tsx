@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { getSettings, updateUserSettings } from '../../../settings/api/settings'
 import type { AppSettings, UserSettings } from '../../../settings/types/appSettings'
 import './ProfileSettings.css'
+import { CandidateWorkspace } from '../../profile/CandidateWorkspace'
 
 export function ProfileSettings() {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
@@ -105,7 +106,7 @@ export function ProfileSettings() {
                 <div>
                   <label htmlFor="settings-display-name">Display name</label>
                   <p id="settings-display-name-help">
-                    Your name in personal settings. Leave blank to clear it.
+                    Used in your greeting. Leave blank to clear it.
                   </p>
                 </div>
                 <input
@@ -127,7 +128,7 @@ export function ProfileSettings() {
               <div className="profile-settings__footer">
                 <p className="profile-settings__status" role="status">
                   {isSaving ? 'Saving…' : hasSaved ? 'Changes saved.'
-                    : hasChanges ? 'Unsaved changes' : 'Changes are saved only when you select Save changes.'}
+                    : hasChanges ? 'Unsaved changes' : 'No unsaved changes.'}
                 </p>
                 <div className="profile-settings__actions">
                   <button type="button" onClick={handleCancel} disabled={isSaving || !hasChanges}>
@@ -143,14 +144,7 @@ export function ProfileSettings() {
         </div>
       </section>
 
-      <section aria-labelledby="settings-job-preferences-title">
-        <h2 id="settings-job-preferences-title" className="profile-settings__section-title">
-          Job preferences
-        </h2>
-        <div className="profile-settings__placeholder">
-          <p>Job preference settings will appear here.</p>
-        </div>
-      </section>
+      <CandidateWorkspace />
     </div>
   )
 }

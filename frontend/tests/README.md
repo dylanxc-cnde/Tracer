@@ -1,4 +1,4 @@
-# Settings tests
+# Frontend behavior tests
 
 ## Automated Chromium regression
 
@@ -31,6 +31,16 @@ provider-edit and parsing-selection responses reconciled by explicit refresh
 without automatic retry. The counts describe their respective recorded runs, not
 a guarantee about future runs.
 
+The later Settings checkpoint `546050b0c85e7edfcf3c396899d328e9257602cd`
+has a recorded **29 passed** browser run in `run-cef506e8d2193bee`: the earlier
+25 plus parsing-draft cancellation, native keyboard menu coverage and two
+viewport evidence scenarios. Sol xhigh's independent combined stage review is
+`msg_13c6df65d001SWqAYgBkH4qM1j.json`; the controlled decision D56231d95
+subsequently accepted that checkpoint's Settings visuals. Preserve the older
+21/25 counts as history, not current counts. The archived manifest
+`operator-stage-review-materials-20261014/manifest.json` records 16 PNGs and
+two geometry files for 1440×1000 and 900×1000. This is not live-provider evidence.
+
 The bridge opens `/tests/settings-providers.html` without `?preview` and runs the
 existing React StrictMode component suite with its own fake fetch. It requires
 exactly 16 result entries and `16 passed, 0 failed`; the fixed count and summary
@@ -49,6 +59,86 @@ covered. Empty or discarded key inputs do not prove secure memory erasure.
 Mocked App behavior does not establish real settings persistence, OS credential
 storage, external provider access, all navigation races, HTTP cancellation,
 other-browser compatibility, responsive behavior or visual acceptance.
+
+## Profile interaction repair (pending validation)
+
+The personal domains now load directly in Settings → Profile, including default
+Profile entry. The page shows saved **Background and skills** and **Job
+preferences**, separate local Edit/Start controls, and explicit confirmation and
+Save/Cancel in each editor. API category/other pages do not preload them. **Review
+match** remains explicit in current Card reading mode; ordinary Card/edit/original
+entry does not request matching. There is no nested Open/Close workspace.
+
+The existing `profile-matching.browser.test.mjs` is already imported through the
+discovered entry. The assigned Claude tester adapts that coherent group and the
+affected Settings scenarios, without changing Playwright configuration, skipping
+tests or weakening existing assertions. Closed Settings mocks must explicitly
+answer the two new-on-Profile-entry GETs; other unexpected requests remain blocked.
+The component suite bridge's title containing `component suite` and its assertion
+listing all failing component text, including Duplicate submission, must remain.
+This guide predeclares no new test counts, screenshots or passing runs.
+
+The authorized repair group covers direct entry, saved/empty reading and separate
+local editing, confirmation, save and cancel, another section's draft surviving
+re-renders/saves, keyboard use, skip/unknown,
+failure retention, lost-response manual reads, stale-input reviews, judgment-only
+correction, and original/editing Card boundaries. Profile/Goal facts remain local;
+there is no live AI call to mock into a false automatic-match claim. Tests must
+not silently upgrade facts or turn an absent evidence entry into a confirmed gap.
+See `docs/profile-matching.md` for the API/operation contract and five approved
+cases. Browser mocks check real App controls but not real SQLite persistence.
+The prior backend group uses temporary SQLite and verifies app reconstruction,
+snapshot references and unchanged Card/Settings data. The current repair changes
+no backend, DTO or matching rule; reuse requires host file/mode comparison, not a
+fresh invented run. It does not authorize
+first-enable writes to the user's old database or claim a real browser/backend
+end-to-end run. New behavior, static checks, images and visual acceptance are
+pending. Prior Profile/Goal/Match checkpoint
+`beda68121a11b9e2619292b01b5a65efa699dba4` and the older Settings counts remain
+historical evidence, not green runs for this repair or user visual approval.
+Capture 1440×1000 and 900×1000 first entry at the actual Settings entrance, saved
+long content, editing, empty and error/conflict states. Do not scroll the first
+entry screenshot to a subsection. Report behavior, geometry and direct image
+observation separately; neither passing assertions nor screenshots approve design.
+
+## Home shared records (frontend validation pending)
+
+The new Home frontend consumes `/home/overview` and `/home/activity`. The assigned
+Claude tester must add the authorized `home-records.browser.test.mjs` group through
+the already discovered browser entry; this author step has not edited tests or
+Playwright configuration. Settings/Profile cases that enter Home must explicitly
+mock both reads, while still rejecting all unexpected requests. Do not weaken
+their existing name, draft, conflict, navigation or Card assertions. Preserve
+the `component suite` bridge title and all failing component text in its assertion
+error, including `Duplicate submission`.
+
+Expected behavior comes from `docs/home.md` and D06397dc9, not the placeholder
+screen: seeded/empty records, local-date/UTC request windows, explicit task and
+application creation, completion, event adjustment and projection refresh;
+known save failure with a retained draft, manual read after an uncertain outcome,
+no automatic resend, identical UUID/payload on a manual creation retry, duplicate
+submission protection, ignored late responses after leaving Home and keyboard
+operation. Verify real long titles and deleted-Card labels. Activity uses stable
+event IDs and local dates, marks earlier days not recorded, and never backfills
+old Cards or counts AI reads. AI usage shows unset/zero/positive provider budgets
+separately from unobtained token/cost data. Reuse valid existing coverage rather
+than expanding a hypothetical edge-case matrix.
+
+The stage-1 backend runner `run-bf36be0c350c291f` recorded 1022 passing pytest
+tests, including 44 Home cases, with temporary SQLite/app reconstruction and
+no credentials or external calls. That does not establish a browser-to-real-API
+roundtrip or real-user activation. The new Home browser group, static checks,
+geometry and screenshots remain **unrun** at this frontend source checkpoint;
+older Settings/Profile browser counts are historical and are not new results.
+
+Use isolated mocks at 1440×1000 and 900×1000. Capture the actual first Home
+screen from the navigation entrance without scrolling, then empty personal data,
+lower activity/usage, overview failure, task failure and the inline application
+form. Reuse existing Playwright helpers and archived before Home frames, not a
+new capture framework. For lower frames scroll the real Personal overview
+container to a named bounded target. Behavioral assertions, geometry and direct
+image observation are separate evidence; none grants user visual approval or
+the exact-final-HEAD remote CI gate.
 
 ## Separate request tests and component inspection
 
