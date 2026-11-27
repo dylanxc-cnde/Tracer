@@ -60,7 +60,7 @@ activation. Development and screenshots use synthetic records, not your database
 
 ## Run locally
 
-You'll need Python 3.12, [uv](https://docs.astral.sh/uv/), and Node.js 22.
+You'll need Python 3.12, [uv](https://docs.astral.sh/uv/), and Node.js 24.
 
 From the repository root, put `OPENAI_API_KEY=your-key` in an ignored
 `.env.local` file, then start the backend:
@@ -140,12 +140,14 @@ Then, from `frontend/`:
 npm ci
 npm run lint
 npm run build
+npm run test:types
+npm run test:requests
+export PLAYWRIGHT_BROWSERS_PATH="$PWD/../.local/ms-playwright"
 npx playwright install chromium
 npm run test:browser
 ```
 
-CI is configured to run lint, build, and the browser command on pushes and pull
-requests; this does not prove a particular commit's remote CI passed. The earlier
+CI runs these checks on pushes and pull requests. The earlier
 `066cd76` behavior snapshot reported 21 Chromium tests; that is historical evidence,
 not the latest count. On the later stage-three snapshot, `npm run test:browser`
 reported 25 passed in each of two runs. This includes 19 mocked real-App Settings

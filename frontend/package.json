@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "build": "tsc -b && node scripts/build.mjs",
+    "lint": "oxlint --deny-warnings",
+    "test:types": "tsc -p tests/tsconfig.json",
+    "test:requests": "node --throw-deprecation --test tests/settings-api.test.mjs",
     "test:browser": "playwright test",
     "preview": "vite preview"
   },

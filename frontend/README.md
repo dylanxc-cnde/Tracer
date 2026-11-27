@@ -113,7 +113,7 @@ separate backup/validation approval; this source checkpoint used no real data.
 
 ## Run it
 
-Use Node.js 24 or another version supported by Vite.
+Use Node.js 24, as in CI.
 
 ```bash
 cd frontend
@@ -128,14 +128,17 @@ Open `http://localhost:5173`. Vite updates the page when the source changes.
 ```bash
 npm run dev      # start the Vite development server
 npm run build    # type-check and create a production build
-npm run lint     # check the source with Oxlint
+npm run lint     # check the source with Oxlint, with warnings as errors
 npm run preview  # preview the production build locally
-npm run test:browser # run the Settings Chromium suite and component-suite bridge
+npm run test:types    # type-check the browser component fixtures
+npm run test:requests # run request contract tests in Node.js
+npm run test:browser  # run browser regression in Chromium
 ```
 
-CI runs `npm ci`, lint, build, Chromium installation, and `npm run test:browser`
-on pushes and pull requests using Node.js 22. Install Chromium locally with
-`npx playwright install chromium`. On the earlier `066cd76` Settings behavior
+CI runs these checks on pushes and pull requests using Node.js 24. From `frontend/`,
+run `export PLAYWRIGHT_BROWSERS_PATH="$PWD/../.local/ms-playwright"` before
+installing Chromium with `npx playwright install chromium` and running browser tests.
+On the earlier `066cd76` Settings behavior
 snapshot, the browser log reported 21 passed; that is historical evidence. The
 later stage-three snapshot reported 25 passed in each of two runs: 19 real-App
 interactions with closed HTTP/WebSocket mocks, five existing Add provider cases,
@@ -163,7 +166,7 @@ automation. Lint/build are not browser checks. CI configuration and local result
 do not prove remote CI success for the exact reviewed task commit. See
 [Settings tests](tests/README.md).
 
-The 28 Node request tests run separately with `node --test tests/settings-api.test.mjs`;
+The 28 Node request tests run separately with `npm run test:requests`;
 they are not browser cases. Commands, layer boundaries and component inspection are documented in
 [Settings tests](tests/README.md).
 

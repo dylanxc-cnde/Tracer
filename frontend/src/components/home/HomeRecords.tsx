@@ -98,7 +98,7 @@ function creationId(ref: { current: { key: string; id: string } | null }, body: 
   if (!ref.current || ref.current.key !== key) ref.current = { key, id: crypto.randomUUID() }
   return ref.current.id
 }
-export function jobTitle(card: PostingCard): string {
+function jobTitle(card: PostingCard): string {
   return card.posting_alias || card.posting.identity.position_title?.value || 'Untitled job'
 }
 function dateTime(value: string): string {

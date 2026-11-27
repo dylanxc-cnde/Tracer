@@ -3,6 +3,7 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
   testDir: './tests',
   testMatch: 'settings-providers.browser.test.mjs',
+  outputDir: '../.local/checks/playwright',
   fullyParallel: false,
   workers: 1,
   retries: 0,
