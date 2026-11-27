@@ -120,6 +120,12 @@ export function PostingCardDetails({
     dialogRef.current?.focus({ preventScroll: true })
   }
 
+  function handleDiscardRecovery() {
+    // Keep the verified server version when dropping the draft.
+    editor.useSavedVersion()
+    dialogRef.current?.close()
+  }
+
   function isSectionModified(section: keyof PostingDetails): boolean {
     if (
       isReadOnly ||
@@ -211,7 +217,7 @@ export function PostingCardDetails({
           editor.useSavedVersion()
           dialogRef.current?.focus({ preventScroll: true })
         }}
-        onDiscard={() => dialogRef.current?.close()}
+        onDiscard={handleDiscardRecovery}
       />}
 
       <header className="posting-card-details__header">

@@ -207,6 +207,27 @@ for (const outcome of ['committed', 'uncommitted']) {
   })
 }
 
+test('Discarding recovery keeps the verified Card for the next edit', async ({ page, context, baseURL }) => {
+  const { dialog, calls, patches, unexpected } = await submitCardDraft({ page, context, baseURL }, 'committed')
+  await dialog.getByRole('button', { name: 'Read saved Card', exact: true }).press('Enter')
+  await expect(dialog.getByRole('button', { name: 'Use saved version', exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Discard draft and close', exact: true }).press('Enter')
+  await expect(dialog).toHaveCount(0)
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
+
+  await page.getByRole('button', { name: `View details: ${DRAFT_TITLE} at Unknown company`, exact: true }).press('Enter')
+  await expect(dialog.getByRole('heading', { name: DRAFT_TITLE, exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Edit card', exact: true }).press('Enter')
+  const note = 'Rückfrage für das Vorstellungsgespräch (DEMO)'
+  await dialog.getByRole('textbox', { name: 'Notes', exact: true }).fill(note)
+  await dialog.getByRole('button', { name: 'Save', exact: true }).press('Enter')
+  await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toBeVisible()
+  expect(patches).toHaveLength(2)
+  expect(patches[1]).toMatchObject({ position_title: DRAFT_TITLE, user_notes: note })
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`])
+  expect(unexpected).toEqual([])
+})
+
 test('Card library keeps a rejected Card draft available for correction', async ({ page, context, baseURL }) => {
   const { dialog, title, save, calls, unexpected } = await submitCardDraft({ page, context, baseURL }, 'rejected')
   await expect(dialog.getByRole('alert')).toContainText('Some card fields are invalid.')
