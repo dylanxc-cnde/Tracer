@@ -112,8 +112,34 @@
   background: var(--color-surface);
   box-shadow: var(--shadow-dialog);
   overflow-wrap: anywhere;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 160ms ease, transform 160ms ease;
 }
-.search-record::backdrop { background: var(--color-backdrop); }
+
+.search-record::backdrop {
+  background: var(--color-backdrop);
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+.search-record[inert] {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+}
+
+.search-record[inert]::backdrop { opacity: 0; }
+
+@starting-style {
+  .search-record[open] { opacity: 0; transform: translateY(4px); }
+  .search-record[open]::backdrop { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-record, .search-record::backdrop { transition: none; }
+}
+
 .search-record__header, .search-record__actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .search-record__header { margin-bottom: 16px; color: var(--color-text-secondary); font-size: var(--font-size-caption); }
 .search-record h2 { font-size: var(--font-size-page-title); }

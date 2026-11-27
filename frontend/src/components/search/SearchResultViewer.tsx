@@ -5,16 +5,43 @@ import type { SearchRecord, SearchTarget } from '../../search/types/search'
 import type { PostingCard } from '../../postings/types/postingCard'
 import { PostingCardDetails } from '../posting-card/details/PostingCardDetails'
 
-function RecordDialog({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+type RecordDialogProps = {
+  children: (dismiss: (finish: () => void) => void) => ReactNode
+  onClose: () => void
+  onCloseStart: () => void
+}
+
+function RecordDialog({ children, onClose, onCloseStart }: RecordDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const element = dialog.current
     element?.showModal()
     return () => element?.close()
   }, [])
-  return <dialog ref={dialog} className="search-record" aria-label="Search record" onCancel={event => { event.preventDefault(); onClose() }}>
-    <div className="search-record__header"><span>Saved local record</span><button type="button" onClick={onClose}>Close record</button></div>
-    {children}
+  function handleClose(finish = onClose) {
+    const element = dialog.current
+    if (!element || element.hasAttribute('inert')) return
+
+    element.setAttribute('inert', '')
+    onCloseStart()
+    const animations = element.getAnimations?.() ?? []
+    if (animations.length === 0) {
+      finish()
+      return
+    }
+
+    // Keep the native modal in the top layer until its exit has settled.
+    void Promise.allSettled(animations.map(animation => animation.finished)).then(() => {
+      if (dialog.current === element) finish()
+    })
+  }
+
+  return <dialog ref={dialog} className="search-record" aria-label="Search record" onCancel={event => {
+    event.preventDefault()
+    handleClose()
+  }}>
+    <div className="search-record__header"><span>Saved local record</span><button type="button" onClick={() => handleClose()}>Close record</button></div>
+    {children(handleClose)}
   </dialog>
 }
 
@@ -24,10 +51,12 @@ export function SearchResultViewer({ target, onClose, onGoHome }: { target: Sear
   const [linkedCard, setLinkedCard] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [isClosing, setIsClosing] = useState(false)
   const linkedJobButton = useRef<HTMLButtonElement>(null)
   const restoreLinkedFocus = useRef(false)
   const { kind, id } = target
   useEffect(() => {
+    if (isClosing) return
     const controller = new AbortController()
     async function load() {
       try {
@@ -45,7 +74,7 @@ export function SearchResultViewer({ target, onClose, onGoHome }: { target: Sear
     }
     void load()
     return () => controller.abort()
-  }, [kind, id, attempt])
+  }, [kind, id, attempt, isClosing])
   useEffect(() => {
     if (linkedCard || !restoreLinkedFocus.current) return
     restoreLinkedFocus.current = false
@@ -55,9 +84,9 @@ export function SearchResultViewer({ target, onClose, onGoHome }: { target: Sear
     restoreLinkedFocus.current = true
     setLinkedCard(null)
   }} onGoHome={onGoHome} />
-  if (card) return <PostingCardDetails card={card} isReadOnly onClose={onClose} onUpdate={async () => { throw new Error('Edit this job in Card library.') }} />
-  return <RecordDialog onClose={onClose}>
-    {error ? <div><p role="alert">{error}</p><button type="button" onClick={() => { setError(null); setAttempt(value => value + 1) }}>Retry opening record</button></div>
+  if (card && !isClosing) return <PostingCardDetails card={card} isReadOnly onClose={onClose} onUpdate={async () => { throw new Error('Edit this job in Card library.') }} />
+  return <RecordDialog onClose={onClose} onCloseStart={() => setIsClosing(true)}>
+    {dismiss => error ? <div><p role="alert">{error}</p><button type="button" onClick={() => { setError(null); setAttempt(value => value + 1) }}>Retry opening record</button></div>
       : !record ? <p role="status">Loading saved record…</p>
         : <>
           <p className="global-search__meta">{record.type} · {record.source}</p>
@@ -66,7 +95,7 @@ export function SearchResultViewer({ target, onClose, onGoHome }: { target: Sear
           {record.card_missing && <p>Linked job deleted. This saved record is retained; it does not recreate the job.</p>}
           <div className="search-record__actions">
             {record.card_key && !record.card_missing && <button ref={linkedJobButton} type="button" onClick={() => setLinkedCard(record.card_key)}>Open linked job</button>}
-            <button type="button" onClick={onGoHome}>Go to Home</button>
+            <button type="button" onClick={() => dismiss(onGoHome)}>Go to Home</button>
           </div>
         </>}
   </RecordDialog>

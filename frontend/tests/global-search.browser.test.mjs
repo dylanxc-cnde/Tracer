@@ -151,3 +151,93 @@ test('Workspace search opens and closes immediately with reduced motion', async 
   expect(searches).toEqual([])
   expect(unexpected).toEqual([])
 })
+
+async function openEventResult(page) {
+  await expect(page.getByRole('option')).toHaveCount(2)
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter')
+}
+
+async function observeRecordTransitions(page) {
+  await page.evaluate(() => {
+    const transitions = []
+    window.recordTransitions = transitions
+    document.addEventListener('transitionrun', event => {
+      if (event.target instanceof HTMLDialogElement && event.target.matches('.search-record') && event.propertyName === 'opacity') {
+        transitions.push({ pseudoElement: event.pseudoElement, open: event.target.open })
+      }
+    })
+  })
+  return () => page.evaluate(() => window.recordTransitions.splice(0))
+}
+
+test('Workspace search record dialog animates its panel and backdrop in both directions', async ({ page, context, baseURL }) => {
+  const { input, searches, unexpected } = await openSearch({ page, context, baseURL })
+  const readTransitions = await observeRecordTransitions(page)
+  const dialog = page.locator('dialog.search-record')
+  const transitions = [
+    { pseudoElement: '', open: true },
+    { pseudoElement: '::backdrop', open: true },
+  ]
+
+  await page.keyboard.type('gespräch')
+  await openEventResult(page)
+  await expect(dialog.getByRole('heading', { name: EVENT_TITLE })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Close record' })).toBeFocused()
+  await expect(dialog).toHaveCSS('opacity', '1')
+  expect(await readTransitions()).toEqual(expect.arrayContaining(transitions))
+
+  await dialog.getByRole('button', { name: 'Close record' }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(await readTransitions()).toEqual(expect.arrayContaining(transitions))
+  await expect(input).toBeFocused()
+  await expect(input).toHaveAttribute('aria-expanded', 'false')
+  expect(searches).toEqual(['gespräch'])
+  expect(unexpected).toEqual([])
+})
+
+test('Workspace search record dialog tolerates repeated early Escape and reopens on request', async ({ page, context, baseURL }) => {
+  const { input, searches, unexpected } = await openSearch({ page, context, baseURL })
+  const dialog = page.locator('dialog.search-record')
+  await page.keyboard.type('gespräch')
+  await openEventResult(page)
+  await expect(dialog).toHaveAttribute('open', '')
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(input).toBeFocused()
+  await expect(input).toHaveAttribute('aria-expanded', 'false')
+
+  // Advance past the query debounce to detect an accidental request on focus restoration.
+  await page.waitForTimeout(300)
+  expect(searches).toEqual(['gespräch'])
+  await page.keyboard.press('ArrowDown')
+  await openEventResult(page)
+  await expect(dialog.getByRole('heading', { name: EVENT_TITLE })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(input).toBeFocused()
+  await expect(input).toHaveAttribute('aria-expanded', 'false')
+  expect(searches).toEqual(['gespräch', 'gespräch'])
+  expect(unexpected).toEqual([])
+})
+
+test('Workspace search record dialog opens and closes without transitions with reduced motion', async ({ page, context, baseURL }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  const { input, searches, unexpected } = await openSearch({ page, context, baseURL })
+  const readTransitions = await observeRecordTransitions(page)
+  const dialog = page.locator('dialog.search-record')
+  await page.keyboard.type('gespräch')
+  await openEventResult(page)
+  await expect(dialog.getByRole('heading', { name: EVENT_TITLE })).toBeVisible()
+  await expect(dialog).toHaveCSS('opacity', '1')
+  expect(await readTransitions()).toEqual([])
+
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  expect(await readTransitions()).toEqual([])
+  await expect(input).toBeFocused()
+  await expect(input).toHaveAttribute('aria-expanded', 'false')
+  expect(searches).toEqual(['gespräch'])
+  expect(unexpected).toEqual([])
+})
