@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { CARD } from './profile-matching.browser.test.mjs'
 
 const API = 'http://127.0.0.1:8000'
 const TASK_ID = 'a0000000-0000-4000-8000-000000000001'
@@ -11,7 +12,7 @@ const RESULTS = [
 ]
 const EVENT_PATH = `/search/records/event/${EVENT_ID}`
 
-async function openSearch({ page, context, baseURL }, { failFirstSearch = false } = {}) {
+async function openSearch({ page, context, baseURL }, { failFirstSearch = false, linkedCard = null } = {}) {
   const searches = []
   const recordReads = []
   const unexpected = []
@@ -33,8 +34,13 @@ async function openSearch({ page, context, baseURL }, { failFirstSearch = false 
         recordReads.push(url.pathname)
         await route.fulfill({ json: {
           id: EVENT_ID, type: 'event', title: EVENT_TITLE, source: 'Home', card_missing: false,
-          card_key: null, fields: [{ label: 'Kind', value: 'Interview' }],
+          card_key: linkedCard?.card_key ?? null, fields: [{ label: 'Kind', value: 'Interview' }],
         } })
+        return
+      }
+      if (linkedCard && url.pathname === `/posting/card/${linkedCard.card_key}`) {
+        recordReads.push(url.pathname)
+        await route.fulfill({ json: linkedCard })
         return
       }
     }
@@ -239,5 +245,38 @@ test('Workspace search record dialog opens and closes without transitions with r
   await expect(input).toBeFocused()
   await expect(input).toHaveAttribute('aria-expanded', 'false')
   expect(searches).toEqual(['gespräch'])
+  expect(unexpected).toEqual([])
+})
+
+test('Workspace search returns focus through the linked job and record dialogs', async ({ page, context, baseURL }) => {
+  const { input, searches, recordReads, unexpected } = await openSearch(
+    { page, context, baseURL }, { linkedCard: CARD },
+  )
+  const record = page.getByRole('dialog', { name: 'Search record' })
+  const linkedJob = record.getByRole('button', { name: 'Open linked job' })
+  const card = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: CARD.posting.identity.position_title.value }) })
+
+  await page.keyboard.type('gespräch')
+  await openEventResult(page)
+  await expect(record.getByRole('heading', { name: EVENT_TITLE })).toBeVisible()
+  await expect(record.getByRole('button', { name: 'Close record' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(linkedJob).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(card).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(card).toHaveCount(0)
+  await expect(record.getByRole('heading', { name: EVENT_TITLE })).toBeVisible()
+  await expect(linkedJob).toBeFocused()
+
+  await page.keyboard.press('Escape')
+  await expect(record).toHaveCount(0)
+  await expect(input).toBeFocused()
+  await expect(input).toHaveAttribute('aria-expanded', 'false')
+  // Wait past the debounce so a focus-triggered search would have been sent.
+  await page.waitForTimeout(300)
+  expect(searches).toEqual(['gespräch'])
+  expect([...new Set(recordReads)]).toEqual([EVENT_PATH, `/posting/card/${CARD.card_key}`])
   expect(unexpected).toEqual([])
 })

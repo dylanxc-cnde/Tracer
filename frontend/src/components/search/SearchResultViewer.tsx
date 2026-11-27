@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { getSearchCard, getSearchRecord } from '../../search/api/search'
 import type { SearchRecord, SearchTarget } from '../../search/types/search'
 import type { PostingCard } from '../../postings/types/postingCard'
@@ -7,17 +7,20 @@ import { PostingCardDetails } from '../posting-card/details/PostingCardDetails'
 
 type RecordDialogProps = {
   children: (dismiss: (finish: () => void) => void) => ReactNode
+  initialFocusRef?: RefObject<HTMLElement | null>
   onClose: () => void
   onCloseStart: () => void
 }
 
-function RecordDialog({ children, onClose, onCloseStart }: RecordDialogProps) {
+function RecordDialog({ children, initialFocusRef, onClose, onCloseStart }: RecordDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const element = dialog.current
     element?.showModal()
+    // Native autofocus runs on every showModal, including StrictMode's effect replay.
+    initialFocusRef?.current?.focus({ preventScroll: true })
     return () => element?.close()
-  }, [])
+  }, [initialFocusRef])
   function handleClose(finish = onClose) {
     const element = dialog.current
     if (!element || element.hasAttribute('inert')) return
@@ -52,8 +55,8 @@ export function SearchResultViewer({ target, onClose, onGoHome }: { target: Sear
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [isClosing, setIsClosing] = useState(false)
+  const [focusLinkedJobOnOpen, setFocusLinkedJobOnOpen] = useState(false)
   const linkedJobButton = useRef<HTMLButtonElement>(null)
-  const restoreLinkedFocus = useRef(false)
   const { kind, id } = target
   useEffect(() => {
     if (isClosing) return
@@ -75,17 +78,16 @@ export function SearchResultViewer({ target, onClose, onGoHome }: { target: Sear
     void load()
     return () => controller.abort()
   }, [kind, id, attempt, isClosing])
-  useEffect(() => {
-    if (linkedCard || !restoreLinkedFocus.current) return
-    restoreLinkedFocus.current = false
-    linkedJobButton.current?.focus({ preventScroll: true })
-  }, [linkedCard])
   if (linkedCard) return <SearchResultViewer key={linkedCard} target={{ kind: 'card', id: linkedCard }} onClose={() => {
-    restoreLinkedFocus.current = true
+    setFocusLinkedJobOnOpen(true)
     setLinkedCard(null)
   }} onGoHome={onGoHome} />
   if (card && !isClosing) return <PostingCardDetails card={card} isReadOnly onClose={onClose} onUpdate={async () => { throw new Error('Edit this job in Card library.') }} />
-  return <RecordDialog onClose={onClose} onCloseStart={() => setIsClosing(true)}>
+  return <RecordDialog
+    initialFocusRef={focusLinkedJobOnOpen ? linkedJobButton : undefined}
+    onClose={onClose}
+    onCloseStart={() => setIsClosing(true)}
+  >
     {dismiss => error ? <div><p role="alert">{error}</p><button type="button" onClick={() => { setError(null); setAttempt(value => value + 1) }}>Retry opening record</button></div>
       : !record ? <p role="status">Loading saved record…</p>
         : <>
