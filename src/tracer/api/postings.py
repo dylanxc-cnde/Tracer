@@ -12,6 +12,7 @@ from tracer.postings import (
     PostingImportRequest,
     PostingImportSource,
     PostingParseResult,
+    UrlImport,
 )
 from tracer.postings.parsers.openai_posting_parser import (
     OpenAIPostingParser,
@@ -30,7 +31,11 @@ from tracer.postings.stores.posting_import_request_store import (
 from tracer.settings.api_key_store import ApiKeyStore
 from tracer.settings.settings_store import SettingsStore
 
-from .models.posting_models import CreatePostingCardRequest, UpdatePostingCardRequest
+from .models.posting_models import (
+    CreatePostingCardRequest,
+    PostingCardSourceReceipt,
+    UpdatePostingCardRequest,
+)
 
 
 def create_postings_router(
@@ -86,6 +91,15 @@ def create_postings_router(
             )
 
         return request
+
+    def get_posting_card(card_key: UUID) -> PostingCard:
+        card = posting_card_store.get_by_card_key(card_key)
+        if card is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Posting card not found",
+            )
+        return card
 
     @router.post(
         "/import",
@@ -178,14 +192,23 @@ def create_postings_router(
 
     @router.get("/card/{card_key}")
     def read_posting_card(card_key: UUID) -> PostingCard:
-        card = posting_card_store.get_by_card_key(card_key)
-        if card is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Posting card not found",
-            )
+        return get_posting_card(card_key)
 
-        return card
+    @router.get("/card/{card_key}/source-receipt")
+    def read_posting_card_source_receipt(
+        card_key: UUID,
+    ) -> PostingCardSourceReceipt | None:
+        card = get_posting_card(card_key)
+        receipt = posting_import_request_store.get(card.import_key)
+        if receipt is None:
+            return None
+
+        source = receipt.source
+        return PostingCardSourceReceipt(
+            kind=source.kind,
+            submitted_at=receipt.submitted_at,
+            source_url=source.url if isinstance(source, UrlImport) else source.source_url,
+        )
 
     @router.get("/card/{card_key}/original")
     def read_original_posting_card(card_key: UUID) -> PostingCard:

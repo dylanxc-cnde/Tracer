@@ -1,8 +1,16 @@
 from datetime import date
-from typing import Self
+from typing import Literal, Self
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AnyHttpUrl,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from tracer.postings import PostingDetails
 from tracer.postings.models.posting_details import (
@@ -32,6 +40,14 @@ class CreatePostingCardRequest(BaseModel):
     posting_alias: str | None = None
     user_notes: str | None = None
     tags: tuple[str, ...] = ()
+
+
+class PostingCardSourceReceipt(BaseModel):
+    """Source information from the import associated with a saved Card."""
+
+    kind: Literal["url", "text"]
+    submitted_at: AwareDatetime
+    source_url: AnyHttpUrl | None
 
 
 class UpdateRequirementGroupRequest(BaseModel):

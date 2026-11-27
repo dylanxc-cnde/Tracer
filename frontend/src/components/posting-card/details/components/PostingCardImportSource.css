@@ -1,0 +1,64 @@
+.posting-card-import-source {
+  min-width: 0;
+  margin-top: 10px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-ui);
+}
+
+.posting-card-import-source > summary {
+  width: fit-content;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.posting-card-import-source > summary:focus-visible {
+  outline: 3px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+.posting-card-import-source__receipt {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--color-information);
+  background-color: var(--color-information-soft);
+}
+
+.posting-card-import-source__receipt p,
+.posting-card-import-source__receipt dl {
+  margin: 0;
+}
+
+.posting-card-import-source__receipt dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 5px 14px;
+  align-items: baseline;
+}
+
+.posting-card-import-source__receipt dt {
+  font-weight: 700;
+}
+
+.posting-card-import-source__receipt dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.posting-card-import-source__receipt a {
+  color: var(--color-action-primary);
+}
+
+.posting-card-import-source__receipt button {
+  margin-top: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .posting-card-import-source[open] .posting-card-import-source__receipt {
+    animation: posting-card-import-source-in 140ms ease-out;
+  }
+}
+
+@keyframes posting-card-import-source-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

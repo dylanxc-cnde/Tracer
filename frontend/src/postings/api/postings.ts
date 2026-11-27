@@ -4,6 +4,7 @@ import type {
   UpdatePostingCardRequest,
 } from '../types/postingCard'
 import type {
+  PostingImportReceipt,
   PostingImportRequest,
   PostingImportSource,
 } from '../types/postingImport'
@@ -155,6 +156,22 @@ export async function getPostingCard(cardKey: string, signal: AbortSignal): Prom
   const card: unknown = await response.json()
   if (!isPostingCardResponse(card, cardKey)) throw new Error('The saved Card response could not be read.')
   return card
+}
+
+export async function getPostingCardSourceReceipt(cardKey: string, signal: AbortSignal): Promise<PostingImportReceipt | null> {
+  const response = await fetch(`${API_BASE_URL}/posting/card/${encodeURIComponent(cardKey)}/source-receipt`, { signal, cache: 'no-store' })
+  if (!response.ok) throw new Error('Could not load the import receipt.')
+
+  const receipt: unknown = await response.json()
+  if (receipt === null) return null
+  if (typeof receipt !== 'object' ||
+    !('kind' in receipt) || (receipt.kind !== 'url' && receipt.kind !== 'text') ||
+    !('submitted_at' in receipt) || typeof receipt.submitted_at !== 'string' || !Number.isFinite(Date.parse(receipt.submitted_at)) ||
+    !('source_url' in receipt) || (receipt.source_url !== null && typeof receipt.source_url !== 'string') ||
+    (receipt.kind === 'url' && !receipt.source_url)) {
+    throw new Error('The import receipt response could not be read.')
+  }
+  return { kind: receipt.kind, submitted_at: receipt.submitted_at, source_url: receipt.source_url }
 }
 
 export async function getOriginalPostingCard(

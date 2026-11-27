@@ -36,6 +36,7 @@ import { PostingCardSpecialInstructions } from './components/PostingCardSpecialI
 import { PostingCardContact } from './components/PostingCardContact'
 import { PostingCardAboutCompany } from './components/PostingCardAboutCompany'
 import { PostingCardSourceEvidence } from './components/PostingCardSourceEvidence'
+import { PostingCardImportSource } from './components/PostingCardImportSource'
 import { PostingCardSaveError } from './components/PostingCardSaveError'
 import { PostingCardSaveRecovery } from './components/PostingCardSaveRecovery'
 import { PostingCardMatch } from './components/PostingCardMatch'
@@ -250,6 +251,8 @@ export function PostingCardDetails({
             onTextChange={editor.updateDraftPostingInfo}
           />
         )}
+
+        <PostingCardImportSource key={card.card_key} cardKey={card.card_key} />
 
         <PostingCardSourceEvidence
           source={posting.identity.source}

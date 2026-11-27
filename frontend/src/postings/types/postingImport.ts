@@ -17,3 +17,9 @@ export type PostingImportRequest = {
   submitted_at: string
   source: PostingImportSource
 }
+
+export type PostingImportReceipt = {
+  kind: PostingImportSource['kind']
+  submitted_at: string
+  source_url: string | null
+}
