@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HomeGreeting } from '../components/home/HomeGreeting'
 import { HomeRecords } from '../components/home/HomeRecords'
+import type { HomeRecordsRefresh } from '../components/home/useRecordWrite'
 import { HomeActivity } from '../components/home/HomeActivity'
 import { getHomeActivity, getHomeOverview, HomeApiError, localDate, overviewWindow } from '../home/api/home'
 import type { HomeActivityData, HomeOverview } from '../home/types/home'
@@ -43,6 +44,7 @@ export function HomePage() {
   const [overview, setOverview] = useState<HomeOverview | null>(null)
   const [overviewError, setOverviewError] = useState<string | null>(null)
   const [overviewLoading, setOverviewLoading] = useState(true)
+  const [overviewGeneration, setOverviewGeneration] = useState(0)
   const [activity, setActivity] = useState<HomeActivityData | null>(null)
   const [activityError, setActivityError] = useState<string | null>(null)
   const [activityLoading, setActivityLoading] = useState(true)
@@ -101,7 +103,7 @@ export function HomePage() {
   const time = formatHomeTime(currentTime)
   const previousTimeText = formatHomeTime(previousTime)
 
-  const refreshActivity = useCallback(async () => {
+  const refreshActivity = useCallback(async (year: number) => {
     const generation = ++activityGeneration.current
     setActivityLoading(true)
     try {
@@ -112,32 +114,38 @@ export function HomePage() {
     } finally {
       if (active.current && generation === activityGeneration.current) setActivityLoading(false)
     }
-  }, [year])
-  const refreshOverview = useCallback(async () => {
+  }, [])
+  const isCurrentOverview = useCallback((generation: number) => active.current && generation === readGeneration.current, [])
+  const refreshRecords: HomeRecordsRefresh['start'] = useCallback(() => {
+    const now = new Date()
     const generation = ++readGeneration.current
+    setOverviewGeneration(generation)
     setOverviewLoading(true)
-    try {
-      const result = await getHomeOverview(overviewWindow(date))
-      if (active.current && generation === readGeneration.current) { setOverview(result); setOverviewError(null) }
-      return result
-    } catch (caught) {
-      if (active.current && generation === readGeneration.current) setOverviewError(caught instanceof HomeApiError ? caught.message : 'Home could not be loaded. Please retry.')
-      throw caught
-    } finally {
-      if (active.current && generation === readGeneration.current) setOverviewLoading(false)
+    async function readOverview() {
+      try {
+        const data = await getHomeOverview(overviewWindow(localDate(now)))
+        if (isCurrentOverview(generation)) { setOverview(data); setOverviewError(null) }
+        return data
+      } catch (caught) {
+        if (isCurrentOverview(generation)) setOverviewError(caught instanceof HomeApiError ? caught.message : 'Home could not be loaded. Please retry.')
+        throw caught
+      } finally {
+        if (isCurrentOverview(generation)) setOverviewLoading(false)
+      }
     }
-  }, [date])
-  const refreshRecords = useCallback(async () => {
     // Refresh both projections after every confirmed write; an activity failure
     // is shown independently and never turns a confirmed save into a failed one.
-    const [result] = await Promise.all([refreshOverview(), refreshActivity()])
-    return result
-  }, [refreshOverview, refreshActivity])
+    const result = Promise.all([readOverview(), refreshActivity(now.getFullYear())]).then(([data]) => data)
+    return { generation, result }
+  }, [refreshActivity, isCurrentOverview])
   useEffect(() => {
-    void refreshOverview().catch(() => {})
-    void refreshActivity()
     // Midnight/date changes reload records; the per-second clock does not.
-  }, [refreshOverview, refreshActivity])
+    void refreshRecords().result.catch(() => {})
+  }, [date, refreshRecords])
+
+  function handleRefreshHome() {
+    void refreshRecords().result.catch(() => {})
+  }
 
   return (
     <>
@@ -151,13 +159,13 @@ export function HomePage() {
               {overview && <p className="home-page__summary">{homeSummary(overview)}</p>}
             </header>
             <div className="home-page__record-status" aria-busy={overviewLoading}>
-              {overviewError && <div className="home-page__load-error"><p role="alert">{overviewError}</p>{overview && <p>Showing the last loaded records, not a confirmed current overview. Drafts remain here.</p>}<button className="home-page__record-action" type="button" disabled={overviewLoading} onClick={() => void refreshRecords().catch(() => {})}>Retry Home</button></div>}
+              {overviewError && <div className="home-page__load-error"><p role="alert">{overviewError}</p>{overview && <p>Showing the last loaded records, not a confirmed current overview. Drafts remain here.</p>}<button className="home-page__record-action" type="button" disabled={overviewLoading} onClick={handleRefreshHome}>Retry Home</button></div>}
               {overviewLoading && <p role="status">{overview ? 'Refreshing records…' : 'Loading Home…'}</p>}
-              {overview && <button className="home-page__record-action" type="button" disabled={overviewLoading} onClick={() => void refreshRecords().catch(() => {})}>Refresh Home</button>}
+              {overview && <button className="home-page__record-action" type="button" disabled={overviewLoading} onClick={handleRefreshHome}>Refresh Home</button>}
             </div>
-            {overview && <HomeRecords data={overview} today={date} refresh={refreshRecords} />}
+            {overview && <HomeRecords data={overview} today={date} refresh={{ generation: overviewGeneration, isCurrent: isCurrentOverview, start: refreshRecords }} />}
           </div>
-          <HomeActivity overview={overviewError ? null : overview} activity={activity} error={activityError} loading={activityLoading} year={year} today={date} retry={() => void refreshActivity()} />
+          <HomeActivity overview={overviewError ? null : overview} activity={activity} error={activityError} loading={activityLoading} year={year} today={date} retry={() => void refreshActivity(new Date().getFullYear())} />
         </div>
       </section>
 

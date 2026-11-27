@@ -397,6 +397,150 @@ test('HF-SEEDED many records with long German text render from server facts with
 
 // ------------------------------------------------------------------------ tasks
 
+async function enterUncertainTask(page) {
+  await openHome(page)
+  const form = taskForm(page)
+  const title = form.getByLabel('Task title')
+  await title.fill(LONG_TASK)
+  await form.getByRole('button', { name: 'Add task', exact: true }).press('Enter')
+  await expect(form.getByRole('alert')).toContainText('Save outcome unknown')
+  return {
+    form, title,
+    check: form.getByRole('button', { name: 'Refresh to check', exact: true }),
+    retry: form.getByRole('button', { name: 'Retry same request', exact: true }),
+  }
+}
+
+for (const action of ['Refresh to check', 'Refresh Home']) {
+  test(`HF-RECOVERY a failed ${action} invalidates earlier retry permission`, async ({ page, context, baseURL }) => {
+    const state = makeState()
+    const readStarted = deferred()
+    const release = deferred()
+    let reads = 0
+    await installHome({ context, baseURL, state, routes: {
+      'POST /home/tasks': route => route.abort('failed'),
+      'GET /home/overview': async (route, request, ok) => {
+        if (!state.writes.length || ++reads === 1) return ok()
+        readStarted.resolve()
+        await release.promise
+        return route.fulfill({ status: 503, json: { detail: 'home.storage_unavailable' } })
+      },
+    } })
+    const { form, title, check, retry } = await enterUncertainTask(page)
+    await check.press('Enter')
+    await expect(retry).toBeEnabled()
+    await expect(form.getByRole('alert')).toContainText('does not confirm')
+    await page.getByRole('button', { name: action, exact: true }).press('Enter')
+    await readStarted.promise
+    try {
+      await expect(form.getByText('does not confirm')).toHaveCount(0)
+      if (action === 'Refresh Home') await expect(retry).toBeDisabled()
+    } finally {
+      release.resolve()
+    }
+    await expect(page.getByRole('button', { name: 'Retry Home', exact: true })).toBeEnabled()
+    await expect(retry).toBeDisabled()
+    await expect(check).toBeEnabled()
+    await expect(title).toHaveValue(LONG_TASK)
+    expect(reads).toBe(2)
+    expect(state.writes).toHaveLength(1)
+    expect(state.unexpected).toEqual([])
+  })
+}
+
+test('HF-RECOVERY a superseded matching overview cannot clear the draft after midnight', async ({ page, context, baseURL }) => {
+  const state = makeState()
+  const oldReadStarted = deferred()
+  const release = deferred()
+  let failNewDay = true
+  await installHome({ context, baseURL, state, routes: {
+    'POST /home/tasks': (route, request) => {
+      state.createTask(request.postDataJSON())
+      return route.abort('failed')
+    },
+    'GET /home/overview': async (route, request, ok) => {
+      if (!state.writes.length) return ok()
+      const readDay = new URL(request.url()).searchParams.get('today')
+      if (readDay === dateOf(0)) {
+        oldReadStarted.resolve()
+        await release.promise
+      } else if (failNewDay) {
+        return route.fulfill({ status: 503, json: { detail: 'home.storage_unavailable' } })
+      }
+      return ok()
+    },
+  } })
+  const { form, title, check, retry } = await enterUncertainTask(page)
+  await check.press('Enter')
+  await oldReadStarted.promise
+  try {
+    await page.clock.setFixedTime(dayAt(1))
+    await expect(page.getByRole('button', { name: 'Retry Home', exact: true })).toBeEnabled()
+  } finally {
+    release.resolve()
+  }
+  await expect(check).toBeEnabled()
+  await expect(retry).toBeDisabled()
+  await expect(title).toHaveValue(LONG_TASK)
+  await expect(form.getByRole('status')).toHaveCount(0)
+  await expect(form.getByRole('alert')).toContainText('A newer overview replaced this check')
+
+  failNewDay = false
+  await check.press('Enter')
+  await expect(form.getByRole('status')).toHaveText('Saved record found after refresh.')
+  await expect(title).toHaveValue('')
+  expect(state.writes).toHaveLength(1)
+  expect(state.unexpected).toEqual([])
+})
+
+test('HF-RECOVERY a newer overview revokes a readback waiting on Activity', async ({ page, context, baseURL }) => {
+  const state = makeState()
+  const activityStarted = deferred()
+  const release = deferred()
+  let overviewReads = 0
+  let activityReads = 0
+  await installHome({ context, baseURL, state, routes: {
+    'POST /home/tasks': (route, request, ok) => state.writes.length === 1 ? route.abort('failed') : ok(),
+    'GET /home/overview': (route, request, ok) => {
+      if (state.writes.length && ++overviewReads === 2) {
+        return route.fulfill({ status: 503, json: { detail: 'home.storage_unavailable' } })
+      }
+      return ok()
+    },
+    'GET /home/activity': async (route, request, ok) => {
+      if (state.writes.length && ++activityReads === 1) {
+        activityStarted.resolve()
+        await release.promise
+      }
+      return ok()
+    },
+  } })
+  const { form, title, check, retry } = await enterUncertainTask(page)
+  await check.press('Enter')
+  await activityStarted.promise
+  try {
+    await page.getByRole('button', { name: 'Refresh Home', exact: true }).press('Enter')
+    await expect(page.getByRole('button', { name: 'Retry Home', exact: true })).toBeEnabled()
+  } finally {
+    release.resolve()
+  }
+  await expect(check).toBeEnabled()
+  await expect(retry).toBeDisabled()
+  await expect(title).toHaveValue(LONG_TASK)
+  await expect(form.getByRole('alert')).toContainText('A newer overview replaced this check')
+  expect(state.writes).toHaveLength(1)
+
+  await check.press('Enter')
+  await expect(retry).toBeEnabled()
+  expect(state.writes).toHaveLength(1)
+  await retry.press('Enter')
+  await expect(taskList(page)).toContainText(LONG_TASK)
+  const posted = bodiesOf(state, 'POST /home/tasks')
+  expect(posted).toHaveLength(2)
+  expect(posted[1]).toEqual(posted[0])
+  expect(state.unexpected).toEqual([])
+})
+
 test('HF-TASK-ADD rejected, lost and duplicate task saves keep the draft, never auto-resend and leave the page still', async ({ page, context, baseURL }) => {
   const state = makeState({
     tasks: [task(1, 'Aufgabe eins (DEMO)'), task(2, 'Aufgabe zwei (DEMO)'), task(3, 'Aufgabe drei (DEMO)'), task(4, 'Aufgabe vier (DEMO)')],

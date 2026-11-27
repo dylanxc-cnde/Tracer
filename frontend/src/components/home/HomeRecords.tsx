@@ -8,85 +8,9 @@ import {
 } from '../../home/api/home'
 import type { ApplicationRecord, ApplicationStatus, CreateApplicationRequest, CreateEventRequest, CreateTaskRequest, HomeOverview, ScheduleEvent, Task } from '../../home/types/home'
 import type { PostingCard } from '../../postings/types/postingCard'
+import { useRecordWrite } from './useRecordWrite'
+import type { HomeRecordsRefresh } from './useRecordWrite'
 import './HomeRecords.css'
-
-type Refresh = () => Promise<HomeOverview>
-type Operation<Receipt> = { send: () => Promise<Receipt>; saved: (receipt?: Receipt) => void; matches: (data: HomeOverview) => boolean }
-
-// One local write lifecycle per editor/row. Checking an uncertain outcome is a
-// read, never a retry; a later explicit retry reuses the exact frozen operation.
-function useRecordWrite<Receipt = unknown>(refresh: Refresh) {
-  const active = useRef(false)
-  const guard = useRef(false)
-  const attempt = useRef<Operation<Receipt> | null>(null)
-  const [pending, setPending] = useState(false)
-  const [uncertain, setUncertain] = useState(false)
-  const [checked, setChecked] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  useEffect(() => { active.current = true; return () => { active.current = false } }, [])
-
-  function clearFeedback() {
-    setError(null)
-    setMessage(null)
-  }
-
-  async function run(operation: Operation<Receipt>) {
-    if (guard.current || (uncertain && !checked)) return
-    guard.current = true
-    setPending(true)
-    clearFeedback()
-    // Preserve the action/payload after a lost response, even through re-renders.
-    const current = uncertain && attempt.current ? attempt.current : operation
-    attempt.current = current
-    try {
-      const receipt = await current.send()
-      if (!active.current) return
-      current.saved(receipt)
-      setUncertain(false)
-      setChecked(false)
-      attempt.current = null
-      setMessage('Saved.')
-      try { await refresh() } catch {
-        if (active.current) setMessage('Saved, but the updated overview could not be loaded. Refresh Home; do not submit again.')
-      }
-    } catch (caught) {
-      if (!active.current) return
-      const unknown = caught instanceof HomeApiError && caught.uncertain
-      setError(caught instanceof HomeApiError ? caught.message : 'This change could not be confirmed. Refresh to check saved records before retrying.')
-      setUncertain(unknown || !(caught instanceof HomeApiError))
-      setChecked(false)
-    } finally {
-      guard.current = false
-      if (active.current) setPending(false)
-    }
-  }
-  async function check() {
-    if (guard.current) return
-    guard.current = true
-    setPending(true)
-    try {
-      const data = await refresh()
-      if (!active.current) return
-      if (attempt.current?.matches(data)) {
-        attempt.current.saved()
-        attempt.current = null
-        setUncertain(false)
-        setError(null)
-        setMessage('Saved record found after refresh.')
-      } else {
-        setChecked(true)
-        setError('Refresh completed. This view does not confirm the change. You can explicitly retry the same request; its record ID will not change.')
-      }
-    } catch {
-      if (active.current) setError('Refresh failed. Keep this draft and retry the check before another write.')
-    } finally {
-      guard.current = false
-      if (active.current) setPending(false)
-    }
-  }
-  return { run, check, clearFeedback, pending, uncertain, checked, error, message, locked: pending || uncertain }
-}
 
 type WriteFeedbackState = Pick<ReturnType<typeof useRecordWrite>, 'check' | 'pending' | 'uncertain' | 'error' | 'message'>
 
@@ -115,7 +39,7 @@ function dateFact(value: string): string {
   return new Date(`${value}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-function TaskForm({ today, refresh }: { today: string; refresh: Refresh }) {
+function TaskForm({ today, refresh }: { today: string; refresh: HomeRecordsRefresh }) {
   const [title, setTitle] = useState('')
   const [due, setDue] = useState('')
   const input = useRef<HTMLInputElement>(null)
@@ -145,7 +69,7 @@ function TaskForm({ today, refresh }: { today: string; refresh: Refresh }) {
   </form>
 }
 
-function TaskRow({ task, refresh }: { task: Task; refresh: Refresh }) {
+function TaskRow({ task, refresh }: { task: Task; refresh: HomeRecordsRefresh }) {
   const write = useRecordWrite(refresh)
   return <li className="home-page__task-row">
     <div className="home-page__row-copy"><strong>{task.title}</strong><span>{task.due_on ? `Due ${dateFact(task.due_on)}` : 'No due date'}</span><WriteFeedback write={write} /></div>
@@ -156,7 +80,7 @@ function TaskRow({ task, refresh }: { task: Task; refresh: Refresh }) {
   </li>
 }
 
-function EventForm({ event, refresh, close }: { event: ScheduleEvent | null; refresh: Refresh; close: () => void }) {
+function EventForm({ event, refresh, close }: { event: ScheduleEvent | null; refresh: HomeRecordsRefresh; close: () => void }) {
   const [title, setTitle] = useState(event?.title ?? '')
   const [kind, setKind] = useState<ScheduleEvent['kind']>(event?.kind ?? 'interview')
   const [start, setStart] = useState(event ? localDateTime(event.starts_at) : '')
@@ -191,7 +115,7 @@ function EventForm({ event, refresh, close }: { event: ScheduleEvent | null; ref
   </form>
 }
 
-function ApplicationForm({ jobs, selected, today, refresh, close }: { jobs: PostingCard[]; selected: string; today: string; refresh: Refresh; close: () => void }) {
+function ApplicationForm({ jobs, selected, today, refresh, close }: { jobs: PostingCard[]; selected: string; today: string; refresh: HomeRecordsRefresh; close: () => void }) {
   const [key, setKey] = useState(selected)
   const [date, setDate] = useState(today)
   const id = useRef<{ key: string; id: string } | null>(null)
@@ -218,7 +142,7 @@ const applicationStatusLabels: Record<ApplicationStatus, string> = {
   applied: 'Applied', interviewing: 'Interviewing', offer: 'Offer', rejected: 'Rejected', withdrawn: 'Withdrawn',
 }
 
-function ApplicationRow({ record, title, refresh }: { record: ApplicationRecord; title: string; refresh: Refresh }) {
+function ApplicationRow({ record, title, refresh }: { record: ApplicationRecord; title: string; refresh: HomeRecordsRefresh }) {
   const [draft, setDraft] = useState<{ initial: ApplicationStatus; status: ApplicationStatus } | null>(null)
   const [receipt, setReceipt] = useState<{ previous: ApplicationRecord; status: ApplicationStatus } | null>(null)
   const latestRecord = useRef(record)
@@ -308,7 +232,7 @@ function ApplicationRow({ record, title, refresh }: { record: ApplicationRecord;
   </li>
 }
 
-export function HomeRecords({ data, today, refresh }: { data: HomeOverview; today: string; refresh: Refresh }) {
+export function HomeRecords({ data, today, refresh }: { data: HomeOverview; today: string; refresh: HomeRecordsRefresh }) {
   const [eventEditor, setEventEditor] = useState<ScheduleEvent | 'new' | null>(null)
   const [applicationEditor, setApplicationEditor] = useState<string | null>(null)
   const [jobs, setJobs] = useState<PostingCard[] | null>(null)
