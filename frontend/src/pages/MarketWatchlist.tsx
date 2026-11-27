@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { SyntheticEvent } from 'react'
 import { changePostingWatch, getPostingWatchlist, MissingPostingCardError, PostingWatchlistUncertainError } from '../postings/api/postings'
+import { postingSourceCheckLabels } from '../postings/sourceCheckLabels'
 import type { PostingCard, WatchedPostingCard } from '../postings/types/postingCard'
 import { savedJobCompany, savedJobTitle } from './marketJobs'
 import type { MarketJobRead } from './marketJobs'
@@ -203,6 +204,18 @@ export function MarketWatchlist({ cards, detailRead, onOpenJob, onDismiss }: Wat
                 <time dateTime={row.watched_at}>{new Date(row.watched_at).toLocaleString('en-GB', {
                   dateStyle: 'medium', timeStyle: 'short',
                 })}</time>
+                {row.last_source_check !== undefined && <dl className="market-page__reason">
+                  <dt>Last source check</dt>
+                  <dd>{row.last_source_check === null ? 'No source check recorded.' : <>
+                    <span>{postingSourceCheckLabels[row.last_source_check.result]}</span>
+                    {' · '}
+                    <time dateTime={row.last_source_check.recorded_at}>
+                      {new Date(row.last_source_check.recorded_at).toLocaleString('en-GB', {
+                        dateStyle: 'medium', timeStyle: 'medium',
+                      })}
+                    </time>
+                  </>}</dd>
+                </dl>}
               </div>
               <div className="market-watchlist__row-actions">
                 <button className="market-page__action" type="button" aria-label={`View saved job: ${title}`}

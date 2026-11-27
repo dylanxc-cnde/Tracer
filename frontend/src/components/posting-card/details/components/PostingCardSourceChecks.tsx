@@ -6,13 +6,8 @@ import {
   PostingSourceCheckUncertainError,
   recordPostingSourceCheck,
 } from '../../../../postings/api/postings'
+import { postingSourceCheckLabels } from '../../../../postings/sourceCheckLabels'
 import type { PostingSourceCheck, PostingSourceCheckResult, RecordPostingSourceCheckRequest } from '../../../../postings/types/postingCard'
-
-const resultLabels: Record<PostingSourceCheckResult, string> = {
-  listed: 'Still listed',
-  not_listed: 'No longer listed',
-  unable_to_confirm: 'Could not confirm',
-}
 
 type Recovery = { request: RecordPostingSourceCheckRequest; retryAllowed: boolean }
 type Feedback = { kind: 'success' | 'error'; message: string }
@@ -159,7 +154,7 @@ export function PostingCardSourceChecks({
         >Retry reading source checks</button>}
         {history && history.length > 0 && <ul aria-label="Recorded source checks">
           {history.map((check) => <li key={check.check_id}>
-            <strong>{resultLabels[check.result]}</strong>
+            <strong>{postingSourceCheckLabels[check.result]}</strong>
             <time dateTime={check.recorded_at}>{new Date(check.recorded_at).toLocaleString('en-GB', {
               dateStyle: 'medium', timeStyle: 'medium',
             })}</time>
@@ -170,7 +165,7 @@ export function PostingCardSourceChecks({
             <select value={result} disabled={isSaving || recovery !== null}
               onChange={(event) => setResult(event.target.value as PostingSourceCheckResult | '')}>
               <option value="">Choose a result</option>
-              {Object.entries(resultLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+              {Object.entries(postingSourceCheckLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
             </select>
           </label>
           <button ref={recordButton} type="button" aria-disabled={!canSubmit} onClick={() => void recordCheck()}>

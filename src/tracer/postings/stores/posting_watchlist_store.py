@@ -5,7 +5,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
-from ..models.posting_watchlist import WatchedPostingCard
+from ..models.posting_watchlist import LatestSourceCheck, WatchedPostingCard
+
+
+_SELECT_WATCHED_CARDS = """
+    SELECT watch.card_key, watch.watched_at, latest.result, latest.recorded_at
+    FROM posting_watchlist AS watch
+    LEFT JOIN posting_source_checks AS latest ON latest.check_id = (
+        SELECT check_id FROM posting_source_checks
+        WHERE card_key = watch.card_key
+        ORDER BY recorded_at DESC, check_id DESC
+        LIMIT 1
+    )
+"""
 
 
 class PostingWatchlistStore:
@@ -31,13 +43,10 @@ class PostingWatchlistStore:
     def list_watched(self) -> tuple[WatchedPostingCard, ...]:
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT card_key, watched_at FROM posting_watchlist "
-                "ORDER BY watched_at DESC, card_key DESC"
+                _SELECT_WATCHED_CARDS
+                + " ORDER BY watch.watched_at DESC, watch.card_key DESC"
             ).fetchall()
-        return tuple(
-            WatchedPostingCard(card_key=card_key, watched_at=watched_at)
-            for card_key, watched_at in rows
-        )
+        return tuple(self._to_card(row) for row in rows)
 
     def watch(self, card_key: UUID) -> WatchedPostingCard | None:
         with self._connect() as connection:
@@ -51,12 +60,24 @@ class PostingWatchlistStore:
                 (watched_at, key),
             )
             row = connection.execute(
-                "SELECT watched_at FROM posting_watchlist WHERE card_key = ?",
+                _SELECT_WATCHED_CARDS + " WHERE watch.card_key = ?",
                 (key,),
             ).fetchone()
-        if row is None:
-            return None
-        return WatchedPostingCard(card_key=card_key, watched_at=row[0])
+            return self._to_card(row) if row is not None else None
+
+    @staticmethod
+    def _to_card(row: tuple[str, str, str | None, str | None]) -> WatchedPostingCard:
+        card_key, watched_at, result, recorded_at = row
+        observation = None
+        if result is not None:
+            observation = LatestSourceCheck.model_validate(
+                {"result": result, "recorded_at": recorded_at}
+            )
+        return WatchedPostingCard(
+            card_key=UUID(card_key),
+            watched_at=datetime.fromisoformat(watched_at),
+            last_source_check=observation,
+        )
 
     def unwatch(self, card_key: UUID) -> None:
         with self._connect() as connection:

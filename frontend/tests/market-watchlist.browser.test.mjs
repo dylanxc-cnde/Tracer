@@ -223,3 +223,33 @@ test('Market keeps focus ownership when the same job is opened from another sect
   expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `GET ${CARDS}/${KEY}`, `GET ${CARDS}/${KEY}`])
   expect(unexpected).toEqual([])
 })
+
+for (const width of [1440, 900]) {
+  test(`Market identifies the last recorded source check at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const unchecked = { ...card, card_key: 'a0000000-0000-4000-8000-000000000064', posting_alias: 'Offene Ausschreibung zur Schieneninfrastruktur (DEMO)' }
+    const legacy = { ...card, card_key: 'a0000000-0000-4000-8000-000000000065', posting_alias: 'Archiviertes Praktikum in der Mobilitätsplanung (DEMO)' }
+    const recordedAt = '2026-11-26T08:20:00Z'
+    const { section, calls, unexpected } = await openWatchlist({ page, context, baseURL }, route => route.fulfill({ json: [
+      { ...membership, last_source_check: { result: 'not_listed', recorded_at: recordedAt } },
+      { ...membership, card_key: unchecked.card_key, last_source_check: null },
+      { ...membership, card_key: legacy.card_key },
+    ] }), { savedCards: [card, unchecked, legacy] })
+    const rows = section.getByRole('list', { name: 'Watched jobs', exact: true }).getByRole('listitem')
+    await expect(rows).toHaveCount(3)
+    const checked = rows.filter({ hasText: TITLE })
+    await expect(checked).toContainText('Last source check')
+    await expect(checked).toContainText('No longer listed')
+    await expect(checked.locator(`time[datetime="${recordedAt}"]`)).toBeVisible()
+    await expect(rows.filter({ hasText: unchecked.posting_alias })).toContainText('No source check recorded.')
+    const old = rows.filter({ hasText: legacy.posting_alias })
+    await expect(old).not.toContainText('Last source check')
+    await expect(old).not.toContainText('No source check recorded.')
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`])
+    expect(unexpected).toEqual([])
+    expect(await section.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await checked.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath('last-recorded-source-check.png') })
+  })
+}

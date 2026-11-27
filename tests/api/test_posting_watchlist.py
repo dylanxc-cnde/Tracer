@@ -52,7 +52,11 @@ def test_watchlist_retains_first_membership_time_and_survives_app_reopen(databas
         assert first.status_code == second.status_code == repeated.status_code == 200
         watched_at = first.json()["watched_at"]
         assert watched_at.endswith("Z")
-        assert first.json() == {"card_key": first_key, "watched_at": watched_at}
+        assert first.json() == {
+            "card_key": first_key,
+            "watched_at": watched_at,
+            "last_source_check": None,
+        }
         assert repeated.json() == first.json()
         assert client.get(WATCHLIST_PATH).json() == [second.json(), first.json()]
         assert client.get(f"/posting/card/{first_key}").json() == before
@@ -133,3 +137,62 @@ def test_concurrent_identical_watches_keep_one_membership(client, database_path)
     assert first_response.status_code == second_response.status_code == 200
     assert first_response.json() == second_response.json()
     assert client.get(WATCHLIST_PATH).json() == [first_response.json()]
+
+
+def test_watchlist_projects_latest_manual_observation_without_copying_source(
+    client,
+    database_path,
+):
+    source_url = "https://example.com/jobs/mobility"
+    source_text = "Synthetic text kept only in the import receipt."
+    imported = client.post(
+        "/posting/import",
+        json={"kind": "text", "text": source_text, "source_url": source_url},
+    )
+    assert imported.status_code == 201
+    import_key = imported.json()["import_key"]
+    created = client.post(
+        "/posting/card",
+        json={
+            "import_key": import_key,
+            "posting": make_posting_details().model_dump(mode="json"),
+        },
+    )
+    assert created.status_code == 201
+    key = created.json()["card_key"]
+    checks_path = f"/posting/card/{key}/source-checks"
+    watch_path = f"{WATCHLIST_PATH}/{key}"
+
+    def record_result(result):
+        response = client.post(
+            checks_path, json={"check_id": str(uuid4()), "result": result}
+        )
+        assert response.status_code == 201
+        check = response.json()
+        return {"result": result, "recorded_at": check["recorded_at"]}
+
+    first_check = record_result("listed")
+    watched = client.put(watch_path)
+    assert watched.status_code == 200
+    assert watched.json()["last_source_check"] == first_check
+    later_key = add_saved_card(PostingCardStore(database_path))
+    unchecked = client.put(f"{WATCHLIST_PATH}/{later_key}")
+    assert unchecked.status_code == 200
+    assert unchecked.json()["last_source_check"] is None
+
+    record_result("not_listed")
+    latest = record_result("unable_to_confirm")
+    expected = {**watched.json(), "last_source_check": latest}
+    assert client.get(WATCHLIST_PATH).json() == [unchecked.json(), expected]
+    replay = client.put(watch_path)
+    assert replay.status_code == 200
+    assert replay.json() == expected
+    assert replay.json()["watched_at"] == watched.json()["watched_at"]
+
+    assert client.delete(f"/posting/import/{import_key}").status_code == 204
+    history = client.get(WATCHLIST_PATH)
+    assert history.status_code == 200
+    assert history.json() == [unchecked.json(), expected]
+    assert source_url not in history.text
+    assert source_text not in history.text
+    assert client.put(watch_path).json() == expected

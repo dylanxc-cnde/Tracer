@@ -2,6 +2,7 @@ import type {
   CreatePostingCardRequest,
   PostingCard,
   PostingSourceCheck,
+  PostingSourceObservation,
   RecordPostingSourceCheckRequest,
   UpdatePostingCardRequest,
   WatchedPostingCard,
@@ -177,7 +178,8 @@ function isWatchedPostingCard(value: unknown): value is WatchedPostingCard {
   return typeof value === 'object' && value !== null &&
     'card_key' in value && typeof value.card_key === 'string' && value.card_key !== '' &&
     'watched_at' in value && typeof value.watched_at === 'string' &&
-    Number.isFinite(Date.parse(value.watched_at))
+    Number.isFinite(Date.parse(value.watched_at)) &&
+    (!('last_source_check' in value) || value.last_source_check === null || isPostingSourceObservation(value.last_source_check))
 }
 
 export async function getPostingWatchlist(signal: AbortSignal): Promise<WatchedPostingCard[]> {
@@ -233,11 +235,15 @@ function sourceChecksUrl(cardKey: string) {
   return `${API_BASE_URL}/posting/card/${encodeURIComponent(cardKey)}/source-checks`
 }
 
-function isPostingSourceCheck(value: unknown): value is PostingSourceCheck {
+function isPostingSourceObservation(value: unknown): value is PostingSourceObservation {
   return typeof value === 'object' && value !== null &&
-    'check_id' in value && typeof value.check_id === 'string' && value.check_id !== '' &&
     'recorded_at' in value && typeof value.recorded_at === 'string' && Number.isFinite(Date.parse(value.recorded_at)) &&
     'result' in value && (value.result === 'listed' || value.result === 'not_listed' || value.result === 'unable_to_confirm')
+}
+
+function isPostingSourceCheck(value: unknown): value is PostingSourceCheck {
+  return isPostingSourceObservation(value) &&
+    'check_id' in value && typeof value.check_id === 'string' && value.check_id !== ''
 }
 
 export async function getPostingSourceChecks(cardKey: string, signal: AbortSignal): Promise<PostingSourceCheck[]> {
