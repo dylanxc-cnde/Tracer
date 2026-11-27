@@ -208,6 +208,11 @@ labels; future dates are identified separately. No recording start or historical
 count is invented. No provider budget, an unset budget, a zero budget, a positive
 budget and unobtained token/cost data are distinct states. Budgets are not limits.
 
+Activity reads the last 30 local calendar days, including today. It groups
+recorded operations by local date with the newest first. If an operation links
+to a Card, Open job reads it in the existing read-only viewer. The operation
+remains in the list even if its Card has been deleted.
+
 ### Failure and lifetime handling
 
 - Initial read failures show an error and Retry, not an empty state. An unsuccessful

@@ -1,13 +1,9 @@
 import { cloneElement, useMemo } from 'react'
 import { ActivityCalendar } from 'react-activity-calendar'
+import { activityLabels } from '../../home/activityLabels'
 import { localDate } from '../../home/api/home'
-import type { ActivityKind, HomeActivityData, HomeOverview } from '../../home/types/home'
+import type { HomeActivityData, HomeOverview } from '../../home/types/home'
 
-const descriptions: Record<ActivityKind, string> = {
-  card_saved: 'Job saved', card_updated: 'Job updated', task_completed: 'Task completed',
-  application_recorded: 'Application recorded', application_status_changed: 'Application status changed',
-  event_recorded: 'Event recorded', event_adjusted: 'Event adjusted',
-}
 export function HomeActivity({ overview, activity, error, loading, year, today, retry }: {
   overview: HomeOverview | null; activity: HomeActivityData | null; error: string | null
   loading: boolean; year: number; today: string; retry: () => void
@@ -56,7 +52,7 @@ export function HomeActivity({ overview, activity, error, loading, year, today, 
     </section>
     {overview && <>
       <section aria-labelledby="home-recent-activity-title"><div className="home-page__section-heading"><h2 className="home-page__section-title" id="home-recent-activity-title">Recent activity</h2></div>
-        {overview.recent_activity.length ? <ul className="home-page__recent-list">{overview.recent_activity.map(({ event, card_missing }) => <li className="home-page__record-activity" key={event.event_id}><span>{descriptions[event.kind]}{card_missing ? ' · Job deleted' : ''}</span><time dateTime={event.occurred_at}>{new Date(event.occurred_at).toLocaleString('en-GB')}</time></li>)}</ul> : <p className="home-page__empty">No recorded operations yet. Old saved jobs are not backfilled as activity.</p>}
+        {overview.recent_activity.length ? <ul className="home-page__recent-list">{overview.recent_activity.map(({ event, card_missing }) => <li className="home-page__record-activity" key={event.event_id}><span>{activityLabels[event.kind]}{card_missing ? ' · Job deleted' : ''}</span><time dateTime={event.occurred_at}>{new Date(event.occurred_at).toLocaleString('en-GB')}</time></li>)}</ul> : <p className="home-page__empty">No recorded operations yet. Old saved jobs are not backfilled as activity.</p>}
       </section>
       <section className="home-page__usage" aria-labelledby="home-usage-title"><h2 className="home-page__usage-title" id="home-usage-title">AI usage</h2>
         <dl className="home-page__usage-metrics"><div><dt>Estimated cost this month</dt><dd>Not obtained</dd></div><div><dt>Tokens this month</dt><dd>Not obtained</dd></div></dl>

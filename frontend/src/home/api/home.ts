@@ -67,11 +67,11 @@ function overview(v: unknown): boolean {
       && (p.monthly_budget_usd === null || (typeof p.monthly_budget_usd === 'number' && Number.isFinite(p.monthly_budget_usd) && p.monthly_budget_usd >= 0))
       && ['not_set', 'zero', 'set'].includes(String(p.budget_status)))
 }
-async function request<T>(path: string, method: 'GET' | 'POST' | 'PATCH', validate: (v: unknown) => boolean, body?: object): Promise<T> {
+async function request<T>(path: string, method: 'GET' | 'POST' | 'PATCH', validate: (v: unknown) => boolean, body?: object, signal?: AbortSignal): Promise<T> {
   const writing = method !== 'GET'
   let response: Response
   try {
-    response = await fetch(`${API_BASE_URL}/home${path}`, { method, ...(body ? {
+    response = await fetch(`${API_BASE_URL}/home${path}`, { method, signal, ...(body ? {
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     } : {}) })
   } catch {
@@ -90,9 +90,11 @@ async function request<T>(path: string, method: 'GET' | 'POST' | 'PATCH', valida
   return value as T
 }
 export const getHomeOverview = (window: OverviewWindow) => request<HomeOverview>(`/overview?${new URLSearchParams(window)}`, 'GET', overview)
-export const getHomeActivity = (year: number) => request<HomeActivityData>(`/activity?${new URLSearchParams({
-  from: new Date(year, 0, 1).toISOString(), to: new Date(year + 1, 0, 1).toISOString(),
-})}`, 'GET', v => record(v) && list(v.events, activity) && nullableText(v.recording_started_at))
+export const getHomeActivityInWindow = (start: Date, end: Date, signal?: AbortSignal) => request<HomeActivityData>(
+  `/activity?${new URLSearchParams({ from: start.toISOString(), to: end.toISOString() })}`,
+  'GET', v => record(v) && list(v.events, activity) && nullableText(v.recording_started_at), undefined, signal,
+)
+export const getHomeActivity = (year: number) => getHomeActivityInWindow(new Date(year, 0, 1), new Date(year + 1, 0, 1))
 export const createTask = (body: CreateTaskRequest) => request<Task>('/tasks', 'POST', task, body)
 export const completeTask = (id: string) => request<Task>(`/tasks/${encodeURIComponent(id)}/complete`, 'POST', task)
 export const reopenTask = (id: string) => request<Task>(`/tasks/${encodeURIComponent(id)}/reopen`, 'POST', task)

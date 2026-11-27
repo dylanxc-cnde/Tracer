@@ -41,7 +41,8 @@ Import History, and Settings. Profile loads the saved display name and saves
 changes only when you select Save changes; Cancel restores the last saved name.
 Leaving Profile discards unsaved edits. API Settings manages provider metadata
 and write-only credentials and selects the provider/model for posting parsing.
-The separate Activity page remains a placeholder. Home reads your saved display
+Activity shows recorded workspace changes from the last 30 days and can reopen saved jobs.
+Home reads your saved display
 name and local shared records: tasks, scheduled events, explicit applications,
 recent saved jobs and recorded workspace operations. Add task, Complete,
 Add/Adjust event and Record application use inline controls; saving a job never
