@@ -68,12 +68,18 @@ REVIEW.details.requirements = {
   ],
 }
 const REPLACEMENT_A = { ...A, importKey: 'a0000000-0000-4000-8000-000000000035' }
-const fixtures = [A, B, LINK, REVIEW]
+const MULTIPLE = {
+  ...A,
+  importKey: 'a0000000-0000-4000-8000-000000000039',
+  importSource: { kind: 'text', source_url: null, text: [A.title, A.importSource.text, B.title, B.importSource.text].join('\n\n') },
+  proposals: [A, B].map(({ details }) => ({ details, parse_ambiguities: [] })),
+}
+const fixtures = [A, B, LINK, REVIEW, MULTIPLE]
 const parsePath = (posting) => `/posting/import/${posting.importKey}/parse-results`
 
 async function openImport(
   { page, context, baseURL },
-  { releaseA, releaseCard, releaseDelete, resultA, failFirstParse, replaceMissingA } = {},
+  { releaseA, releaseCard, releaseDelete, resultA, failFirstParse, failFirstCard = false, replaceMissingA } = {},
 ) {
   const imports = []
   const parses = []
@@ -113,7 +119,7 @@ async function openImport(
         }
         if (posting === A) await releaseA
         const completeResult = {
-          status: 'complete', postings: [{ details: posting.details, parse_ambiguities: posting.ambiguities ?? [] }],
+          status: 'complete', postings: posting.proposals ?? [{ details: posting.details, parse_ambiguities: posting.ambiguities ?? [] }],
           refinement_reason: null, refinement_suggestions: [],
         }
         await route.fulfill({ json: (posting === A ? resultA : undefined) ?? completeResult })
@@ -125,9 +131,13 @@ async function openImport(
         const savedPosting = savedFixtures.find(({ importKey }) => importKey === body.import_key)
         if (savedPosting) {
           await releaseCard
+          if (failFirstCard && cards.length === 1) {
+            await route.fulfill({ status: 409, json: { detail: 'Synthetic Card save rejected' } })
+            return
+          }
           const cardKey = savedPosting === A ? OLD_CARD_KEY : CARD_KEY
           let postingAlias = SAVED_TITLE
-          if (savedPosting === A) postingAlias = OLD_SAVED_TITLE
+          if (savedPosting === A || savedPosting === MULTIPLE) postingAlias = OLD_SAVED_TITLE
           if (savedPosting === REVIEW) postingAlias = REVIEW_SAVED_TITLE
           await route.fulfill({ status: 201, json: {
             card_key: cardKey, import_key: savedPosting.importKey, schema_version: 1, created_at: CREATED_AT,
@@ -542,6 +552,71 @@ test('Posting import waits for the confirmed Card before analyzing edited source
   expect(imports).toEqual([B.importSource, A.importSource])
   expect(parses).toEqual([B.importKey, A.importKey])
   expect(cards).toHaveLength(1)
+  expect(unexpected).toEqual([])
+})
+
+test('Posting import preserves the confirmed candidate while saving and after success', async ({ page, context, baseURL }) => {
+  const gate = Promise.withResolvers()
+  const { input, analyze, confirm, imports, parses, cards, unexpected } = await openImport(
+    { page, context, baseURL }, { releaseCard: gate.promise },
+  )
+  const candidateA = page.getByRole('article', { name: A.title })
+  const candidateB = page.getByRole('article', { name: B.title })
+  const selectB = candidateB.getByRole('button', { name: 'Select', exact: true })
+  const reviewB = candidateB.getByText('Review proposal', { exact: true })
+  await input.fill(MULTIPLE.importSource.text)
+  await analyze.click()
+  await expect(selectB).toBeEnabled()
+  await candidateA.getByRole('button', { name: 'Select', exact: true }).click()
+
+  const expectedCard = {
+    import_key: MULTIPLE.importKey, posting: A.details, posting_alias: null, user_notes: null, tags: [],
+  }
+  try {
+    await confirm.click()
+    await expect.poll(() => cards).toEqual([expectedCard])
+    await expect(page.getByRole('button', { name: 'Saving…', exact: true })).toBeDisabled()
+    await expect(selectB).toBeDisabled()
+    await expect(candidateA.getByRole('button', { name: 'Selected', exact: true })).toBeVisible()
+    await reviewB.focus()
+    await page.keyboard.press('Enter')
+    await expect(reviewB).toBeFocused()
+    await expect(candidateB.getByRole('heading', { name: 'Role and responsibilities' })).toBeVisible()
+    await expect(candidateB.getByText('Requirement groups unknown', { exact: true })).toBeVisible()
+    expect(cards).toEqual([expectedCard])
+  } finally {
+    gate.resolve()
+  }
+
+  const receipt = page.getByRole('heading', { name: OLD_SAVED_TITLE })
+  await expect(receipt).toBeVisible()
+  await expect(selectB).toBeDisabled()
+  await expect(candidateA.getByRole('button', { name: 'Selected', exact: true })).toBeVisible()
+  await expect(candidateB.getByRole('heading', { name: 'Role and responsibilities' })).toBeVisible()
+  expect(imports).toEqual([MULTIPLE.importSource])
+  expect(parses).toEqual([MULTIPLE.importKey])
+  expect(cards).toEqual([expectedCard])
+  expect(unexpected).toEqual([])
+})
+
+test('Posting import unlocks another candidate after an explicit Card save rejection', async ({ page, context, baseURL }) => {
+  const { input, analyze, confirm, imports, parses, cards, unexpected } = await openImport(
+    { page, context, baseURL }, { failFirstCard: true },
+  )
+  const candidateA = page.getByRole('article', { name: A.title })
+  const candidateB = page.getByRole('article', { name: B.title })
+  await input.fill(MULTIPLE.importSource.text)
+  await analyze.click()
+  await candidateA.getByRole('button', { name: 'Select', exact: true }).click()
+  await confirm.click()
+  await expect(page.getByRole('main').getByRole('alert')).toBeVisible()
+  await expect(candidateA.getByRole('button', { name: 'Selected', exact: true })).toBeVisible()
+  await candidateB.getByRole('button', { name: 'Select', exact: true }).click()
+  await expect(candidateB.getByRole('button', { name: 'Selected', exact: true })).toBeVisible()
+  await expect(confirm).toBeEnabled()
+  expect(imports).toEqual([MULTIPLE.importSource])
+  expect(parses).toEqual([MULTIPLE.importKey])
+  expect(cards.map(({ posting }) => posting)).toEqual([A.details])
   expect(unexpected).toEqual([])
 })
 

@@ -91,6 +91,7 @@ export function PostingImportSessionProvider({
   }
 
   function selectPostingCandidate(postingIndex: number) {
+    if (importActionPending.current || createdCard !== null) return
     setSelectedPostingIndex(postingIndex)
   }
 

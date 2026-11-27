@@ -139,6 +139,7 @@ export function PostingImportPage() {
               key={index}
               posting={posting}
               isSelected={selectedPostingIndex === index}
+              isSelectionDisabled={isCreatingCard || createdCard !== null}
               onSelect={() => selectPostingCandidate(index)}
             />
           ))}

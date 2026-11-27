@@ -6,12 +6,14 @@ import { PostingCandidateReview } from './PostingCandidateReview'
 type PostingCandidateCardProps = {
   posting: ParsedPosting
   isSelected: boolean
+  isSelectionDisabled: boolean
   onSelect: () => void
 }
 
 export function PostingCandidateCard({
   posting,
   isSelected,
+  isSelectionDisabled,
   onSelect,
 }: PostingCandidateCardProps) {
   const titleId = useId()
@@ -49,6 +51,7 @@ export function PostingCandidateCard({
       <button
         className="button--primary posting-candidate__select-button"
         type="button"
+        disabled={isSelectionDisabled}
         onClick={onSelect}
       >
         {isSelected ? 'Selected' : 'Select'}
