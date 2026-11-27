@@ -96,6 +96,33 @@ REVIEW.details.requirements = {
     ] },
   ],
 }
+const FIELD_PATH_TITLE = 'Werkstudentin für barrierefreie Mobilitätsforschung (DEMO)'
+const FIELD_PATH_CASES = [
+  ['classification.eligibility.value', 'Eligibility', 'Einschreibung während der Tätigkeit', 'Einschreibung erst zum Semesterbeginn'],
+  ['work_conditions.weekly_hours.maximum', 'Maximum weekly hours', 'Höchstens 15 Wochenstunden', 'Höchstens 20 Wochenstunden'],
+  ['requirements.groups[0].items.1.category', 'Requirement category', 'Vorkenntnisse vor dem Berufseinstieg', 'Praxiserfahrung im Betrieb'],
+  ['compensation.entries[1].maximum_amount', 'Compensation entry 2 · Maximum amount', 'Bis 18 Euro brutto pro Stunde', 'Bis 20 Euro brutto pro Stunde'],
+  ['compensation.entries.1.minimum_amount', 'Compensation entry 2 · Minimum amount', 'Ab 14 Euro brutto pro Stunde', 'Ab 16 Euro brutto pro Stunde'],
+  ['compensation.entries[1].currency', 'Compensation entry 2 · Currency', 'Auszahlung in Schweizer Franken', 'Auszahlung in Euro'],
+  ['compensation.entries.0.period', 'Compensation entry 1 · Pay period', 'Einmalige Zahlung', 'Monatliche Zahlung'],
+  ['compensation.entries[0]', 'Compensation entry 1', 'Einmalige Prämie', 'Regelmäßige Zulage'],
+  ['compensation.entries[2].amount', 'Uncertain field', 'Gebündelter Gesamtbetrag', 'Getrennte Beträge'],
+  ['compensation.entries[02].maximum_amount', 'Uncertain field', 'Gesamtsumme bis 100 Euro', 'Gesamtsumme bis 120 Euro'],
+  ['identity.published_on.year', 'Uncertain field', 'Veröffentlichung 2025', 'Veröffentlichung 2026'],
+  ['details.work_conditions.primary_address', 'Uncertain field', 'Projektstandort Köln', 'Projektstandort Bonn'],
+].map(([fieldPath, label, first, second]) => ({
+  fieldPath, label, alternatives: [first, second],
+  description: `Die Anzeige nennt „${first}“ und „${second}“.`,
+  excerpt: `${first}. ${second}.`,
+}))
+const FIELD_PATH_REVIEW = postingFixture(
+  'a0000000-0000-4000-8000-000000000040',
+  FIELD_PATH_TITLE,
+  { kind: 'text', source_url: null, text: [FIELD_PATH_TITLE, ...FIELD_PATH_CASES.map(({ excerpt }) => excerpt)].join('\n\n') },
+)
+FIELD_PATH_REVIEW.ambiguities = FIELD_PATH_CASES.map(({ fieldPath, description, alternatives, excerpt }) => ({
+  field_path: fieldPath, description, alternatives, source: { excerpts: [excerpt], source_urls: [] },
+}))
 const REPLACEMENT_A = { ...A, importKey: 'a0000000-0000-4000-8000-000000000035' }
 const MULTIPLE = {
   ...A,
@@ -103,7 +130,7 @@ const MULTIPLE = {
   importSource: { kind: 'text', source_url: null, text: [A.title, A.importSource.text, B.title, B.importSource.text].join('\n\n') },
   proposals: [A, B].map(({ details }) => ({ details, parse_ambiguities: [] })),
 }
-const fixtures = [A, B, LINK, REVIEW, MULTIPLE]
+const fixtures = [A, B, LINK, REVIEW, FIELD_PATH_REVIEW, MULTIPLE]
 const parsePath = (posting) => `/posting/import/${posting.importKey}/parse-results`
 
 async function openImport(
@@ -337,6 +364,42 @@ test('Posting import reviews proposal uncertainties and source evidence before e
     import_key: REVIEW.importKey, posting: REVIEW.details, posting_alias: null, user_notes: null, tags: [],
   }])
   expect(deletes).toEqual([])
+  expect(unexpected).toEqual([])
+})
+
+test('Posting import labels only supported ambiguity paths and identifies compensation entries before confirmation', async ({ page, context, baseURL }) => {
+  const { input, analyze, confirm, imports, parses, cards, unexpected } = await openImport({ page, context, baseURL })
+  await input.fill(FIELD_PATH_REVIEW.importSource.text)
+  await analyze.click()
+
+  const candidate = page.getByRole('article', { name: FIELD_PATH_REVIEW.title, exact: true })
+  const review = candidate.getByText('Review proposal', { exact: true })
+  const uncertainties = candidate.getByRole('heading', { name: 'Uncertainties', exact: true })
+  await expect(candidate.getByText('Extraction needs review', { exact: true })).toBeVisible()
+  await expect(candidate.getByText('Location needs review', { exact: true })).toHaveCount(0)
+  await expect(uncertainties).toBeHidden()
+  await review.press('Enter')
+  await expect(review).toBeFocused()
+  await expect(uncertainties).toBeVisible()
+
+  for (const { label, description, alternatives, excerpt } of FIELD_PATH_CASES) {
+    const ambiguity = candidate.getByRole('listitem').filter({ has: page.getByText(description, { exact: true }) })
+    await expect(ambiguity.getByText(label, { exact: true })).toBeVisible()
+    for (const alternative of alternatives) {
+      await expect(ambiguity.getByText(alternative, { exact: true })).toBeVisible()
+    }
+    const quote = ambiguity.getByText(excerpt, { exact: true })
+    await expect(quote).toBeHidden()
+    const source = ambiguity.getByText('View uncertainty source', { exact: true })
+    await source.press('Enter')
+    await expect(source).toBeFocused()
+    await expect(quote).toBeVisible()
+  }
+
+  await expect(confirm).toBeDisabled()
+  expect(imports).toEqual([FIELD_PATH_REVIEW.importSource])
+  expect(parses).toEqual([FIELD_PATH_REVIEW.importKey])
+  expect(cards).toEqual([])
   expect(unexpected).toEqual([])
 })
 

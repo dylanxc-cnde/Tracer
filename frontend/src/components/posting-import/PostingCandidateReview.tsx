@@ -2,26 +2,13 @@ import type { Requirement, RequirementImportance } from '../../postings/types/po
 import type { ParsedPosting } from '../../postings/types/postingParse'
 import { formatRequirementItemRuleLabel } from '../posting-card/details/PostingCardFormatters'
 import { PostingCardSourceEvidence } from '../posting-card/details/components/PostingCardSourceEvidence'
+import { getAmbiguityFieldLabel } from './PostingAmbiguityLabels'
 import './PostingCandidateReview.css'
 
 const importanceLabels: Record<RequirementImportance, string> = {
   required: 'Required',
   preferred: 'Nice to have',
   unknown: 'Importance unknown',
-}
-
-const ambiguityFieldLabels = new Map([
-  ['work_conditions.primary_address', 'Location'],
-  ['work_conditions.address_candidates', 'Location'],
-  ['work_conditions.work_modes', 'Work mode'],
-  ['identity.published_on', 'Publication date'],
-  ['application_instructions.application_deadline', 'Application deadline'],
-  ['compensation.entries', 'Compensation'],
-])
-
-function getAmbiguityFieldLabel(fieldPath: string) {
-  const field = /^[a-z_]+\.[a-z_]+(?=\.|\[|$)/.exec(fieldPath)?.[0]
-  return ambiguityFieldLabels.get(field ?? '') ?? 'Uncertain field'
 }
 
 function RequirementGroup({ group }: { group: Requirement }) {
