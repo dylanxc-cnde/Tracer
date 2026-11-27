@@ -178,7 +178,7 @@ export function PostingImportSessionProvider({
 
     try {
       await deletePostingCard(cardKey)
-      setCreatedCard(null)
+      syncPostingCardDeletion(cardKey)
     } catch (caughtError: unknown) {
       if (caughtError instanceof Error) {
         setImportSessionError(caughtError.message)

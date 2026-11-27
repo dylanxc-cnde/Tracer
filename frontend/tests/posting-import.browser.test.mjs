@@ -4,6 +4,9 @@ const API = 'http://127.0.0.1:8000'
 const CREATED_AT = '2026-11-27T10:00:00Z'
 const CARD_KEY = 'a0000000-0000-4000-8000-000000000033'
 const SAVED_TITLE = 'Gespeicherte Werkstudentenstelle für Energieversorgung und Netzinfrastruktur (DEMO)'
+const OLD_CARD_KEY = 'a0000000-0000-4000-8000-000000000036'
+const OLD_SAVED_TITLE = 'Gespeichertes Praktikum in der Verkehrsplanung (DEMO)'
+const oldCardPath = `/posting/card/${OLD_CARD_KEY}`
 
 function postingFixture(importKey, title, importSource) {
   const source = { excerpts: [], source_urls: [] }
@@ -60,11 +63,12 @@ const parsePath = (posting) => `/posting/import/${posting.importKey}/parse-resul
 
 async function openImport(
   { page, context, baseURL },
-  { releaseA, releaseCard, resultA, failFirstParse, replaceMissingA } = {},
+  { releaseA, releaseCard, releaseDelete, resultA, failFirstParse, replaceMissingA } = {},
 ) {
   const imports = []
   const parses = []
   const cards = []
+  const deletes = []
   const unexpected = []
   const savedFixtures = replaceMissingA ? [...fixtures, REPLACEMENT_A] : fixtures
 
@@ -111,13 +115,21 @@ async function openImport(
         const savedPosting = savedFixtures.find(({ importKey }) => importKey === body.import_key)
         if (savedPosting) {
           await releaseCard
+          const cardKey = savedPosting === A ? OLD_CARD_KEY : CARD_KEY
+          const postingAlias = savedPosting === A ? OLD_SAVED_TITLE : SAVED_TITLE
           await route.fulfill({ status: 201, json: {
-            card_key: CARD_KEY, import_key: savedPosting.importKey, schema_version: 1, created_at: CREATED_AT,
-            posting: savedPosting.details, posting_alias: SAVED_TITLE, user_notes: null, tags: [],
+            card_key: cardKey, import_key: savedPosting.importKey, schema_version: 1, created_at: CREATED_AT,
+            posting: savedPosting.details, posting_alias: postingAlias, user_notes: null, tags: [],
           } })
           return
         }
       }
+    }
+    if (url.origin === API && request.method() === 'DELETE' && url.pathname === oldCardPath && releaseDelete) {
+      deletes.push(OLD_CARD_KEY)
+      await releaseDelete
+      await route.fulfill({ status: 204 })
+      return
     }
     if (url.origin === baseURL && request.method() === 'GET' && !['fetch', 'xhr'].includes(request.resourceType())) {
       await route.continue()
@@ -142,7 +154,7 @@ async function openImport(
     input: page.getByPlaceholder('Paste a job posting here'),
     analyze: page.getByRole('button', { name: 'Analyze', exact: true }),
     confirm: page.getByRole('button', { name: 'Confirm and save', exact: true }),
-    imports, parses, cards, unexpected,
+    imports, parses, cards, deletes, unexpected,
   }
 }
 
@@ -435,5 +447,50 @@ test('Posting import waits for the confirmed Card before analyzing edited source
   expect(imports).toEqual([B.importSource, A.importSource])
   expect(parses).toEqual([B.importKey, A.importKey])
   expect(cards).toHaveLength(1)
+  expect(unexpected).toEqual([])
+})
+
+test('Posting import keeps a newly saved Card when an earlier delete finishes', async ({ page, context, baseURL }) => {
+  const gate = Promise.withResolvers()
+  const { input, analyze, confirm, imports, parses, cards, deletes, unexpected } = await openImport(
+    { page, context, baseURL }, { releaseDelete: gate.promise },
+  )
+  const select = page.getByRole('button', { name: 'Select', exact: true })
+  const deleteButton = page.getByRole('button', { name: 'Delete', exact: true })
+  const newSummary = page.getByRole('article').filter({ has: page.getByRole('heading', { name: SAVED_TITLE }) })
+  await input.fill(A.importSource.text)
+  await analyze.click()
+  await expect(page.getByRole('heading', { name: A.title })).toBeVisible()
+  await select.click()
+  await confirm.click()
+  await expect(page.getByRole('heading', { name: OLD_SAVED_TITLE })).toBeVisible()
+
+  let deletion
+  try {
+    page.once('dialog', (dialog) => dialog.accept())
+    await deleteButton.click()
+    await expect.poll(() => deletes).toEqual([OLD_CARD_KEY])
+    await expect(page.getByRole('button', { name: 'Deleting...', exact: true })).toBeDisabled()
+
+    await input.fill(B.importSource.text)
+    await analyze.click()
+    await expect(page.getByRole('heading', { name: B.title })).toBeVisible()
+    await select.click()
+    await confirm.click()
+    await expect(newSummary).toBeVisible()
+    deletion = page.waitForResponse(`${API}${oldCardPath}`)
+  } finally {
+    gate.resolve()
+  }
+
+  expect((await deletion).status()).toBe(204)
+  await expect(page.getByRole('button', { name: 'Deleting...', exact: true })).toHaveCount(0)
+  await expect(newSummary).toBeVisible()
+  await newSummary.getByRole('button', { name: 'View details' }).click()
+  await expect(page.getByRole('dialog').getByRole('heading', { name: SAVED_TITLE })).toBeVisible()
+  expect(imports).toEqual([A.importSource, B.importSource])
+  expect(parses).toEqual([A.importKey, B.importKey])
+  expect(cards.map(({ import_key }) => import_key)).toEqual([A.importKey, B.importKey])
+  expect(deletes).toEqual([OLD_CARD_KEY])
   expect(unexpected).toEqual([])
 })
