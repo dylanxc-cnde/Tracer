@@ -3,8 +3,8 @@ import { PostingCardDetails } from '../components/posting-card/details/PostingCa
 import { activityLabels } from '../home/activityLabels'
 import { getHomeActivityInWindow, localDate } from '../home/api/home'
 import type { ActivityEvent } from '../home/types/home'
+import { getPostingCard, MissingPostingCardError } from '../postings/api/postings'
 import type { PostingCard } from '../postings/types/postingCard'
-import { getSearchCard } from '../search/api/search'
 import './ActivityPage.css'
 
 function groupActivity(events: ActivityEvent[]) {
@@ -69,15 +69,14 @@ export function ActivityPage() {
     opener.current = button
     setCardRead({ eventId: event.event_id, error: null })
     try {
-      const card = await getSearchCard(event.card_key, request.signal)
+      const card = await getPostingCard(event.card_key, request.signal)
       if (!request.signal.aborted) {
         setCardRead(null)
         setOpenedCard(card)
       }
     } catch (caught) {
       if (request.signal.aborted) return
-      const missing = caught instanceof Error && caught.message.startsWith('This record is no longer available')
-      setCardRead({ eventId: event.event_id, error: missing
+      setCardRead({ eventId: event.event_id, error: caught instanceof MissingPostingCardError
         ? 'This saved job is no longer available. Its activity remains here.'
         : 'Could not open the saved job. Try again.' })
     }

@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import type {
-  PostingCard,
-  UpdatePostingCardRequest,
-} from '../../../../postings/types/postingCard'
+import type { PostingCard, UpdatePostingCardRequest } from '../../../../postings/types/postingCard'
 import type {
   ApplicationChannel,
   CompensationType,
@@ -30,23 +27,20 @@ import { createPostingCardUpdateRequest } from './PostingCardDraftRequest'
 import { hasEmptyRequirementDrafts, hasPostingCardDraftChanges } from './PostingCardDraftChanges'
 import { createCardUserDraft } from './PostingCardDraftCreator'
 import { getSafeHttpUrl } from '../PostingCardSanitizers'
-
-// Card key and Update Request
-type PostingCardUpdateCallback = (
-  cardKey: string,
-  request: UpdatePostingCardRequest,
-) => Promise<PostingCard>
+import { usePostingCardSave } from './usePostingCardSave'
 
 // Editor which serves card detail component.
 export function usePostingCardEditor(
   card: PostingCard,
-  updateCard: PostingCardUpdateCallback,
+  updateCard: (cardKey: string, request: UpdatePostingCardRequest) => Promise<PostingCard>,
   isReadOnly: boolean,
+  onSavedVersion?: (card: PostingCard) => void,
 ) {
   const [isEditing, setIsEditing] = useState(false)
-  const [isSavingCardChanges, setIsSavingCardChanges] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [draft, setDraft] = useState<PostingCardUserDraft>(() => createCardUserDraft(card))
+  const save = usePostingCardSave({ card, updateCard, onSavedVersion, onComplete: finishEditing })
+  const isSavingCardChanges = save.isSaving || save.isRecoveryLocked
+  const { setSaveError } = save
   const updateRequest = createPostingCardUpdateRequest(draft)
   // This is the saved position title, not the creation-time original snapshot.
   const positionTitle = card.posting.identity.position_title?.value ?? null
@@ -58,12 +52,17 @@ export function usePostingCardEditor(
   const hasChanges = hasPostingCardDraftChanges(updateRequest, card) ||
     hasEmptyRequirementDrafts(draft.requirements)
 
+  function finishEditing(savedCard: PostingCard) {
+    setDraft(createCardUserDraft(savedCard))
+    setIsEditing(false)
+  }
+
   function startEditing() {
     if (isReadOnly) {
       return
     }
     setDraft(createCardUserDraft(card))
-    setSaveError(null)
+    save.resetFeedback()
     setIsEditing(true)
   }
 
@@ -72,9 +71,8 @@ export function usePostingCardEditor(
       return
     }
 
-    setDraft(createCardUserDraft(card))
-    setSaveError(null)
-    setIsEditing(false)
+    finishEditing(card)
+    save.resetFeedback()
   }
 
   function dismissSaveError() {
@@ -82,7 +80,7 @@ export function usePostingCardEditor(
   }
 
   async function saveCardChanges() {
-    if (isReadOnly) {
+    if (isReadOnly || isSavingCardChanges) {
       return
     }
 
@@ -164,22 +162,7 @@ export function usePostingCardEditor(
       return
     }
 
-    setIsSavingCardChanges(true)
-    setSaveError(null)
-
-    try {
-      const updatedCard = await updateCard(card.card_key, updateRequest)
-      setDraft(createCardUserDraft(updatedCard))
-      setIsEditing(false)
-    } catch (caughtError: unknown) {
-      if (caughtError instanceof Error) {
-        setSaveError(caughtError.message)
-      } else {
-        setSaveError('Something went wrong while saving the card.')
-      }
-    } finally {
-      setIsSavingCardChanges(false)
-    }
+    await save.save(updateRequest)
   }
 
   function updateDraftPostingInfo(field: keyof PostingInfoDraft, value: string) {
@@ -746,7 +729,13 @@ export function usePostingCardEditor(
 
   return {
     draft,
-    saveError,
+    saveError: save.saveError,
+    recovery: save.recovery,
+    isReadingSavedCard: save.isReading,
+    isRecoveryLocked: save.isRecoveryLocked,
+    isSaving: save.isSaving,
+    readSavedCard: save.readSavedCard,
+    useSavedVersion: save.useSavedVersion,
     displayedTitle,
     hasChanges,
     isEditing,

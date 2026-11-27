@@ -69,10 +69,13 @@ export function PostingImportPage() {
     request: UpdatePostingCardRequest,
   ) {
     const updatedCard = await updatePostingCard(cardKey, request)
+    handleSavedVersion(updatedCard)
+    return updatedCard
+  }
+
+  function handleSavedVersion(updatedCard: PostingCard) {
     syncPostingCardUpdate(updatedCard)
     setOpenedCard(updatedCard)
-
-    return updatedCard
   }
 
   return (
@@ -173,6 +176,7 @@ export function PostingImportPage() {
           card={openedCard}
           onClose={handleCloseCard}
           onUpdate={handleUpdateCard}
+          onSavedVersion={handleSavedVersion}
         />
       )}
     </>

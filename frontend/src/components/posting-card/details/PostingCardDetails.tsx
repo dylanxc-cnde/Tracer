@@ -37,6 +37,7 @@ import { PostingCardContact } from './components/PostingCardContact'
 import { PostingCardAboutCompany } from './components/PostingCardAboutCompany'
 import { PostingCardSourceEvidence } from './components/PostingCardSourceEvidence'
 import { PostingCardSaveError } from './components/PostingCardSaveError'
+import { PostingCardSaveRecovery } from './components/PostingCardSaveRecovery'
 import { PostingCardMatch } from './components/PostingCardMatch'
 
 type PostingCardDetailsProps = {
@@ -47,6 +48,7 @@ type PostingCardDetailsProps = {
     cardKey: string,
     request: UpdatePostingCardRequest,
   ) => Promise<PostingCard>
+  onSavedVersion?: (card: PostingCard) => void
 }
 
 export function PostingCardDetails({
@@ -54,15 +56,17 @@ export function PostingCardDetails({
   isReadOnly = false,
   onClose,
   onUpdate,
+  onSavedVersion,
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const saveButton = useRef<HTMLButtonElement>(null)
   const [areSourcesVisible, setAreSourcesVisible] = useState(false)
   const [isPostingInfoOpen, setIsPostingInfoOpen] = useState(false)
   const [sourceComparison, setSourceComparison] = useState<{
     cardKey: string
     originalCard: PostingCard | null
   } | null>(null)
-  const editor = usePostingCardEditor(card, onUpdate, isReadOnly)
+  const editor = usePostingCardEditor(card, onUpdate, isReadOnly, onSavedVersion)
   const posting = card.posting
   // Job details draws facts from Identity, Classification and Work Conditions.
   const jobDetailsSources = [
@@ -180,7 +184,9 @@ export function PostingCardDetails({
         positionTitle={editor.positionTitle}
         isPositionTitleVisible={editor.isPositionTitleVisible}
         isEditing={editor.isEditing}
-        isSavingCardChanges={editor.isSavingCardChanges}
+        isSavingCardChanges={editor.isSaving}
+        isRecoveryLocked={editor.isRecoveryLocked}
+        saveButton={saveButton}
         hasChanges={editor.hasChanges}
         onCancel={editor.cancelEditing}
         onClose={() => dialogRef.current?.close()}
@@ -195,6 +201,17 @@ export function PostingCardDetails({
           onDismiss={handleDismissSaveError}
         />
       )}
+      {editor.recovery !== null && <PostingCardSaveRecovery
+        recovery={editor.recovery}
+        isReading={editor.isReadingSavedCard}
+        saveButton={saveButton}
+        onRead={editor.readSavedCard}
+        onUseSavedVersion={() => {
+          editor.useSavedVersion()
+          dialogRef.current?.focus({ preventScroll: true })
+        }}
+        onDiscard={() => dialogRef.current?.close()}
+      />}
 
       <header className="posting-card-details__header">
         <div className="posting-card-details__metadata-row">

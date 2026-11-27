@@ -26,6 +26,9 @@ and Card creation and updates.
   support the existing body sections outside Requirements;
 - saving temporarily disables editing controls; a failed save keeps the draft
   available for correction or retry and displays an error over the Card;
+- if a Card save outcome is unknown, Read saved Card checks the current version.
+  Save is available again when the stored values are unchanged. Use saved version
+  adopts the returned Card when its values differ from the previous version;
 - Show sources reveals section-level evidence and a Modified by user notice
   for saved sections that differ from the original;
 - Show original in Card Library fetches the initial saved Card and opens it

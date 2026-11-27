@@ -1,9 +1,13 @@
+import type { RefObject } from 'react'
+
 type PostingCardDetailsTopbarProps = {
   displayedTitle: string
   positionTitle: string | null
   isPositionTitleVisible: boolean
   isEditing: boolean
   isSavingCardChanges: boolean
+  isRecoveryLocked: boolean
+  saveButton: RefObject<HTMLButtonElement | null>
   hasChanges: boolean
   onCancel: () => void
   onClose: () => void
@@ -18,6 +22,8 @@ export function PostingCardDetailsTopbar({
   isPositionTitleVisible,
   isEditing,
   isSavingCardChanges,
+  isRecoveryLocked,
+  saveButton,
   hasChanges,
   onCancel,
   onClose,
@@ -44,7 +50,7 @@ export function PostingCardDetailsTopbar({
           type="button"
           aria-label={isEditing ? 'Cancel editing' : 'Edit card'}
           title={isEditing ? 'Cancel editing' : 'Edit card'}
-          disabled={isSavingCardChanges}
+          disabled={isSavingCardChanges || isRecoveryLocked}
           onClick={isEditing ? onCancel : onEdit}
         >
           <span aria-hidden="true">{isEditing ? '×' : '✎'}</span>
@@ -53,9 +59,10 @@ export function PostingCardDetailsTopbar({
 
         {!isReadOnly && isEditing ? (
           <button
+            ref={saveButton}
             className="button--primary posting-card-details__primary-action"
             type="button"
-            disabled={isSavingCardChanges || !hasChanges}
+            disabled={isSavingCardChanges || isRecoveryLocked || !hasChanges}
             onClick={onSave}
           >
             {isSavingCardChanges ? 'Saving...' : 'Save'}

@@ -35,6 +35,8 @@ newer features such as inline editing and Show original aren't pictured yet.
 Quick Facts stays a read-only summary. Requirement categories are also read-only
 for now; moving pills or groups and changing existing group rules are deferred.
 Failed saves keep your draft, and editing never overwrites the initial snapshot.
+If a save outcome is unknown, read the saved Card before retrying or accepting
+the saved version.
 
 The browser app currently has Home, Import Posting, Card Library, Activity,
 Import History, and Settings. Profile loads the saved display name and saves

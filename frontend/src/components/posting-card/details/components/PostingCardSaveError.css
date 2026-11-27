@@ -47,6 +47,21 @@
   flex-shrink: 0;
 }
 
+.posting-card-save-recovery {
+  display: grid;
+  border-color: var(--color-border-strong);
+}
+
+.posting-card-save-recovery .posting-card-save-error__title { color: var(--color-text-primary); }
+
+.posting-card-save-recovery__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.posting-card-save-recovery__actions button[aria-disabled='true'] { opacity: 0.65; cursor: wait; }
+
 @media (max-width: 480px) {
   .posting-card-save-error {
     flex-direction: column;

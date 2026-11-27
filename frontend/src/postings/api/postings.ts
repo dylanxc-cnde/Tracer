@@ -8,6 +8,7 @@ import type {
   PostingImportSource,
 } from '../types/postingImport'
 import type { PostingParseResult } from '../types/postingParse'
+import { isPostingCardResponse } from './postingCardResponse'
 
 const API_BASE_URL = 'http://127.0.0.1:8000'
 
@@ -15,6 +16,14 @@ export class MissingPostingImportError extends Error {
     constructor() {
         super('This import is no longer available. Analyze the source again.')
     }
+}
+
+export class MissingPostingCardError extends Error {
+  constructor() { super('This card is no longer available.') }
+}
+
+export class PostingCardUpdateUncertainError extends Error {
+  constructor() { super('Save outcome unknown. Read the saved Card before saving again.') }
 }
 
 export async function createPostingImport(
@@ -138,6 +147,16 @@ export async function listPostingCards(): Promise<PostingCard[]> {
     return (await response.json()) as PostingCard[]
 }
 
+export async function getPostingCard(cardKey: string, signal: AbortSignal): Promise<PostingCard> {
+  const response = await fetch(`${API_BASE_URL}/posting/card/${encodeURIComponent(cardKey)}`, { signal, cache: 'no-store' })
+  if (response.status === 404) throw new MissingPostingCardError()
+  if (!response.ok) throw new Error('Could not load the saved Card.')
+
+  const card: unknown = await response.json()
+  if (!isPostingCardResponse(card, cardKey)) throw new Error('The saved Card response could not be read.')
+  return card
+}
+
 export async function getOriginalPostingCard(
     cardKey: string,
 ): Promise<PostingCard> {
@@ -181,25 +200,31 @@ export async function updatePostingCard(
   cardKey: string,
   request: UpdatePostingCardRequest,
 ): Promise<PostingCard> {
-  const response = await fetch(`${API_BASE_URL}/posting/card/${cardKey}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}/posting/card/${encodeURIComponent(cardKey)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+  } catch {
+    throw new PostingCardUpdateUncertainError()
+  }
+  if (response.status >= 500) throw new PostingCardUpdateUncertainError()
 
   if (response.status === 422) {
     throw new Error('Some card fields are invalid. Please check or reset your entries.')
   }
 
   if (!response.ok) {
-    const errorBody = await response.text()
+    const errorBody = await response.text().catch(() => '')
 
     throw new Error(
       `Failed to update posting card (${response.status}): ${errorBody}`,
     )
   }
 
-  return (await response.json()) as PostingCard
+  const card: unknown = await response.json().catch(() => null)
+  if (!isPostingCardResponse(card, cardKey)) throw new PostingCardUpdateUncertainError()
+  return card
 }

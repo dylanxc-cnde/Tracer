@@ -10,7 +10,8 @@ const B_IMPORT = 'a0000000-0000-4000-8000-000000000054'
 const A_CURRENT = 'Korrigiertes Praktikum in der barrierefreien Fahrgastinformation und Verkehrsplanung (DEMO)'
 const B_CURRENT = 'Werkstudent (m/w/d) für Marktkommunikation und Netzentgeltabrechnung in der Energiewirtschaft (DEMO)'
 const A_ORIGINAL = 'Ursprüngliches Praktikum für Fahrgastzählungen und regionale Nahverkehrsplanung (DEMO)'
-const ORIGINAL_PATH = `${LIST_PATH}/${A_KEY}/original`
+const A_PATH = `${LIST_PATH}/${A_KEY}`
+const ORIGINAL_PATH = `${A_PATH}/original`
 
 function savedCard(cardKey, importKey, title) {
   const { details } = postingFixture(importKey, title, { kind: 'text', text: title, source_url: null })
@@ -20,59 +21,63 @@ function savedCard(cardKey, importKey, title) {
   }
 }
 
+async function openCardLibrary({ page, context, baseURL }, routes) {
+  const calls = []
+  const unexpected = []
+  await context.route('**/*', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const key = `${request.method()} ${url.pathname}`
+    if (url.origin === API && Object.hasOwn(routes, key)) {
+      calls.push(key)
+      await routes[key](route, request)
+      return
+    }
+    if (url.origin === baseURL && request.method() === 'GET' && !['fetch', 'xhr'].includes(request.resourceType())) {
+      await route.continue()
+      return
+    }
+    unexpected.push(`${request.method()} ${request.url()}`)
+    await route.abort('blockedbyclient')
+  })
+  await context.routeWebSocket('**/*', (socket) => {
+    const url = new URL(socket.url())
+    if (url.origin === baseURL.replace('http:', 'ws:') && url.pathname === '/') {
+      socket.connectToServer()
+      return
+    }
+    unexpected.push(`WebSocket ${socket.url()}`)
+    socket.close()
+  })
+  await page.goto('/')
+  const navigation = page.getByRole('navigation', { name: 'Main navigation' })
+  await navigation.getByRole('button', { name: 'Card library', exact: true }).click()
+  return { calls, unexpected }
+}
+
 for (const { outcome, status } of [{ outcome: 'success', status: 200 }, { outcome: 'failure', status: 503 }]) {
   test(`Card library ignores late original Card ${outcome} after opening a current Card`, async ({ page, context, baseURL }) => {
     const gate = Promise.withResolvers()
     const currentA = savedCard(A_KEY, A_IMPORT, A_CURRENT)
     const currentB = savedCard(B_KEY, B_IMPORT, B_CURRENT)
     const originalA = savedCard(A_KEY, A_IMPORT, A_ORIGINAL)
-    const reads = []
-    const unexpected = []
     let originalReads = 0
 
-    await context.route('**/*', async (route) => {
-      const request = route.request()
-      const url = new URL(request.url())
-      if (url.origin === API && request.method() === 'GET') {
-        if (url.pathname === LIST_PATH) {
-          reads.push(url.pathname)
-          await route.fulfill({ json: [currentA, currentB] })
-          return
-        }
-        if (url.pathname === ORIGINAL_PATH) {
-          reads.push(url.pathname)
-          originalReads += 1
-          if (originalReads === 1) {
-            await gate.promise
-            if (status !== 200) {
-              await route.fulfill({ status, json: { detail: 'Synthetic original read failed' } })
-              return
-            }
+    const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+      [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [currentA, currentB] }),
+      [`GET ${ORIGINAL_PATH}`]: async (route) => {
+        originalReads += 1
+        if (originalReads === 1) {
+          await gate.promise
+          if (status !== 200) {
+            await route.fulfill({ status, json: { detail: 'Synthetic original read failed' } })
+            return
           }
-          await route.fulfill({ json: originalA })
-          return
         }
-      }
-      if (url.origin === baseURL && request.method() === 'GET' && !['fetch', 'xhr'].includes(request.resourceType())) {
-        await route.continue()
-        return
-      }
-      unexpected.push(`${request.method()} ${request.url()}`)
-      await route.abort('blockedbyclient')
-    })
-    await context.routeWebSocket('**/*', (socket) => {
-      const url = new URL(socket.url())
-      if (url.origin === baseURL.replace('http:', 'ws:') && url.pathname === '/') {
-        socket.connectToServer()
-        return
-      }
-      unexpected.push(`WebSocket ${socket.url()}`)
-      socket.close()
+        await route.fulfill({ json: originalA })
+      },
     })
 
-    await page.goto('/')
-    const navigation = page.getByRole('navigation', { name: 'Main navigation' })
-    await navigation.getByRole('button', { name: 'Card library', exact: true }).click()
     const showOriginalA = page.getByRole('button', { name: `Show original: ${A_CURRENT}`, exact: true })
     const openCurrentB = page.getByRole('button', { name: `View details: ${B_CURRENT} at Unknown company`, exact: true })
     const dialog = page.getByRole('dialog')
@@ -107,7 +112,109 @@ for (const { outcome, status } of [{ outcome: 'success', status: 200 }, { outcom
     await expect(dialog.getByRole('heading', { name: A_ORIGINAL, exact: true })).toBeVisible()
     await expect(edit).toHaveCount(0)
     await expect(dialog.getByRole('button', { name: 'Review match', exact: true })).toHaveCount(0)
-    expect(reads).toEqual([LIST_PATH, ORIGINAL_PATH, ORIGINAL_PATH])
+    expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${ORIGINAL_PATH}`, `GET ${ORIGINAL_PATH}`])
     expect(unexpected).toEqual([])
   })
 }
+
+const DRAFT_TITLE = 'Korrigiertes Praktikum für Fahrgastinformation und barrierefreie Verkehrsplanung im Rheinland (DEMO)'
+const SERVER_NOTE = 'Serverbestätigte Notiz zur Einarbeitung und Abstimmung mit der Netzleitstelle (DEMO)'
+
+async function submitCardDraft({ page, context, baseURL }, outcome) {
+  let current = savedCard(A_KEY, A_IMPORT, A_CURRENT)
+  const original = savedCard(A_KEY, A_IMPORT, A_ORIGINAL)
+  const saved = savedCard(A_KEY, A_IMPORT, DRAFT_TITLE)
+  saved.posting.identity.position_title.origin = 'user_defined'
+  // A value absent from the draft distinguishes adopting the read from rebuilding it locally.
+  saved.user_notes = SERVER_NOTE
+  const patches = []
+  await page.clock.install()
+  const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+    [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [current] }),
+    [`GET ${A_PATH}`]: route => route.fulfill({ json: current }),
+    [`GET ${ORIGINAL_PATH}`]: route => route.fulfill({ json: original }),
+    [`PATCH ${A_PATH}`]: async (route, request) => {
+      patches.push(request.postDataJSON())
+      if (patches.length === 1) {
+        if (outcome === 'rejected') {
+          await route.fulfill({ status: 422, json: { detail: 'Synthetic rejection' } })
+          return
+        }
+        if (outcome === 'committed') current = saved
+        await route.abort('failed')
+        return
+      }
+      current = saved
+      await route.fulfill({ json: saved })
+    },
+  })
+  await page.getByRole('button', { name: `View details: ${A_CURRENT} at Unknown company`, exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Edit card', exact: true }).click()
+  const title = dialog.getByRole('textbox', { name: 'Position title', exact: true })
+  const save = dialog.getByRole('button', { name: 'Save', exact: true })
+  await title.fill(DRAFT_TITLE)
+  await save.click()
+  return { dialog, title, save, calls, patches, unexpected }
+}
+
+for (const outcome of ['committed', 'uncommitted']) {
+  test(`Card library recovers ${outcome === 'committed' ? 'a committed' : 'an uncommitted'} save after its response is lost`, async ({ page, context, baseURL }) => {
+    const { dialog, title, save, calls, patches, unexpected } = await submitCardDraft({ page, context, baseURL }, outcome)
+    const read = dialog.getByRole('button', { name: 'Read saved Card', exact: true })
+    const useSaved = dialog.getByRole('button', { name: 'Use saved version', exact: true })
+
+    await expect(read).toBeVisible()
+    await expect(title).toHaveValue(DRAFT_TITLE)
+    await expect(save).toBeDisabled()
+    await expect(useSaved).toHaveCount(0)
+    await page.clock.fastForward(10_000)
+    expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`])
+    expect(patches).toHaveLength(1)
+    expect(patches[0].position_title).toBe(DRAFT_TITLE)
+
+    await read.focus()
+    await page.keyboard.press('Enter')
+    if (outcome === 'committed') {
+      await expect(useSaved).toBeVisible()
+      await expect(title).toHaveValue(DRAFT_TITLE)
+      await expect(save).toBeDisabled()
+      expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
+      await useSaved.focus()
+      await page.keyboard.press('Enter')
+    } else {
+      await expect(save).toBeEnabled()
+      await expect(save).toBeFocused()
+      await expect(title).toHaveValue(DRAFT_TITLE)
+      await page.clock.fastForward(10_000)
+      expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
+      await page.keyboard.press('Enter')
+      await expect.poll(() => patches).toEqual([patches[0], patches[0]])
+    }
+    await expect(dialog.getByRole('heading', { name: DRAFT_TITLE, exact: true })).toBeVisible()
+    await expect(dialog.getByText(SERVER_NOTE, { exact: true })).toBeVisible()
+    await expect(title).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toBeEnabled()
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(dialog).toHaveCount(0)
+    await page.getByRole('button', { name: `Show original: ${DRAFT_TITLE}`, exact: true }).click()
+    await expect(dialog.getByRole('heading', { name: A_ORIGINAL, exact: true })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
+    const expectedCalls = [`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`]
+    if (outcome === 'uncommitted') expectedCalls.push(`PATCH ${A_PATH}`)
+    expect(calls).toEqual([...expectedCalls, `GET ${ORIGINAL_PATH}`])
+    expect(unexpected).toEqual([])
+  })
+}
+
+test('Card library keeps a rejected Card draft available for correction', async ({ page, context, baseURL }) => {
+  const { dialog, title, save, calls, unexpected } = await submitCardDraft({ page, context, baseURL }, 'rejected')
+  await expect(dialog.getByRole('alert')).toContainText('Some card fields are invalid.')
+  await expect(dialog.getByRole('button', { name: 'Read saved Card', exact: true })).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Dismiss save error', exact: true }).click()
+  await expect(title).toHaveValue(DRAFT_TITLE)
+  await title.fill(`${DRAFT_TITLE} – präzisiert`)
+  await expect(save).toBeEnabled()
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`])
+  expect(unexpected).toEqual([])
+})

@@ -127,6 +127,11 @@ export function CardLibraryPage() {
     request: UpdatePostingCardRequest,
   ) {
     const updatedCard = await updatePostingCard(cardKey, request)
+    handleSavedVersion(updatedCard)
+    return updatedCard
+  }
+
+  function handleSavedVersion(updatedCard: PostingCard) {
     setCards((currentCards) =>
       currentCards.map((card) =>
         card.card_key === updatedCard.card_key ? updatedCard : card,
@@ -134,8 +139,6 @@ export function CardLibraryPage() {
     )
     setOpenedCard(updatedCard)
     syncPostingCardUpdate(updatedCard)
-
-    return updatedCard
   }
 
   async function handleShowOriginalCard(cardKey: string) {
@@ -226,6 +229,7 @@ export function CardLibraryPage() {
           isReadOnly={isShowingOriginal}
           onClose={handleCloseCard}
           onUpdate={handleUpdateCard}
+          onSavedVersion={handleSavedVersion}
         />
       )}
     </>
