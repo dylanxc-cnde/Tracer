@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { PostingCardDetails } from '../components/posting-card/details/PostingCardDetails'
 import { getPostingCard, listPostingCards, MissingPostingCardError } from '../postings/api/postings'
 import type { PostingCard } from '../postings/types/postingCard'
-import { savedJobCompany, savedJobTitle } from './marketJobs'
+import { savedJobCompany, savedJobTitle, savedRoleDomains } from './marketJobs'
 import type { MarketJobRead } from './marketJobs'
+import { MarketRoleDomains } from './MarketRoleDomains'
 import { MarketWatchlist } from './MarketWatchlist'
 import './MarketPage.css'
 
@@ -13,17 +14,6 @@ type SavedJobs =
 
 type DetailScope = 'related' | 'watchlist'
 type Detail = (MarketJobRead | { status: 'opened'; card: PostingCard; opener: HTMLButtonElement }) & { scope: DetailScope }
-
-function savedRoleDomains(card: PostingCard) {
-  const domains = new Map<string, string>()
-  for (const { value } of card.posting.role_content.domains) {
-    const label = value.normalize('NFC')
-    // Fold spaces and case for matching while keeping the saved label's spelling.
-    const key = label.trim().replace(/\s+/g, ' ').toLowerCase()
-    if (key && !domains.has(key)) domains.set(key, label)
-  }
-  return domains
-}
 
 export function MarketPage() {
   const [savedJobs, setSavedJobs] = useState<SavedJobs>({ status: 'loading' })
@@ -198,6 +188,7 @@ export function MarketPage() {
           })}
         </ul>}
       </section>
+      {savedJobs.status === 'ready' && <MarketRoleDomains cards={savedJobs.cards} />}
       {detail?.status === 'opened' && <PostingCardDetails
         card={detail.card}
         isReadOnly

@@ -1,0 +1,73 @@
+.market-role-domains {
+  width: min(100%, 740px);
+  margin-top: 24px;
+}
+
+.market-role-domains > summary {
+  width: fit-content;
+  color: var(--color-action-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.market-role-domains > summary:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 3px;
+}
+
+.market-role-domains__body {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+}
+
+.market-role-domains__body > p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.market-role-domains__rows {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 14px 0 0;
+  list-style: none;
+}
+
+.market-role-domains__values {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+
+.market-role-domains__count {
+  flex: none;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.market-role-domains__track,
+.market-role-domains__bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.market-role-domains__track {
+  margin-top: 4px;
+  background-color: var(--color-action-soft);
+}
+
+.market-role-domains__bar {
+  background-color: var(--color-action-primary);
+}
+
+.market-role-domains__missing {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
