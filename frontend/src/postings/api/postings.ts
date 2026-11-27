@@ -1,6 +1,8 @@
 import type {
   CreatePostingCardRequest,
   PostingCard,
+  PostingSourceCheck,
+  RecordPostingSourceCheckRequest,
   UpdatePostingCardRequest,
 } from '../types/postingCard'
 import type {
@@ -25,6 +27,14 @@ export class MissingPostingCardError extends Error {
 
 export class PostingCardUpdateUncertainError extends Error {
   constructor() { super('Save outcome unknown. Read the saved Card before saving again.') }
+}
+
+export class PostingSourceCheckUncertainError extends Error {
+  constructor() { super('Save outcome unknown. Read source checks before trying again.') }
+}
+
+export class PostingSourceCheckUnavailableError extends Error {
+  constructor() { super('The submitted link is no longer available.') }
 }
 
 export async function createPostingImport(
@@ -172,6 +182,59 @@ export async function getPostingCardSourceReceipt(cardKey: string, signal: Abort
     throw new Error('The import receipt response could not be read.')
   }
   return { kind: receipt.kind, submitted_at: receipt.submitted_at, source_url: receipt.source_url }
+}
+
+function sourceChecksUrl(cardKey: string) {
+  return `${API_BASE_URL}/posting/card/${encodeURIComponent(cardKey)}/source-checks`
+}
+
+function isPostingSourceCheck(value: unknown): value is PostingSourceCheck {
+  return typeof value === 'object' && value !== null &&
+    'check_id' in value && typeof value.check_id === 'string' && value.check_id !== '' &&
+    'recorded_at' in value && typeof value.recorded_at === 'string' && Number.isFinite(Date.parse(value.recorded_at)) &&
+    'result' in value && (value.result === 'listed' || value.result === 'not_listed' || value.result === 'unable_to_confirm')
+}
+
+export async function getPostingSourceChecks(cardKey: string, signal: AbortSignal): Promise<PostingSourceCheck[]> {
+  const response = await fetch(sourceChecksUrl(cardKey), { signal, cache: 'no-store' })
+  if (response.status === 404) throw new MissingPostingCardError()
+  if (!response.ok) throw new Error('Could not load source checks.')
+
+  const checks: unknown = await response.json().catch(() => null)
+  if (!Array.isArray(checks) || !checks.every(isPostingSourceCheck)) throw new Error('The source check history could not be read.')
+  return checks
+}
+
+export async function recordPostingSourceCheck(
+  cardKey: string,
+  request: RecordPostingSourceCheckRequest,
+): Promise<PostingSourceCheck> {
+  let response: Response
+  try {
+    response = await fetch(sourceChecksUrl(cardKey), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+  } catch {
+    throw new PostingSourceCheckUncertainError()
+  }
+  if (response.status >= 500) throw new PostingSourceCheckUncertainError()
+  if (response.status === 404) throw new MissingPostingCardError()
+  if (response.status === 409) {
+    const error: unknown = await response.json().catch(() => null)
+    if (typeof error === 'object' && error !== null && 'detail' in error && error.detail === 'posting.source_check_unavailable') {
+      throw new PostingSourceCheckUnavailableError()
+    }
+    throw new Error('This check conflicts with a recorded source check.')
+  }
+  if (!response.ok) throw new Error('Could not record the source check.')
+
+  const saved: unknown = await response.json().catch(() => null)
+  if (!isPostingSourceCheck(saved) || saved.check_id !== request.check_id || saved.result !== request.result) {
+    throw new PostingSourceCheckUncertainError()
+  }
+  return saved
 }
 
 export async function getOriginalPostingCard(

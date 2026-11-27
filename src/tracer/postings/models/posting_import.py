@@ -58,6 +58,12 @@ class PostingImportRequest(_PostingImportModel):
     submitted_at: datetime = Field(default_factory=_utc_now)
     source: PostingImportSource
 
+    @property
+    def source_url(self) -> AnyHttpUrl | None:
+        if isinstance(self.source, UrlImport):
+            return self.source.url
+        return self.source.source_url
+
     @field_validator("submitted_at", mode="after")
     @classmethod
     def require_submission_timezone(cls, value: datetime) -> datetime:

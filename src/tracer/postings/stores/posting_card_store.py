@@ -272,6 +272,7 @@ class PostingCardStore:
         connection = sqlite3.connect(self._database_path)
 
         try:
+            connection.execute("PRAGMA foreign_keys = ON")
             cursor = connection.execute(
                 _DELETE_POSTING_CARD_BY_CARD_KEY,
                 (str(card_key),),
@@ -282,6 +283,13 @@ class PostingCardStore:
             connection.close()
 
         return deleted
+
+    @staticmethod
+    def read_import_key(connection: sqlite3.Connection, card_key: UUID) -> UUID | None:
+        row = connection.execute(
+            "SELECT import_key FROM posting_cards WHERE card_key = ?", (str(card_key),),
+        ).fetchone()
+        return UUID(row[0]) if row else None
 
     def update(self, new_card: PostingCard) -> bool:
         """Replace the current card while preserving its initial version.

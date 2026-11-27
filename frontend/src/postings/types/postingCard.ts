@@ -99,3 +99,14 @@ export type UpdatePostingCardRequest = {
   user_notes: string | null
   tags: string[]
 }
+
+export type PostingSourceCheckResult = 'listed' | 'not_listed' | 'unable_to_confirm'
+
+export type RecordPostingSourceCheckRequest = {
+  check_id: string
+  result: PostingSourceCheckResult
+}
+
+export type PostingSourceCheck = RecordPostingSourceCheckRequest & {
+  recorded_at: string
+}

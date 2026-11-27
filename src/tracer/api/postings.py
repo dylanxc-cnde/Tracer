@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable, Literal
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Response, status
 from openai import OpenAI
 
 from tracer.errors.settings_errors import PostingParserConfigurationError
@@ -12,13 +12,18 @@ from tracer.postings import (
     PostingImportRequest,
     PostingImportSource,
     PostingParseResult,
-    UrlImport,
 )
+from tracer.postings.models.posting_source_check import PostingSourceCheck
 from tracer.postings.parsers.openai_posting_parser import (
     OpenAIPostingParser,
 )
 from tracer.postings.services.create_posting_card import (
     CreatePostingCardService,
+)
+from tracer.postings.services.posting_source_checks import (
+    PostingSourceCheckService,
+    SourceCheckConflict,
+    SourceCheckUnavailable,
 )
 from tracer.postings.services.resolve_posting_parser import ResolvePostingParserService
 from tracer.postings.services.update_posting_card import (
@@ -34,6 +39,7 @@ from tracer.settings.settings_store import SettingsStore
 from .models.posting_models import (
     CreatePostingCardRequest,
     PostingCardSourceReceipt,
+    RecordPostingSourceCheckRequest,
     UpdatePostingCardRequest,
 )
 
@@ -64,6 +70,7 @@ def create_postings_router(
     update_posting_card_service = UpdatePostingCardService(
         posting_card_store
     )
+    source_checks = PostingSourceCheckService(database_path)
     router = APIRouter(prefix="/posting", tags=["postings"])
     resolve_posting_parser_service = ResolvePostingParserService(
         SettingsStore(database_path),
@@ -203,12 +210,40 @@ def create_postings_router(
         if receipt is None:
             return None
 
-        source = receipt.source
         return PostingCardSourceReceipt(
-            kind=source.kind,
+            kind=receipt.source.kind,
             submitted_at=receipt.submitted_at,
-            source_url=source.url if isinstance(source, UrlImport) else source.source_url,
+            source_url=receipt.source_url,
         )
+
+    @router.get("/card/{card_key}/source-checks")
+    def read_posting_source_checks(card_key: UUID) -> tuple[PostingSourceCheck, ...]:
+        checks = source_checks.list_for_card(card_key)
+        if checks is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Posting card not found")
+        return checks
+
+    @router.post(
+        "/card/{card_key}/source-checks",
+        status_code=status.HTTP_201_CREATED,
+        responses={status.HTTP_200_OK: {"model": PostingSourceCheck}},
+    )
+    def record_posting_source_check(
+        card_key: UUID, request: RecordPostingSourceCheckRequest, response: Response,
+    ) -> PostingSourceCheck:
+        try:
+            saved = source_checks.record(card_key, request.check_id, request.result)
+        except SourceCheckConflict:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail="posting.source_check_conflict") from None
+        except SourceCheckUnavailable:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail="posting.source_check_unavailable") from None
+        if saved is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Posting card not found")
+
+        check, created = saved
+        if not created:
+            response.status_code = status.HTTP_200_OK
+        return check
 
     @router.get("/card/{card_key}/original")
     def read_original_posting_card(card_key: UUID) -> PostingCard:

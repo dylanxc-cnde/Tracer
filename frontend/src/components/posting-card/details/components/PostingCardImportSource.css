@@ -5,13 +5,15 @@
   font-size: var(--font-size-ui);
 }
 
-.posting-card-import-source > summary {
+.posting-card-import-source > summary,
+.posting-card-import-source__checks > summary {
   width: fit-content;
   font-weight: 700;
   cursor: pointer;
 }
 
-.posting-card-import-source > summary:focus-visible {
+.posting-card-import-source > summary:focus-visible,
+.posting-card-import-source__checks > summary:focus-visible {
   outline: 3px solid var(--color-action-primary);
   outline-offset: 2px;
 }
@@ -52,8 +54,84 @@
   margin-top: 8px;
 }
 
+.posting-card-import-source__checks {
+  min-width: 0;
+  margin-top: 12px;
+}
+
+.posting-card-import-source__check-history {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  background-color: var(--color-surface-muted);
+}
+
+.posting-card-import-source__check-history p,
+.posting-card-import-source__check-history ul {
+  margin: 0;
+}
+
+.posting-card-import-source__check-history ul {
+  display: grid;
+  gap: 6px;
+  padding-inline-start: 20px;
+}
+
+.posting-card-import-source__check-history time {
+  margin-inline-start: 8px;
+}
+
+.posting-card-import-source__check-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+
+.posting-card-import-source__check-history label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.posting-card-import-source__check-history :is(button, select) {
+  min-height: 34px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-caption);
+}
+
+.posting-card-import-source__check-controls > button {
+  border-color: var(--color-action-primary);
+  background-color: var(--color-action-primary);
+  color: var(--color-text-inverse);
+}
+
+.posting-card-import-source__check-history :is(button, select):focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 3px;
+}
+
+.posting-card-import-source__check-history [role='alert'] {
+  color: var(--color-attention);
+}
+
+.posting-card-import-source__check-history button[aria-disabled='true'] {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .posting-card-import-source[open] .posting-card-import-source__receipt {
+  .posting-card-import-source[open] .posting-card-import-source__receipt,
+  .posting-card-import-source__checks[open] .posting-card-import-source__check-history {
     animation: posting-card-import-source-in 140ms ease-out;
   }
 }

@@ -267,7 +267,7 @@ export function PostingCardDetails({
           />
         )}
 
-        <PostingCardImportSource key={card.card_key} cardKey={card.card_key} />
+        <PostingCardImportSource key={card.card_key} cardKey={card.card_key} isReadOnly={isReadOnly} />
 
         <PostingCardSourceEvidence
           source={posting.identity.source}

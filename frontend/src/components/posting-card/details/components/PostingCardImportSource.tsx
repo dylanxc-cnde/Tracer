@@ -1,32 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
-import type { RefObject } from 'react'
+import type { SyntheticEvent } from 'react'
 import { getPostingCardSourceReceipt } from '../../../../postings/api/postings'
 import type { PostingImportReceipt } from '../../../../postings/types/postingImport'
 import { getSafeHttpUrl } from '../PostingCardSanitizers'
+import { PostingCardSourceChecks } from './PostingCardSourceChecks'
 import './PostingCardImportSource.css'
 
 type ReceiptRead = { status: 'loading' | 'retrying' | 'failed' }
   | { status: 'ready'; receipt: PostingImportReceipt | null }
 
-export function PostingCardImportSource({ cardKey }: { cardKey: string }) {
+export function PostingCardImportSource({ cardKey, isReadOnly }: { cardKey: string; isReadOnly: boolean }) {
   const [isOpen, setIsOpen] = useState(false)
   const summary = useRef<HTMLElement>(null)
-
-  return (
-    <details className="posting-card-import-source" onToggle={(event) => setIsOpen(event.currentTarget.open)}>
-      <summary ref={summary}>Import source</summary>
-      {isOpen && <ImportReceipt cardKey={cardKey} summary={summary} />}
-    </details>
-  )
-}
-
-function ImportReceipt({ cardKey, summary }: { cardKey: string; summary: RefObject<HTMLElement | null> }) {
   const [read, setRead] = useState<ReceiptRead>({ status: 'loading' })
   const retryButton = useRef<HTMLButtonElement>(null)
   const isReading = read.status === 'loading' || read.status === 'retrying'
 
   useEffect(() => {
-    if (!isReading) return
+    if (!isOpen || (read.status !== 'loading' && read.status !== 'retrying')) return
 
     const controller = new AbortController()
     // Start after React's development effect replay has cleaned up.
@@ -46,36 +37,52 @@ function ImportReceipt({ cardKey, summary }: { cardKey: string; summary: RefObje
       )
     })
     return () => controller.abort()
-  }, [cardKey, isReading, summary])
+  }, [cardKey, isOpen, read])
+
+  function handleToggle(event: SyntheticEvent<HTMLDetailsElement>) {
+    if (event.target !== event.currentTarget) return
+    setIsOpen(event.currentTarget.open)
+    // The browser can combine a quick close and reopen into a single event.
+    setRead({ status: 'loading' })
+  }
 
   const receipt = read.status === 'ready' ? read.receipt : null
   const safeSourceUrl = getSafeHttpUrl(receipt?.source_url ?? null)
 
   return (
-    <div className="posting-card-import-source__receipt">
-      <div role="status">
-        {isReading && <p>Reading import receipt…</p>}
-        {read.status === 'failed' && <p>Could not load the import receipt.</p>}
-        {read.status === 'ready' && receipt === null && <p>Import receipt is unavailable.</p>}
-        {receipt && <dl>
-          <dt>Input</dt>
-          <dd>{receipt.kind === 'url' ? 'Submitted link' : 'Pasted text'}</dd>
-          <dt>Submitted</dt>
-          <dd><time dateTime={receipt.submitted_at}>{new Date(receipt.submitted_at).toLocaleString('en-GB', {
-            dateStyle: 'medium', timeStyle: 'short',
-          })}</time></dd>
-          {safeSourceUrl !== null && <>
-            <dt>Source link</dt>
-            <dd><a href={safeSourceUrl} target="_blank" rel="noopener noreferrer">{receipt.source_url}</a></dd>
-          </>}
-        </dl>}
-      </div>
-      {(read.status === 'failed' || read.status === 'retrying') && <button
-        ref={retryButton}
-        type="button"
-        aria-disabled={isReading}
-        onClick={() => { if (!isReading) setRead({ status: 'retrying' }) }}
-      >Retry</button>}
-    </div>
+    <details className="posting-card-import-source" onToggle={handleToggle}>
+      <summary ref={summary}>Import source</summary>
+      {isOpen && <div className="posting-card-import-source__receipt">
+        <div role="status">
+          {isReading && <p>Reading import receipt…</p>}
+          {read.status === 'failed' && <p>Could not load the import receipt.</p>}
+          {read.status === 'ready' && receipt === null && <p>Import receipt is unavailable.</p>}
+          {receipt && <dl>
+            <dt>Input</dt>
+            <dd>{receipt.kind === 'url' ? 'Submitted link' : 'Pasted text'}</dd>
+            <dt>Submitted</dt>
+            <dd><time dateTime={receipt.submitted_at}>{new Date(receipt.submitted_at).toLocaleString('en-GB', {
+              dateStyle: 'medium', timeStyle: 'short',
+            })}</time></dd>
+            {safeSourceUrl !== null && <>
+              <dt>Source link</dt>
+              <dd><a href={safeSourceUrl} target="_blank" rel="noopener noreferrer">{receipt.source_url}</a></dd>
+            </>}
+          </dl>}
+        </div>
+        {(read.status === 'failed' || read.status === 'retrying') && <button
+          ref={retryButton}
+          type="button"
+          aria-disabled={isReading}
+          onClick={() => { if (!isReading) setRead({ status: 'retrying' }) }}
+        >Retry</button>}
+      </div>}
+      <PostingCardSourceChecks
+        cardKey={cardKey}
+        isSourceOpen={isOpen}
+        canRecord={!isReadOnly && safeSourceUrl !== null}
+        onSourceUnavailable={() => setRead({ status: 'ready', receipt: null })}
+      />
+    </details>
   )
 }

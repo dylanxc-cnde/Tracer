@@ -28,6 +28,7 @@ from tracer.postings.models.posting_details import (
     WorkMode,
     WorkloadType,
 )
+from tracer.postings.models.posting_source_check import PostingSourceCheckResult
 
 
 class CreatePostingCardRequest(BaseModel):
@@ -48,6 +49,13 @@ class PostingCardSourceReceipt(BaseModel):
     kind: Literal["url", "text"]
     submitted_at: AwareDatetime
     source_url: AnyHttpUrl | None
+
+
+class RecordPostingSourceCheckRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    check_id: UUID
+    result: PostingSourceCheckResult
 
 
 class UpdateRequirementGroupRequest(BaseModel):

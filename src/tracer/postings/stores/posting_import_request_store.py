@@ -107,13 +107,13 @@ class PostingImportRequestStore:
         """
         connection = sqlite3.connect(self._database_path)
         try:
-            row = connection.execute(
-                _SELECT_POSTING_IMPORT,
-                (str(import_key),),
-            ).fetchone()
+            return self.read(connection, import_key)
         finally:
             connection.close()
 
+    @staticmethod
+    def read(connection: sqlite3.Connection, import_key: UUID) -> PostingImportRequest | None:
+        row = connection.execute(_SELECT_POSTING_IMPORT, (str(import_key),)).fetchone()
         if row is None:
             return None
 
