@@ -26,6 +26,7 @@ export function CardLibraryPage() {
   const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
   const [isShowingOriginal, setIsShowingOriginal] = useState(false)
   const initialCardsRequest = useRef<Promise<PostingCard[]> | null>(null)
+  const cardViewRequest = useRef(0)
 
   useEffect(() => {
     let isActive = true
@@ -58,6 +59,7 @@ export function CardLibraryPage() {
     // Ignore a late response after the user has left this page.
     return () => {
       isActive = false
+      cardViewRequest.current += 1
     }
   }, [])
 
@@ -110,11 +112,13 @@ export function CardLibraryPage() {
   }
 
   function handleOpenCard(card: PostingCard) {
+    cardViewRequest.current += 1
     setIsShowingOriginal(false)
     setOpenedCard(card)
   }
 
   function handleCloseCard() {
+    cardViewRequest.current += 1
     setOpenedCard(null)
   }
 
@@ -135,13 +139,16 @@ export function CardLibraryPage() {
   }
 
   async function handleShowOriginalCard(cardKey: string) {
+    const request = ++cardViewRequest.current
     setError(null)
 
     try {
       const originalCard = await getOriginalPostingCard(cardKey)
+      if (request !== cardViewRequest.current) return
       setIsShowingOriginal(true)
       setOpenedCard(originalCard)
     } catch (caughtError: unknown) {
+      if (request !== cardViewRequest.current) return
       if (caughtError instanceof Error) {
         setError(caughtError.message)
       } else {
