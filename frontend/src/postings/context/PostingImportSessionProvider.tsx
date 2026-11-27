@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react'
 import {
+  MissingPostingImportError,
   createPostingCard,
   createPostingImport,
   deletePostingCard,
@@ -51,6 +52,7 @@ export function PostingImportSessionProvider({
   const [isDeletingCreatedCard, setIsDeletingCreatedCard] = useState(false)
   const sourceRevision = useRef(0)
   const importActionPending = useRef(false)
+  const unparsedImportKey = useRef<string | null>(null)
 
   const sourceValue = sourceValues[sourceKind]
   const importSource = getImportSource(sourceKind, sourceValue)
@@ -67,6 +69,7 @@ export function PostingImportSessionProvider({
 
   function invalidateSourceReview() {
     sourceRevision.current += 1
+    unparsedImportKey.current = null
     clearReview()
     setImportSessionError(null)
   }
@@ -98,15 +101,23 @@ export function PostingImportSessionProvider({
     setCreatedCard(null)
 
     try {
-      const postingImport = await createPostingImport(importSource)
+      let importKey = unparsedImportKey.current
+      if (importKey === null) {
+        const postingImport = await createPostingImport(importSource)
+        if (submittedRevision !== sourceRevision.current) return
+        importKey = postingImport.import_key
+        // A manual retry can reuse this saved source if parsing fails.
+        unparsedImportKey.current = importKey
+      }
 
-      if (submittedRevision !== sourceRevision.current) return
-      const result = await parsePostingImport(postingImport.import_key)
+      const result = await parsePostingImport(importKey)
       if (submittedRevision !== sourceRevision.current) return
 
-      setReview({ importKey: postingImport.import_key, result, sourceRevision: submittedRevision })
+      unparsedImportKey.current = null
+      setReview({ importKey, result, sourceRevision: submittedRevision })
     } catch (caughtError: unknown) {
       if (submittedRevision !== sourceRevision.current) return
+      if (caughtError instanceof MissingPostingImportError) unparsedImportKey.current = null
       if (caughtError instanceof Error) {
         setImportSessionError(caughtError.message)
       } else {
@@ -192,6 +203,10 @@ export function PostingImportSessionProvider({
   }
 
   function syncPostingImportDeletion(deletedImportKey: string) {
+    if (unparsedImportKey.current === deletedImportKey) {
+      invalidateSourceReview()
+      return
+    }
     if (review?.importKey === deletedImportKey) clearReview()
   }
 

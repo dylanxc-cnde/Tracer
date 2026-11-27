@@ -54,14 +54,19 @@ const LINK = postingFixture(
   'Werkstudent (m/w/d) für barrierefreie Fahrgastinformation und Mobilitätsforschung (DEMO)',
   { kind: 'url', url: 'https://tracer-fixture.invalid/stellen/werkstudent-mobilitaetsforschung' },
 )
+const REPLACEMENT_A = { ...A, importKey: 'a0000000-0000-4000-8000-000000000035' }
 const fixtures = [A, B, LINK]
 const parsePath = (posting) => `/posting/import/${posting.importKey}/parse-results`
 
-async function openImport({ page, context, baseURL }, { releaseA, releaseCard, resultA } = {}) {
+async function openImport(
+  { page, context, baseURL },
+  { releaseA, releaseCard, resultA, failFirstParse, replaceMissingA } = {},
+) {
   const imports = []
   const parses = []
   const cards = []
   const unexpected = []
+  const savedFixtures = replaceMissingA ? [...fixtures, REPLACEMENT_A] : fixtures
 
   await context.route('**/*', async (route) => {
     const request = route.request()
@@ -73,15 +78,25 @@ async function openImport({ page, context, baseURL }, { releaseA, releaseCard, r
         const posting = fixtures.find(({ importSource }) => importSource.kind === body.kind
           && (importSource.kind === 'text' ? importSource.text === body.text : importSource.url === body.url))
         if (posting) {
+          const savedPosting = posting === A && replaceMissingA && parses.includes(A.importKey) ? REPLACEMENT_A : posting
           await route.fulfill({ status: 201, json: {
-            import_key: posting.importKey, schema_version: 1, submitted_at: CREATED_AT, source: posting.importSource,
+            import_key: savedPosting.importKey, schema_version: 1, submitted_at: CREATED_AT, source: savedPosting.importSource,
           } })
           return
         }
       }
-      const posting = fixtures.find((fixture) => parsePath(fixture) === url.pathname)
+      const posting = savedFixtures.find((fixture) => parsePath(fixture) === url.pathname)
       if (posting) {
+        const fail = posting === failFirstParse && !parses.includes(posting.importKey)
         parses.push(posting.importKey)
+        if (posting === A && replaceMissingA) {
+          await route.fulfill({ status: 404, json: { detail: 'Synthetic import missing' } })
+          return
+        }
+        if (fail) {
+          await route.fulfill({ status: 503, json: { detail: 'Synthetic parser unavailable' } })
+          return
+        }
         if (posting === A) await releaseA
         const completeResult = {
           status: 'complete', postings: [{ details: posting.details, parse_ambiguities: [] }],
@@ -93,7 +108,7 @@ async function openImport({ page, context, baseURL }, { releaseA, releaseCard, r
       if (url.pathname === '/posting/card') {
         const body = request.postDataJSON()
         cards.push(body)
-        const savedPosting = fixtures.find(({ importKey }) => importKey === body.import_key)
+        const savedPosting = savedFixtures.find(({ importKey }) => importKey === body.import_key)
         if (savedPosting) {
           await releaseCard
           await route.fulfill({ status: 201, json: {
@@ -224,6 +239,85 @@ test('Posting import validates a link and saves the link proposal only after rev
   expect(cards).toEqual([{
     import_key: LINK.importKey, posting: LINK.details, posting_alias: null, user_notes: null, tags: [],
   }])
+  expect(unexpected).toEqual([])
+})
+
+for (const { mode, fixture, value } of [
+  { mode: 'text', fixture: A, value: A.importSource.text },
+  { mode: 'link', fixture: LINK, value: LINK.importSource.url },
+]) {
+  test(`Posting import retries parsing the same ${mode} only after Analyze is pressed again`, async ({ page, context, baseURL }) => {
+    await page.clock.install()
+    const { input, analyze, confirm, imports, parses, cards, unexpected } = await openImport(
+      { page, context, baseURL }, { failFirstParse: fixture },
+    )
+    const linkInput = page.getByRole('textbox', { name: 'Posting link', exact: true })
+    if (mode === 'link') await page.getByRole('radio', { name: 'Link', exact: true }).check()
+    const sourceInput = mode === 'link' ? linkInput : input
+    const error = page.getByRole('main').getByRole('alert')
+
+    await sourceInput.fill(value)
+    await analyze.click()
+    await expect(error).toBeVisible()
+    await expect(sourceInput).toHaveValue(value)
+    await expect(analyze).toBeEnabled()
+    await expect(confirm).toHaveCount(0)
+    await page.clock.fastForward(10_000)
+    expect(imports).toEqual([fixture.importSource])
+    expect(parses).toEqual([fixture.importKey])
+    expect(cards).toEqual([])
+
+    await analyze.click()
+    await expect(page.getByRole('heading', { name: fixture.title })).toBeVisible()
+    await expect(error).toHaveCount(0)
+    await expect(confirm).toBeDisabled()
+    expect(imports).toEqual([fixture.importSource])
+    expect(parses).toEqual([fixture.importKey, fixture.importKey])
+    expect(cards).toEqual([])
+    expect(unexpected).toEqual([])
+  })
+}
+
+test('Posting import creates a new import when the source changes after a parse failure', async ({ page, context, baseURL }) => {
+  const { input, analyze, confirm, imports, parses, cards, unexpected } = await openImport(
+    { page, context, baseURL }, { failFirstParse: A },
+  )
+  const error = page.getByRole('main').getByRole('alert')
+  await input.fill(A.importSource.text)
+  await analyze.click()
+  await expect(error).toBeVisible()
+
+  await input.fill(B.importSource.text)
+  await expect(error).toHaveCount(0)
+  await analyze.click()
+  await expect(page.getByRole('heading', { name: B.title })).toBeVisible()
+  await expect(confirm).toBeDisabled()
+  expect(imports).toEqual([A.importSource, B.importSource])
+  expect(parses).toEqual([A.importKey, B.importKey])
+  expect(cards).toEqual([])
+  expect(unexpected).toEqual([])
+})
+
+test('Posting import recreates a missing import only after Analyze is pressed again', async ({ page, context, baseURL }) => {
+  const { input, analyze, confirm, imports, parses, cards, unexpected } = await openImport(
+    { page, context, baseURL }, { replaceMissingA: true },
+  )
+  const error = page.getByRole('main').getByRole('alert')
+  await input.fill(A.importSource.text)
+  await analyze.click()
+  await expect(error).toHaveText('This import is no longer available. Analyze the source again.')
+  await expect(input).toHaveValue(A.importSource.text)
+  await expect(analyze).toBeEnabled()
+  expect(imports).toEqual([A.importSource])
+  expect(parses).toEqual([A.importKey])
+
+  await analyze.click()
+  await expect(page.getByRole('heading', { name: A.title })).toBeVisible()
+  await expect(error).toHaveCount(0)
+  await expect(confirm).toBeDisabled()
+  expect(imports).toEqual([A.importSource, A.importSource])
+  expect(parses).toEqual([A.importKey, REPLACEMENT_A.importKey])
+  expect(cards).toEqual([])
   expect(unexpected).toEqual([])
 })
 

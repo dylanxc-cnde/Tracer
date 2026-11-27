@@ -11,6 +11,12 @@ import type { PostingParseResult } from '../types/postingParse'
 
 const API_BASE_URL = 'http://127.0.0.1:8000'
 
+export class MissingPostingImportError extends Error {
+    constructor() {
+        super('This import is no longer available. Analyze the source again.')
+    }
+}
+
 export async function createPostingImport(
     source: PostingImportSource,
 ): Promise<PostingImportRequest> {
@@ -79,6 +85,8 @@ export async function parsePostingImport(
             method: 'POST',
         }
     )
+
+    if (response.status === 404) throw new MissingPostingImportError()
 
     if (!response.ok) {
         const errorBody = await response.text()
