@@ -438,10 +438,10 @@ test('a Card match review starts unknown, confirms a gap with evidence and corre
   // Opening the review and reading it records nothing.
   expect(evaluates).toHaveLength(0)
   await panel.getByRole('button', { name: 'Start local review', exact: true }).click()
-  expect(evaluates).toEqual([{ expected_inputs: 'fp-1' }])
 
   // Every comparison starts as unknown; unknown is not shown as a gap or a score.
   await expect(panel).toContainText('5 unknown judgments; 0 of 5 items linked to confirmed evidence')
+  expect(evaluates).toEqual([{ expected_inputs: 'fp-1' }])
   await expect(panel).toContainText('No confirmed advantages yet.')
   await expect(panel).toContainText('No confirmed gaps. Unknown does not mean met.')
   await expect(panel).toContainText('Inputs current at last read.')
