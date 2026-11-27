@@ -5,7 +5,7 @@ const CREATED_AT = '2026-11-27T10:00:00Z'
 const CARD_KEY = 'a0000000-0000-4000-8000-000000000033'
 const SAVED_TITLE = 'Gespeicherte Werkstudentenstelle für Energieversorgung und Netzinfrastruktur (DEMO)'
 
-function postingFixture(importKey, title, text) {
+function postingFixture(importKey, title, importSource) {
   const source = { excerpts: [], source_urls: [] }
   const details = {
     identity: {
@@ -30,19 +30,31 @@ function postingFixture(importKey, title, text) {
     },
     contact: null,
   }
-  return { importKey, title, details, importSource: { kind: 'text', text, source_url: null } }
+  return { importKey, title, details, importSource }
 }
 
 const A = postingFixture(
   'a0000000-0000-4000-8000-000000000031',
   'Praktikum in der Verkehrsplanung und Fahrgastinformation (DEMO)',
-  'Für unser fiktives Verkehrsunternehmen suchen wir Unterstützung bei Fahrgastzählungen und der barrierefreien Linieninformation.',
+  {
+    kind: 'text', source_url: null,
+    text: 'Für unser fiktives Verkehrsunternehmen suchen wir Unterstützung bei Fahrgastzählungen und der barrierefreien Linieninformation.',
+  },
 )
 const B = postingFixture(
   'a0000000-0000-4000-8000-000000000032',
   'Werkstudent (m/w/d) für Netzentgeltabrechnung und Energiewirtschaft (DEMO)',
-  'Bei uns unterstützt du das fiktive Netzteam bei der Netzentgeltabrechnung, wertest Messdaten aus und bereitest Rückfragen zur Tarifbindung vor.',
+  {
+    kind: 'text', source_url: null,
+    text: 'Bei uns unterstützt du das fiktive Netzteam bei der Netzentgeltabrechnung, wertest Messdaten aus und bereitest Rückfragen zur Tarifbindung vor.',
+  },
 )
+const LINK = postingFixture(
+  'a0000000-0000-4000-8000-000000000034',
+  'Werkstudent (m/w/d) für barrierefreie Fahrgastinformation und Mobilitätsforschung (DEMO)',
+  { kind: 'url', url: 'https://tracer-fixture.invalid/stellen/werkstudent-mobilitaetsforschung' },
+)
+const fixtures = [A, B, LINK]
 const parsePath = (posting) => `/posting/import/${posting.importKey}/parse-results`
 
 async function openImport({ page, context, baseURL }, { releaseA, releaseCard, resultA } = {}) {
@@ -58,7 +70,8 @@ async function openImport({ page, context, baseURL }, { releaseA, releaseCard, r
       if (url.pathname === '/posting/import') {
         const body = request.postDataJSON()
         imports.push(body)
-        const posting = [A, B].find(({ importSource }) => importSource.text === body.text)
+        const posting = fixtures.find(({ importSource }) => importSource.kind === body.kind
+          && (importSource.kind === 'text' ? importSource.text === body.text : importSource.url === body.url))
         if (posting) {
           await route.fulfill({ status: 201, json: {
             import_key: posting.importKey, schema_version: 1, submitted_at: CREATED_AT, source: posting.importSource,
@@ -66,7 +79,7 @@ async function openImport({ page, context, baseURL }, { releaseA, releaseCard, r
           return
         }
       }
-      const posting = [A, B].find((fixture) => parsePath(fixture) === url.pathname)
+      const posting = fixtures.find((fixture) => parsePath(fixture) === url.pathname)
       if (posting) {
         parses.push(posting.importKey)
         if (posting === A) await releaseA
@@ -78,13 +91,17 @@ async function openImport({ page, context, baseURL }, { releaseA, releaseCard, r
         return
       }
       if (url.pathname === '/posting/card') {
-        cards.push(request.postDataJSON())
-        await releaseCard
-        await route.fulfill({ status: 201, json: {
-          card_key: CARD_KEY, import_key: B.importKey, schema_version: 1, created_at: CREATED_AT,
-          posting: B.details, posting_alias: SAVED_TITLE, user_notes: null, tags: [],
-        } })
-        return
+        const body = request.postDataJSON()
+        cards.push(body)
+        const savedPosting = fixtures.find(({ importKey }) => importKey === body.import_key)
+        if (savedPosting) {
+          await releaseCard
+          await route.fulfill({ status: 201, json: {
+            card_key: CARD_KEY, import_key: savedPosting.importKey, schema_version: 1, created_at: CREATED_AT,
+            posting: savedPosting.details, posting_alias: SAVED_TITLE, user_notes: null, tags: [],
+          } })
+          return
+        }
       }
     }
     if (url.origin === baseURL && request.method() === 'GET' && !['fetch', 'xhr'].includes(request.resourceType())) {
@@ -147,6 +164,69 @@ test('Posting import discards a selected proposal after the source changes and s
   expect(unexpected).toEqual([])
 })
 
+test('Posting import validates a link and saves the link proposal only after review', async ({ page, context, baseURL }) => {
+  const { input, analyze, confirm, imports, parses, cards, unexpected } = await openImport({ page, context, baseURL })
+  const source = page.getByRole('group', { name: 'Posting source' })
+  const textMode = source.getByRole('radio', { name: 'Text', exact: true })
+  const linkMode = source.getByRole('radio', { name: 'Link', exact: true })
+  const linkInput = page.getByRole('textbox', { name: 'Posting link', exact: true })
+  const invalidLink = 'file:///local-job-posting'
+  const linkError = page.getByText('Enter an HTTP or HTTPS job posting link.', { exact: true })
+
+  await expect(textMode).toBeChecked()
+  await input.fill(A.importSource.text)
+  await analyze.click()
+  await expect(page.getByRole('heading', { name: A.title })).toBeVisible()
+  await page.getByRole('button', { name: 'Select', exact: true }).click()
+  await expect(confirm).toBeEnabled()
+
+  await textMode.focus()
+  await textMode.press('ArrowRight')
+  await expect(linkMode).toBeChecked()
+  await expect(linkMode).toBeFocused()
+  await expect(page.getByRole('heading', { name: A.title })).toHaveCount(0)
+  await expect(confirm).toHaveCount(0)
+  await linkInput.fill('kein Stellenlink')
+  await expect(linkError).toBeVisible()
+  await expect(analyze).toBeDisabled()
+  await linkInput.fill(invalidLink)
+  await expect(linkError).toBeVisible()
+  await expect(analyze).toBeDisabled()
+  expect(imports).toEqual([A.importSource])
+  expect(parses).toEqual([A.importKey])
+  expect(cards).toEqual([])
+
+  await linkMode.focus()
+  await linkMode.press('ArrowLeft')
+  await expect(textMode).toBeChecked()
+  await expect(input).toHaveValue(A.importSource.text)
+  await expect(confirm).toHaveCount(0)
+  await textMode.press('ArrowRight')
+  await expect(linkMode).toBeChecked()
+  await expect(linkInput).toHaveValue(invalidLink)
+
+  await linkInput.fill(`  ${LINK.importSource.url}  `)
+  await expect(linkError).toHaveCount(0)
+  await analyze.click()
+  await expect(page.getByRole('heading', { name: LINK.title })).toBeVisible()
+  await expect(confirm).toBeDisabled()
+  expect(imports).toEqual([A.importSource, LINK.importSource])
+  expect(parses).toEqual([A.importKey, LINK.importKey])
+  expect(cards).toEqual([])
+
+  await page.getByRole('button', { name: 'Select', exact: true }).click()
+  await expect(confirm).toBeEnabled()
+  expect(cards).toEqual([])
+  await confirm.click()
+  await expect(page.getByRole('heading', { name: SAVED_TITLE })).toBeVisible()
+  await page.getByRole('button', { name: 'View details' }).click()
+  await expect(page.getByRole('dialog').getByRole('heading', { name: SAVED_TITLE })).toBeVisible()
+  expect(cards).toEqual([{
+    import_key: LINK.importKey, posting: LINK.details, posting_alias: null, user_notes: null, tags: [],
+  }])
+  expect(unexpected).toEqual([])
+})
+
 const additionalSource = 'Ergänze die vollständigen Abschnitte zu Aufgaben, Voraussetzungen und Arbeitszeit während der Vorlesungszeit.'
 
 for (const { resultA, message } of [
@@ -163,7 +243,7 @@ for (const { resultA, message } of [
     resultA: {
       status: 'not_found', postings: [], refinement_reason: null, refinement_suggestions: [],
     },
-    message: 'No job posting found. Paste the text of a specific job and analyze again.',
+    message: 'No job posting found. Try a direct posting link or paste the full text, then analyze again.',
   },
 ]) {
   test(`Posting import guides a new analysis after ${resultA.status}`, async ({ page, context, baseURL }) => {

@@ -1167,6 +1167,54 @@ button:disabled {
   margin: 0;
 }
 
+.posting-import-page__source-options {
+  min-inline-size: 0;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+
+.posting-import-page__source-options > legend {
+  margin-bottom: 4px;
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+}
+
+.posting-import-page__source-options > label {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  margin-inline-end: 24px;
+  cursor: pointer;
+}
+
+.posting-import-page__source-options input { accent-color: var(--color-action-primary); }
+
+.posting-import-page__link {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 980px);
+  margin-bottom: 12px;
+}
+
+.posting-import-page__link input {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.posting-import-page__link p {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-caption);
+}
+
 .posting-import-page__input {
   display: block;
   box-sizing: border-box;

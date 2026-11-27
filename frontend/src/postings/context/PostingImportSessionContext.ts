@@ -1,12 +1,15 @@
 import { createContext } from 'react'
 import type { PostingCard } from '../types/postingCard'
+import type { PostingImportSource } from '../types/postingImport'
 import type {
   ParsedPosting,
   PostingParseResult,
 } from '../types/postingParse'
 
 export type PostingImportSession = {
-  postingText: string
+  sourceKind: PostingImportSource['kind']
+  sourceValue: string
+  canAnalyzePosting: boolean
   isAnalyzingPosting: boolean
   parseResult: PostingParseResult | null
   importSessionError: string | null
@@ -15,9 +18,10 @@ export type PostingImportSession = {
   isCreatingCard: boolean
   createdCard: PostingCard | null
   isDeletingCreatedCard: boolean
-  updatePostingText: (postingText: string) => void
+  selectPostingSource: (kind: PostingImportSource['kind']) => void
+  updatePostingSource: (value: string) => void
   selectPostingCandidate: (postingIndex: number) => void
-  analyzePostingText: () => Promise<void>
+  analyzePosting: () => Promise<void>
   createCardFromSelectedPosting: () => Promise<void>
   deleteCreatedCard: (cardKey: string) => Promise<void>
   syncPostingCardDeletion: (cardKey: string) => void

@@ -6,6 +6,7 @@ import {
   parsePostingImport,
 } from '../api/postings'
 import type { PostingCard } from '../types/postingCard'
+import type { PostingImportSource } from '../types/postingImport'
 import type { PostingParseResult } from '../types/postingParse'
 import {
   PostingImportSessionContext,
@@ -22,10 +23,25 @@ type PostingImportSessionProviderProps = {
   children: ReactNode
 }
 
+function getImportSource(kind: PostingImportSource['kind'], value: string): PostingImportSource | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (kind === 'text') return { kind, text: value, source_url: null }
+
+  try {
+    const { protocol } = new URL(trimmed)
+    if (protocol === 'http:' || protocol === 'https:') return { kind, url: trimmed }
+  } catch {
+    return null
+  }
+  return null
+}
+
 export function PostingImportSessionProvider({
   children,
 }: PostingImportSessionProviderProps) {
-  const [postingText, setPostingText] = useState('')
+  const [sourceKind, setSourceKind] = useState<PostingImportSource['kind']>('text')
+  const [sourceValues, setSourceValues] = useState({ text: '', url: '' })
   const [isAnalyzingPosting, setIsAnalyzingPosting] = useState(false)
   const [review, setReview] = useState<PostingImportReview | null>(null)
   const [importSessionError, setImportSessionError] = useState<string | null>(null)
@@ -36,6 +52,8 @@ export function PostingImportSessionProvider({
   const sourceRevision = useRef(0)
   const importActionPending = useRef(false)
 
+  const sourceValue = sourceValues[sourceKind]
+  const importSource = getImportSource(sourceKind, sourceValue)
   const parseResult = review?.result ?? null
   const selectedPosting =
     parseResult !== null && selectedPostingIndex !== null
@@ -47,21 +65,30 @@ export function PostingImportSessionProvider({
     setSelectedPostingIndex(null)
   }
 
-  function updatePostingText(nextPostingText: string) {
-    if (nextPostingText === postingText) return
-
+  function invalidateSourceReview() {
     sourceRevision.current += 1
-    setPostingText(nextPostingText)
     clearReview()
     setImportSessionError(null)
+  }
+
+  function selectPostingSource(kind: PostingImportSource['kind']) {
+    if (kind === sourceKind) return
+    setSourceKind(kind)
+    invalidateSourceReview()
+  }
+
+  function updatePostingSource(value: string) {
+    if (value === sourceValue) return
+    setSourceValues(values => ({ ...values, [sourceKind]: value }))
+    invalidateSourceReview()
   }
 
   function selectPostingCandidate(postingIndex: number) {
     setSelectedPostingIndex(postingIndex)
   }
 
-  async function analyzePostingText() {
-    if (importActionPending.current || postingText.trim().length === 0) return
+  async function analyzePosting() {
+    if (importActionPending.current || !importSource) return
 
     const submittedRevision = sourceRevision.current
     importActionPending.current = true
@@ -71,11 +98,7 @@ export function PostingImportSessionProvider({
     setCreatedCard(null)
 
     try {
-      const postingImport = await createPostingImport({
-        kind: 'text',
-        text: postingText,
-        source_url: null,
-      })
+      const postingImport = await createPostingImport(importSource)
 
       if (submittedRevision !== sourceRevision.current) return
       const result = await parsePostingImport(postingImport.import_key)
@@ -173,7 +196,9 @@ export function PostingImportSessionProvider({
   }
 
   const session: PostingImportSession = {
-    postingText,
+    sourceKind,
+    sourceValue,
+    canAnalyzePosting: importSource !== null,
     isAnalyzingPosting,
     parseResult,
     importSessionError,
@@ -182,9 +207,10 @@ export function PostingImportSessionProvider({
     isCreatingCard,
     createdCard,
     isDeletingCreatedCard,
-    updatePostingText,
+    selectPostingSource,
+    updatePostingSource,
     selectPostingCandidate,
-    analyzePostingText,
+    analyzePosting,
     createCardFromSelectedPosting,
     deleteCreatedCard,
     syncPostingCardDeletion,

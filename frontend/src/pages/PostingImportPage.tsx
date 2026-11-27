@@ -18,7 +18,7 @@ const refinementMessages: Record<PostingRefinementReason, string> = {
 
 function getParseFeedback(result: PostingParseResult) {
   if (result.status === 'complete') return 'Review the proposed posting before saving.'
-  if (result.status === 'not_found') return 'No job posting found. Paste the text of a specific job and analyze again.'
+  if (result.status === 'not_found') return 'No job posting found. Try a direct posting link or paste the full text, then analyze again.'
   return (result.refinement_reason && refinementMessages[result.refinement_reason])
     || 'Add more detail to the source and analyze again.'
 }
@@ -26,7 +26,9 @@ function getParseFeedback(result: PostingParseResult) {
 export function PostingImportPage() {
   const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
   const {
-    postingText,
+    sourceKind,
+    sourceValue,
+    canAnalyzePosting,
     isAnalyzingPosting,
     parseResult,
     importSessionError,
@@ -35,13 +37,15 @@ export function PostingImportPage() {
     isCreatingCard,
     createdCard,
     isDeletingCreatedCard,
-    updatePostingText,
+    selectPostingSource,
+    updatePostingSource,
     selectPostingCandidate,
-    analyzePostingText,
+    analyzePosting,
     createCardFromSelectedPosting,
     deleteCreatedCard,
     syncPostingCardUpdate,
   } = usePostingImportSession()
+  const invalidLink = sourceKind === 'url' && sourceValue.trim() !== '' && !canAnalyzePosting
   const suggestions = parseResult?.status === 'refinement_required'
     ? (parseResult.refinement_suggestions ?? [])
     : []
@@ -77,22 +81,40 @@ export function PostingImportPage() {
 
       {importSessionError && <p role="alert">{importSessionError}</p>}
 
-      <textarea
-        className="posting-import-page__input"
-        placeholder="Paste a job posting here"
-        value={postingText}
-        onChange={(event) => updatePostingText(event.target.value)}
-      />
+      <fieldset className="posting-import-page__source-options">
+        <legend>Posting source</legend>
+        <label><input type="radio" name="posting-source" checked={sourceKind === 'text'} onChange={() => selectPostingSource('text')} /> Text</label>
+        <label><input type="radio" name="posting-source" checked={sourceKind === 'url'} onChange={() => selectPostingSource('url')} /> Link</label>
+      </fieldset>
 
-      <p className="posting-import-page__character-count">
-        {postingText.length} characters
-      </p>
+      {sourceKind === 'text' ? <>
+        <textarea
+          className="posting-import-page__input"
+          aria-label="Posting text"
+          placeholder="Paste a job posting here"
+          value={sourceValue}
+          onChange={(event) => updatePostingSource(event.target.value)}
+        />
+        <p className="posting-import-page__character-count">{sourceValue.length} characters</p>
+      </> : <div className="posting-import-page__link">
+        <label htmlFor="posting-import-link">Posting link</label>
+        <input
+          id="posting-import-link"
+          type="url"
+          placeholder="Paste a job posting link"
+          value={sourceValue}
+          aria-invalid={invalidLink || undefined}
+          aria-describedby={invalidLink ? 'posting-import-link-error' : undefined}
+          onChange={(event) => updatePostingSource(event.target.value)}
+        />
+        {invalidLink && <p id="posting-import-link-error">Enter an HTTP or HTTPS job posting link.</p>}
+      </div>}
 
       <button
         className="button--primary posting-import-page__analyze-button"
         type="button"
-        onClick={analyzePostingText}
-        disabled={isAnalyzingPosting || isCreatingCard || postingText.trim().length === 0}
+        onClick={analyzePosting}
+        disabled={isAnalyzingPosting || isCreatingCard || !canAnalyzePosting}
       >
         {isAnalyzingPosting ? 'Analyzing...' : 'Analyze'}
       </button>

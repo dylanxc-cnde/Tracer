@@ -6,7 +6,7 @@
 
 Tracer is a local-first job-search workspace, built with internships,
 working-student roles, HiWi jobs, and thesis openings in Germany in mind.
-Paste a posting, review what the AI picked out, and keep the useful parts
+Paste a posting or its link, review what the AI picked out, and keep the useful parts
 together—with sources, your corrections, tags, and notes.
 
 Less digging through job pages. More time deciding which roles are worth a look.
@@ -24,8 +24,7 @@ newer features such as inline editing and Show original aren't pictured yet.
 
 ## What you can do now
 
-- Import pasted posting text, review AI-extracted candidates, and save a Card.
-  URL imports are also available through the API.
+- Import a posting from pasted text or a link, review AI-extracted candidates, and save a Card.
 - Reopen Cards from a local SQLite library and check their source excerpts.
 - Edit titles, company names, posting information, responsibilities, requirements,
   compensation, application details, contacts, company information, and personal notes.

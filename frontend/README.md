@@ -10,7 +10,7 @@ and Card creation and updates.
 
 ## What works now
 
-- a posting input with a live character count;
+- Text and Link inputs for a posting, with a live character count for Text;
 - TypeScript contracts cover posting imports, parsed results, and cards;
 - Analyze creates an import and asks FastAPI to parse it;
 - parsed candidates are shown as selectable cards;
