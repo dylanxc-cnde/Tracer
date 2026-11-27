@@ -1,23 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import type { FormEvent } from 'react'
 import { IconBuilding, IconCalendarEvent, IconFileText, IconMail, IconPlus } from '@tabler/icons-react'
 import { PostingCardDetails } from '../posting-card/details/PostingCardDetails'
 import {
-  adjustEvent, completeTask, createApplication, createEvent, createTask,
+  adjustEvent, changeApplication, completeTask, createApplication, createEvent, createTask,
   getApplicationJobs, HomeApiError, localDateTime,
 } from '../../home/api/home'
-import type { CreateApplicationRequest, CreateEventRequest, CreateTaskRequest, HomeOverview, ScheduleEvent, Task } from '../../home/types/home'
+import type { ApplicationRecord, ApplicationStatus, CreateApplicationRequest, CreateEventRequest, CreateTaskRequest, HomeOverview, ScheduleEvent, Task } from '../../home/types/home'
 import type { PostingCard } from '../../postings/types/postingCard'
 import './HomeRecords.css'
 
 type Refresh = () => Promise<HomeOverview>
-type Operation = { send: () => Promise<unknown>; saved: () => void; matches: (data: HomeOverview) => boolean }
+type Operation<Receipt> = { send: () => Promise<Receipt>; saved: (receipt?: Receipt) => void; matches: (data: HomeOverview) => boolean }
 
 // One local write lifecycle per editor/row. Checking an uncertain outcome is a
 // read, never a retry; a later explicit retry reuses the exact frozen operation.
-function useRecordWrite(refresh: Refresh) {
+function useRecordWrite<Receipt = unknown>(refresh: Refresh) {
   const active = useRef(false)
   const guard = useRef(false)
-  const attempt = useRef<Operation | null>(null)
+  const attempt = useRef<Operation<Receipt> | null>(null)
   const [pending, setPending] = useState(false)
   const [uncertain, setUncertain] = useState(false)
   const [checked, setChecked] = useState(false)
@@ -25,19 +26,23 @@ function useRecordWrite(refresh: Refresh) {
   const [error, setError] = useState<string | null>(null)
   useEffect(() => { active.current = true; return () => { active.current = false } }, [])
 
-  async function run(operation: Operation) {
+  function clearFeedback() {
+    setError(null)
+    setMessage(null)
+  }
+
+  async function run(operation: Operation<Receipt>) {
     if (guard.current || (uncertain && !checked)) return
     guard.current = true
     setPending(true)
-    setError(null)
-    setMessage(null)
+    clearFeedback()
     // Preserve the action/payload after a lost response, even through re-renders.
     const current = uncertain && attempt.current ? attempt.current : operation
     attempt.current = current
     try {
-      await current.send()
+      const receipt = await current.send()
       if (!active.current) return
-      current.saved()
+      current.saved(receipt)
       setUncertain(false)
       setChecked(false)
       attempt.current = null
@@ -80,14 +85,16 @@ function useRecordWrite(refresh: Refresh) {
       if (active.current) setPending(false)
     }
   }
-  return { run, check, pending, uncertain, checked, error, message, locked: pending || uncertain }
+  return { run, check, clearFeedback, pending, uncertain, checked, error, message, locked: pending || uncertain }
 }
 
-function WriteFeedback({ write }: { write: ReturnType<typeof useRecordWrite> }) {
+type WriteFeedbackState = Pick<ReturnType<typeof useRecordWrite>, 'check' | 'pending' | 'uncertain' | 'error' | 'message'>
+
+function WriteFeedback({ write, onCheckStart }: { write: WriteFeedbackState; onCheckStart?: () => void }) {
   return <div className="home-page__write-feedback">
     {write.error && <p role="alert">{write.error}</p>}
     {write.message && <p role="status">{write.message}</p>}
-    {write.uncertain && <button type="button" className="home-page__record-action" disabled={write.pending} onClick={() => void write.check()}>Refresh to check</button>}
+    {write.uncertain && <button type="button" className="home-page__record-action" disabled={write.pending} onClick={() => { onCheckStart?.(); void write.check() }}>Refresh to check</button>}
   </div>
 }
 
@@ -207,6 +214,100 @@ function ApplicationForm({ jobs, selected, today, refresh, close }: { jobs: Post
   </form>
 }
 
+const applicationStatusLabels: Record<ApplicationStatus, string> = {
+  applied: 'Applied', interviewing: 'Interviewing', offer: 'Offer', rejected: 'Rejected', withdrawn: 'Withdrawn',
+}
+
+function ApplicationRow({ record, title, refresh }: { record: ApplicationRecord; title: string; refresh: Refresh }) {
+  const [draft, setDraft] = useState<{ initial: ApplicationStatus; status: ApplicationStatus } | null>(null)
+  const [receipt, setReceipt] = useState<{ previous: ApplicationRecord; status: ApplicationStatus } | null>(null)
+  const latestRecord = useRef(record)
+  const action = useRef<HTMLButtonElement>(null)
+  const editor = useRef<HTMLFormElement>(null)
+  const returnFocus = useRef(false)
+  const titleId = useId()
+  const write = useRecordWrite<ApplicationRecord>(refresh)
+  const isEditing = draft !== null
+  // Retain the confirmed PATCH result until another overview is available.
+  const savedStatus = receipt?.previous === record ? receipt.status : record.status
+
+  useEffect(() => { latestRecord.current = record }, [record])
+  useEffect(() => {
+    if (!isEditing && !write.pending && returnFocus.current) {
+      returnFocus.current = false
+      if (document.activeElement === document.body) action.current?.focus({ preventScroll: true })
+    }
+  }, [isEditing, write.pending])
+
+  function handleChangeStatus() {
+    write.clearFeedback()
+    setDraft({ initial: savedStatus, status: savedStatus })
+  }
+
+  function closeEditor(restoreFocus = editor.current?.contains(document.activeElement) ?? false) {
+    returnFocus.current = restoreFocus
+    setDraft(null)
+  }
+
+  function handleCancel() {
+    write.clearFeedback()
+    closeEditor(true)
+  }
+
+  function focusEditor() {
+    editor.current?.focus({ preventScroll: true })
+  }
+
+  const canSave = draft !== null && !write.pending && (write.uncertain
+    ? write.checked
+    : draft.status !== draft.initial && draft.status !== savedStatus)
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!canSave) return
+
+    focusEditor()
+    const applicationId = record.application_id
+    const requestedStatus = draft.status
+    void write.run({
+      send: async () => {
+        const result = await changeApplication(applicationId, requestedStatus)
+        if (result.application_id !== applicationId || result.status !== requestedStatus) {
+          throw new HomeApiError('Save response did not confirm this application status. Refresh to check saved records before retrying.', true)
+        }
+        return result
+      },
+      saved: result => {
+        if (result) setReceipt({ previous: latestRecord.current, status: result.status })
+        closeEditor()
+      },
+      matches: data => data.applications.some(({ record: saved }) => saved.application_id === applicationId && saved.status === requestedStatus),
+    })
+  }
+
+  return <li>
+    <div className="home-page__application-row-summary">
+      <span className="home-page__application-row-copy">
+        <strong id={titleId}>{title}</strong> · {savedStatus} · <time dateTime={record.applied_on}>{dateFact(record.applied_on)}</time>
+      </span>
+      {!isEditing && <button ref={action} type="button" className="home-page__record-action" aria-describedby={titleId}
+        onClick={handleChangeStatus} disabled={write.pending}>Change status</button>}
+    </div>
+    {isEditing && <form ref={editor} tabIndex={-1} className="home-page__record-form home-page__application-status-form"
+      aria-label="Change application status" aria-describedby={titleId} onSubmit={handleSubmit}>
+      <label>Status<select autoFocus value={draft.status} disabled={write.locked}
+        onChange={event => setDraft({ initial: draft.initial, status: event.target.value as ApplicationStatus })}>
+        {Object.entries(applicationStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+      </select></label>
+      <div className="home-page__record-actions">
+        <button className="home-page__record-primary" disabled={!canSave}>{write.pending ? 'Saving…' : write.uncertain ? 'Retry same request' : 'Save status'}</button>
+        <button type="button" className="home-page__record-action" onClick={handleCancel} disabled={write.locked}>Cancel</button>
+      </div>
+    </form>}
+    <WriteFeedback write={write} onCheckStart={focusEditor} />
+  </li>
+}
+
 export function HomeRecords({ data, today, refresh }: { data: HomeOverview; today: string; refresh: Refresh }) {
   const [eventEditor, setEventEditor] = useState<ScheduleEvent | 'new' | null>(null)
   const [applicationEditor, setApplicationEditor] = useState<string | null>(null)
@@ -268,7 +369,8 @@ export function HomeRecords({ data, today, refresh }: { data: HomeOverview; toda
       </div>}
       {data.applications.length > 0 && <details className="home-page__application-history"><summary>Recorded applications ({data.applications.length})</summary><ul>{data.applications.map(({ record, card_missing }) => {
         const card = data.recent_jobs.find(j => j.card.card_key === record.card_key)?.card ?? jobs?.find(j => j.card_key === record.card_key)
-        return <li key={record.application_id}><strong>{card_missing ? 'Job deleted' : card ? jobTitle(card) : 'Saved job'}</strong> · {record.status} · <time dateTime={record.applied_on}>{dateFact(record.applied_on)}</time></li>
+        const title = card_missing ? 'Job deleted' : card ? jobTitle(card) : 'Saved job'
+        return <ApplicationRow key={record.application_id} record={record} title={title} refresh={refresh} />
       })}</ul></details>}
     </section>
     <section className="home-page__recent-jobs" aria-labelledby="home-recent-jobs-title"><div className="home-page__section-heading"><h2 className="home-page__section-title" id="home-recent-jobs-title">Recent jobs</h2><span className="home-page__count">Latest saved jobs</span></div>

@@ -110,6 +110,9 @@
 .home-page__completed summary, .home-page__application-history summary { cursor: pointer; padding: 8px 0; }
 .home-page__application-history { margin-top: 12px; font-size: var(--font-size-caption); }
 .home-page__application-history li { padding: 6px 0; }
+.home-page__application-row-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.home-page__application-row-copy { flex: 1; min-width: min(200px, 100%); line-height: 1.5; }
+.home-page__application-status-form > label { max-width: 20rem; }
 .home-page__record-activity { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--color-border-subtle); font-size: var(--font-size-caption); }
 .home-page__record-activity time { color: var(--color-text-secondary); }
 .home-page__activity-day--unrecorded { fill: var(--color-surface); stroke: var(--color-border-strong); stroke-dasharray: 2 2; }

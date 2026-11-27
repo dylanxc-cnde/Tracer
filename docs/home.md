@@ -194,6 +194,10 @@ long title does not depend on the control's clipped display or a hover tooltip.
 The confirmation text explicitly says the application has already been submitted;
 the POST is caused only by the user's form submission. Existing applications
 show their confirmed status, including “Job deleted” for missing references.
+In Recorded applications, Change status opens a draft for that application.
+Save status explicitly sends its new status. Cancel leaves the record unchanged.
+For an uncertain update, Refresh to check compares the saved application ID and
+status before an explicit retry is available.
 Recent jobs can open the existing Details reader in read-only mode; edits remain
 in Card Library. Neither opening nor saving a Card creates an application.
 

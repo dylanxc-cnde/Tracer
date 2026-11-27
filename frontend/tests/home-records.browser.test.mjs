@@ -102,6 +102,15 @@ function makeState(seed = {}) {
     record('application_recorded', `application:${body.application_id}`, body.card_key)
     return { status: 201, json: created }
   }
+  state.patchApplication = (id, { status }) => {
+    const found = state.applications.find((application) => application.application_id === id)
+    if (!found) return { status: 404, json: { detail: 'home.not_found' } }
+    if (found.status !== status) {
+      Object.assign(found, { status, updated_at: now() })
+      record('application_status_changed', `application_status_changed:${id}:${state.activities.length}`, found.card_key)
+    }
+    return { status: 200, json: found }
+  }
 
   state.overview = (params) => {
     const today = params.get('today')
@@ -158,14 +167,15 @@ async function installHome({ context, baseURL, state, routes = {} }) {
     'POST /home/events': (route, request) => respond(route, state.createEvent(request.postDataJSON())),
     'PATCH /home/events/:id': (route, request) => respond(route, state.patchEvent(idOf(request), request.postDataJSON())),
     'POST /home/applications': (route, request) => respond(route, state.createApplication(request.postDataJSON())),
+    'PATCH /home/applications/:id': (route, request) => respond(route, state.patchApplication(idOf(request), request.postDataJSON())),
   }
   await context.route('**/*', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
     if (url.origin === API) {
-      const key = `${request.method()} ${url.pathname.replace(/^(\/home\/(?:tasks|events))\/[^/]+/, '$1/:id')}`
+      const key = `${request.method()} ${url.pathname.replace(/^(\/home\/(?:tasks|events|applications))\/[^/]+/, '$1/:id')}`
       state.calls.push(key)
-      if (request.method() !== 'GET') state.writes.push({ key, body: request.postDataJSON() })
+      if (request.method() !== 'GET') state.writes.push({ key, path: url.pathname, body: request.postDataJSON() })
       const handler = routes[key] ?? defaults[key]
       if (!handler) { state.unexpected.push(`${request.method()} ${url.pathname}`); await route.abort('blockedbyclient'); return }
       await handler(route, request, () => defaults[key](route, request))
@@ -593,6 +603,118 @@ test('HF-APP-REC an application is recorded only by an explicit submit and every
   expect(posts(), 'refreshing never writes').toHaveLength(1)
   expect(state.unexpected, 'All non-Vite requests must be explicitly mocked').toEqual([])
 })
+
+for (const viewport of VIEWPORTS) {
+  test(`NS-05 application status saves explicitly and reconciles a lost response at ${viewport.width}×${viewport.height}`, async ({ page, context, baseURL }, testInfo) => {
+    const state = makeState(seededRecords())
+    const applicationId = state.applications[0].application_id
+    const key = 'PATCH /home/applications/:id'
+    const path = `/home/applications/${applicationId}`
+    const write = (status) => ({ key, path, body: { status } })
+    const browserErrors = []
+    page.on('pageerror', (error) => browserErrors.push(error.message))
+    page.on('console', (message) => {
+      if (message.type() !== 'error') return
+      const expectedFailure = message.location().url === `${API}${path}`
+        && /status of 503|net::ERR_FAILED/.test(message.text())
+      if (!expectedFailure) browserErrors.push(message.text())
+    })
+    let attempts = 0
+    await installHome({ context, baseURL, state, routes: {
+      [key]: (route, request, ok) => {
+        attempts += 1
+        if (attempts === 1) return route.fulfill({ status: 503, json: { detail: 'home.storage_unavailable' } })
+        if (attempts === 2) {
+          state.patchApplication(idOf(request), request.postDataJSON())
+          return route.abort('failed')
+        }
+        return ok()
+      },
+    } })
+    await openHome(page, viewport)
+    const history = region(page, 'Your search').locator('details.home-page__application-history')
+    const row = history.getByRole('listitem').filter({ hasText: LONG_TITLE })
+    const change = row.getByRole('button', { name: 'Change status', exact: true })
+    const form = row.getByRole('form', { name: 'Change application status', exact: true })
+    const status = form.getByRole('combobox', { name: 'Status', exact: true })
+    const save = form.getByRole('button', { name: 'Save status', exact: true })
+    const alert = row.getByRole('alert')
+    const recentJob = page.getByRole('list', { name: 'Recent saved jobs' }).getByRole('listitem').filter({ hasText: LONG_TITLE })
+    const statusActivity = region(page, 'Recent activity').getByRole('listitem').filter({ hasText: 'Application status changed' })
+
+    await history.locator('summary').press('Enter')
+    await change.press('Enter')
+    await expect(status).toBeFocused()
+    await expect(status).toHaveValue('applied')
+    await expect(save).toBeDisabled()
+    await status.selectOption('rejected')
+    await form.getByRole('button', { name: 'Cancel', exact: true }).press('Enter')
+    await expect(form).toHaveCount(0)
+    await expect(change).toBeFocused()
+    expect(state.writes).toEqual([])
+
+    await change.press('Enter')
+    await status.selectOption('interviewing')
+    await expect(save).toBeEnabled()
+    await expect(recentJob).toContainText('Application: applied')
+    await expect(metric(page, 'Active applications')).toHaveText('2')
+    await expect(metric(page, 'Awaiting reply')).toHaveText('1')
+    expect(state.writes).toEqual([])
+
+    await save.press('Enter')
+    await expect(alert).toContainText('draft is still here')
+    await expect(status).toHaveValue('interviewing')
+    await expect(status).toBeEnabled()
+    await expect(recentJob).toContainText('Application: applied')
+    expect(state.writes).toEqual([write('interviewing')])
+    await frameTargets([['Status draft', status], ['Save rejection', alert]])
+    expect(await horizontalProblems(page)).toEqual([])
+    await page.screenshot({ path: testInfo.outputPath('application-status-rejected.png') })
+
+    await save.press('Enter')
+    await expect(alert).toContainText('Save outcome unknown')
+    await expect(status).toHaveValue('interviewing')
+    await expect(status).toBeDisabled()
+    await expect(form.getByRole('button', { name: 'Retry same request', exact: true })).toBeDisabled()
+    expect(state.writes).toEqual([write('interviewing'), write('interviewing')])
+    await expect(recentJob).toContainText('Application: applied')
+    const overviewReads = count(state, 'GET /home/overview')
+    const activityReads = count(state, 'GET /home/activity')
+    const check = row.getByRole('button', { name: 'Refresh to check', exact: true })
+    await frameTargets([['Pending outcome', alert], ['Readback action', check]])
+    await page.screenshot({ path: testInfo.outputPath('application-status-unknown.png') })
+    await check.press('Enter')
+
+    await expect(form).toHaveCount(0)
+    await expect(change).toBeFocused()
+    await expect(recentJob).toContainText('Application: interviewing')
+    await expect(metric(page, 'Active applications')).toHaveText('2')
+    await expect(metric(page, 'Awaiting reply')).toHaveText('0')
+    await expect(metric(page, 'Interviews in next 7 days')).toHaveText('1')
+    await expect(statusActivity).toHaveCount(1)
+    expect(count(state, 'GET /home/overview')).toBe(overviewReads + 1)
+    expect(count(state, 'GET /home/activity')).toBe(activityReads + 1)
+    expect(state.writes).toEqual([write('interviewing'), write('interviewing')])
+
+    await change.press('Enter')
+    await expect(status).toHaveValue('interviewing')
+    await status.selectOption('offer')
+    await save.press('Enter')
+    await expect(form).toHaveCount(0)
+    await expect(change).toBeFocused()
+    await expect(recentJob).toContainText('Application: offer')
+    await expect(metric(page, 'Active applications')).toHaveText('1')
+    await expect(metric(page, 'Awaiting reply')).toHaveText('0')
+    await expect(metric(page, 'Interviews in next 7 days')).toHaveText('1')
+    await expect(statusActivity).toHaveCount(2)
+    expect(state.writes).toEqual([write('interviewing'), write('interviewing'), write('offer')])
+    expect(state.unexpected).toEqual([])
+    expect(browserErrors).toEqual([])
+    await frameTargets([['Changed application', change], ['Recent job updated', recentJob]])
+    expect(await horizontalProblems(page)).toEqual([])
+    await page.screenshot({ path: testInfo.outputPath('application-status-saved.png') })
+  })
+}
 
 // ---------------------------------------------------------------------- events
 
