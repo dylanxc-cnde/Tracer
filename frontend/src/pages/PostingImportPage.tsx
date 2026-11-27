@@ -75,7 +75,7 @@ export function PostingImportPage() {
         className="button--primary posting-import-page__analyze-button"
         type="button"
         onClick={analyzePostingText}
-        disabled={isAnalyzingPosting || postingText.trim().length === 0}
+        disabled={isAnalyzingPosting || isCreatingCard || postingText.trim().length === 0}
       >
         {isAnalyzingPosting ? 'Analyzing...' : 'Analyze'}
       </button>

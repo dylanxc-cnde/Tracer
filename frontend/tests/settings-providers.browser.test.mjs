@@ -7,6 +7,7 @@ import { answerEmptyHome, answerPersonalReads as answerProfileReads } from './se
 import './profile-matching.browser.test.mjs'
 import './home-records.browser.test.mjs'
 import './global-search.browser.test.mjs'
+import './posting-import.browser.test.mjs'
 
 // These provider scenarios enter the app on Home. Home reads are answered with an empty,
 // valid projection while every other request still reaches the closed mock.

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import {
   createPostingCard,
   createPostingImport,
@@ -12,6 +12,12 @@ import {
   type PostingImportSession,
 } from './PostingImportSessionContext'
 
+type PostingImportReview = {
+  importKey: string
+  result: PostingParseResult
+  sourceRevision: number
+}
+
 type PostingImportSessionProviderProps = {
   children: ReactNode
 }
@@ -21,21 +27,33 @@ export function PostingImportSessionProvider({
 }: PostingImportSessionProviderProps) {
   const [postingText, setPostingText] = useState('')
   const [isAnalyzingPosting, setIsAnalyzingPosting] = useState(false)
-  const [parseResult, setParseResult] = useState<PostingParseResult | null>(null)
+  const [review, setReview] = useState<PostingImportReview | null>(null)
   const [importSessionError, setImportSessionError] = useState<string | null>(null)
   const [selectedPostingIndex, setSelectedPostingIndex] = useState<number | null>(null)
-  const [importKey, setImportKey] = useState<string | null>(null)
   const [isCreatingCard, setIsCreatingCard] = useState(false)
   const [createdCard, setCreatedCard] = useState<PostingCard | null>(null)
   const [isDeletingCreatedCard, setIsDeletingCreatedCard] = useState(false)
+  const sourceRevision = useRef(0)
+  const importActionPending = useRef(false)
 
+  const parseResult = review?.result ?? null
   const selectedPosting =
     parseResult !== null && selectedPostingIndex !== null
       ? parseResult.postings[selectedPostingIndex] ?? null
       : null
 
+  function clearReview() {
+    setReview(null)
+    setSelectedPostingIndex(null)
+  }
+
   function updatePostingText(nextPostingText: string) {
+    if (nextPostingText === postingText) return
+
+    sourceRevision.current += 1
     setPostingText(nextPostingText)
+    clearReview()
+    setImportSessionError(null)
   }
 
   function selectPostingCandidate(postingIndex: number) {
@@ -43,11 +61,13 @@ export function PostingImportSessionProvider({
   }
 
   async function analyzePostingText() {
+    if (importActionPending.current || postingText.trim().length === 0) return
+
+    const submittedRevision = sourceRevision.current
+    importActionPending.current = true
     setIsAnalyzingPosting(true)
-    setParseResult(null)
+    clearReview()
     setImportSessionError(null)
-    setSelectedPostingIndex(null)
-    setImportKey(null)
     setCreatedCard(null)
 
     try {
@@ -57,31 +77,40 @@ export function PostingImportSessionProvider({
         source_url: null,
       })
 
+      if (submittedRevision !== sourceRevision.current) return
       const result = await parsePostingImport(postingImport.import_key)
-      setImportKey(postingImport.import_key)
-      setParseResult(result)
+      if (submittedRevision !== sourceRevision.current) return
+
+      setReview({ importKey: postingImport.import_key, result, sourceRevision: submittedRevision })
     } catch (caughtError: unknown) {
+      if (submittedRevision !== sourceRevision.current) return
       if (caughtError instanceof Error) {
         setImportSessionError(caughtError.message)
       } else {
         setImportSessionError('Something went wrong.')
       }
     } finally {
+      importActionPending.current = false
       setIsAnalyzingPosting(false)
     }
   }
 
   async function createCardFromSelectedPosting() {
-    if (importKey === null || selectedPosting === null) {
-      return
-    }
+    if (
+      importActionPending.current ||
+      review === null ||
+      review.sourceRevision !== sourceRevision.current ||
+      selectedPosting === null ||
+      createdCard !== null
+    ) return
 
+    importActionPending.current = true
     setIsCreatingCard(true)
     setImportSessionError(null)
 
     try {
       const card = await createPostingCard({
-        import_key: importKey,
+        import_key: review.importKey,
         posting: selectedPosting.details,
         posting_alias: null,
         user_notes: null,
@@ -96,6 +125,7 @@ export function PostingImportSessionProvider({
         setImportSessionError('Something went wrong while saving the card.')
       }
     } finally {
+      importActionPending.current = false
       setIsCreatingCard(false)
     }
   }
@@ -139,11 +169,7 @@ export function PostingImportSessionProvider({
   }
 
   function syncPostingImportDeletion(deletedImportKey: string) {
-    if (importKey === deletedImportKey) {
-      setImportKey(null)
-      setParseResult(null)
-      setSelectedPostingIndex(null)
-    }
+    if (review?.importKey === deletedImportKey) clearReview()
   }
 
   const session: PostingImportSession = {
