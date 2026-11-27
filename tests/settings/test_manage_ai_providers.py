@@ -119,7 +119,7 @@ def test_update_public_fields_preserves_identity_and_other_config(store, key_sto
     assert restored.user == saved_settings.user
 
 
-def test_update_unknown_provider_raises_not_found(store, key_store, saved_settings):
+def test_provider_update_unknown_provider_raises_not_found(store, key_store, saved_settings):
     with pytest.raises(AIProviderNotFoundError):
         UpdateAIProviderService(store).update(
             UNKNOWN_KEY, UpdateAIProviderRequest(display_name="test", monthly_budget_usd=None)
@@ -140,7 +140,7 @@ def test_update_without_saved_settings_raises_not_found(store, key_store):
     "test_invalid_json",
     '{"ai":{"providers":[{"provider":"openai","display_name":"test_provider"}]}}',
 ])
-def test_update_corrupt_settings_not_overwritten(store, key_store, tmp_path, payload):
+def test_provider_update_corrupt_settings_not_overwritten(store, key_store, tmp_path, payload):
     with sqlite3.connect(tmp_path / "user.sqlite3") as connection:
         connection.execute(
             "INSERT INTO app_settings(settings_key, payload_json) VALUES('app', ?)", (payload,)
