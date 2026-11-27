@@ -172,7 +172,7 @@ they are not browser cases. Commands, layer boundaries and component inspection 
 FastAPI runs separately. From the repository root, start it in another terminal:
 
 ```bash
-uv run --env-file .env.local fastapi dev src/tracer/api/app.py
+uv run --env-file .env.local uvicorn tracer.api.app:create_app --factory --reload
 ```
 
 Open `http://127.0.0.1:8000/docs` to try the API directly. Import and confirmation

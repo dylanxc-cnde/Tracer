@@ -1,4 +1,8 @@
 .local/
+# Agent instructions and handoff notes stay local.
+AGENTS.md
+CLAUDE.md
+LLM/
 .env
 .env.*
 !.env.example

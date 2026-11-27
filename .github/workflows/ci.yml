@@ -33,7 +33,7 @@ jobs:
         run: uv sync --locked --dev
 
       - name: Run tests
-        run: uv run pytest
+        run: .venv/bin/python scripts/test_backend.py
 
   frontend:
     name: Frontend

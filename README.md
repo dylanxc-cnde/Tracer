@@ -67,7 +67,7 @@ From the repository root, put `OPENAI_API_KEY=your-key` in an ignored
 
 ```bash
 uv sync
-uv run --env-file .env.local fastapi dev src/tracer/api/app.py
+uv run --env-file .env.local uvicorn tracer.api.app:create_app --factory --reload
 ```
 
 In another terminal:
@@ -124,8 +124,13 @@ and included in the frontend build.
 Run backend checks from the repository root:
 
 ```bash
-uv run pytest
+.venv/bin/python scripts/test_backend.py
 ```
+
+The runner keeps test databases, caches and temporary files in `.local/checks/`
+and treats warnings as errors. Pass pytest filters such as `-k app_startup` for a
+focused run. Importing `create_app` does not open a database; Uvicorn creates the
+application explicitly through `--factory` when the server starts.
 
 Then, from `frontend/`:
 
