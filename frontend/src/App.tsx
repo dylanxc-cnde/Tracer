@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import { IconClock, IconCopy, IconDownload, IconHistory, IconHome, IconSettings } from '@tabler/icons-react'
+import { IconClock, IconCompass, IconCopy, IconDownload, IconHistory, IconHome, IconSettings } from '@tabler/icons-react'
 import './App.css'
 import { ActivityPage } from './pages/ActivityPage'
 import { CardLibraryPage } from './pages/CardLibraryPage'
 import { HomePage } from './pages/HomePage'
 import { ImportHistoryPage } from './pages/ImportHistoryPage'
+import { MarketPage } from './pages/MarketPage'
 import { PostingImportPage } from './pages/PostingImportPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { GlobalSearch } from './components/search/GlobalSearch'
 
 type AppPage =
   | 'home'
+  | 'market'
   | 'posting-import'
   | 'card-library'
   | 'activity'
@@ -42,6 +44,16 @@ function App() {
         >
           <IconHome aria-hidden="true" focusable="false" />
           <span className="app-shell__navigation-label">Home</span>
+        </button>
+
+        <button
+          className="app-shell__navigation-button"
+          type="button"
+          onClick={() => setCurrentPage('market')}
+          aria-current={currentPage === 'market' ? 'page' : undefined}
+        >
+          <IconCompass aria-hidden="true" focusable="false" />
+          <span className="app-shell__navigation-label">Market</span>
         </button>
 
         <button
@@ -98,6 +110,7 @@ function App() {
       {/* Recreate only the page container so its scroll position starts at the top. */}
       <main key={currentPage} className={`app-shell__content app-shell__content--${currentPage}`}>
         {currentPage === 'home' && <HomePage />}
+        {currentPage === 'market' && <MarketPage />}
         {currentPage === 'posting-import' && <PostingImportPage />}
         {currentPage === 'card-library' && <CardLibraryPage />}
         {currentPage === 'activity' && <ActivityPage />}

@@ -1,0 +1,141 @@
+.market-page {
+  width: min(100%, 960px);
+}
+
+.market-page > .page-title {
+  margin-bottom: 20px;
+}
+
+.market-page > section > h2 {
+  margin-bottom: 6px;
+  font-size: var(--font-size-page-section-title);
+}
+
+.market-page__description,
+.market-page__company,
+.market-page__reference-title,
+.market-page__result-status {
+  color: var(--color-text-secondary);
+}
+
+.market-page__reference {
+  display: grid;
+  width: min(100%, 540px);
+  gap: 6px;
+  font-weight: 600;
+}
+
+.market-page__reference select,
+.market-page__action {
+  min-height: 38px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-caption);
+}
+
+.market-page__reference select {
+  min-width: 0;
+}
+
+.market-page__reference-title {
+  max-width: 540px;
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.market-page__action {
+  color: var(--color-action-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.market-page__action:hover:not([aria-disabled='true']) {
+  background-color: var(--color-action-soft);
+}
+
+.market-page__action[aria-disabled='true'] {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.market-page > section > h2:focus-visible,
+.market-page__reference select:focus-visible,
+.market-page__action:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 3px;
+}
+
+.market-page__result-status,
+.market-page__jobs {
+  margin: 16px 0 0;
+}
+
+.market-page__jobs {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.market-page__job {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  background-color: var(--color-information-soft);
+}
+
+.market-page__job-copy {
+  flex: 1 1 240px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.market-page__job h3,
+.market-page__company,
+.market-page__reason,
+.market-page__reason dd {
+  margin: 0;
+}
+
+.market-page__job h3 {
+  font-size: var(--font-size-body);
+}
+
+.market-page__reason {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.market-page__reason dt {
+  font-weight: 600;
+}
+
+.market-page__error {
+  flex-basis: 100%;
+  color: var(--color-attention);
+}
+
+.market-page__job .market-page__error {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .market-page__jobs {
+    animation: market-page-results-in 150ms ease-out;
+  }
+}
+
+@keyframes market-page-results-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
