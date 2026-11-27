@@ -1,10 +1,11 @@
 """Run backend regression with repository-local temporary data."""
 
 import os
-from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
 
 def main() -> int:
@@ -20,18 +21,33 @@ def main() -> int:
         PYTHONDONTWRITEBYTECODE="1",
         TMPDIR=str(run),
     )
-    print(f"Test artifacts: {run}", flush=True)
-    return subprocess.call(
-        [
-            sys.executable, "-m", "pytest",
-            "-c", str(root / "pyproject.toml"), str(root / "tests"),
-            "--basetemp", str(run / "tmp"),
-            "-o", f"cache_dir={run / 'cache'}",
-            "-W", "error", *sys.argv[1:],
-        ],
-        cwd=run,
-        env=env,
-    )
+    exit_code = None
+    try:
+        exit_code = subprocess.call(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                str(root / "tests"),
+                *sys.argv[1:],
+                "-c",
+                str(root / "pyproject.toml"),
+                "--basetemp",
+                str(run / "tmp"),
+                "-o",
+                f"cache_dir={run / 'cache'}",
+                "-W",
+                "error",
+            ],
+            cwd=run,
+            env=env,
+        )
+    finally:
+        if exit_code == 0:
+            shutil.rmtree(run)
+        else:
+            print(f"Backend test artifacts retained at {run}", file=sys.stderr)
+    return exit_code
 
 
 if __name__ == "__main__":
