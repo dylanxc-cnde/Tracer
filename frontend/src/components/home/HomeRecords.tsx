@@ -367,9 +367,10 @@ export function HomeRecords({ data, today, refresh }: { data: HomeOverview; toda
       {applicationEditor !== null && <div className="home-page__application-editor">
         {jobsLoading ? <p role="status">Loading saved jobs…</p> : jobsError ? <div><p role="alert">{jobsError}</p><button className="home-page__record-action" type="button" onClick={() => void openApplication(applicationEditor)}>Retry loading jobs</button><button className="home-page__record-action" type="button" onClick={closeApplication}>Cancel</button></div> : jobs?.length ? <ApplicationForm jobs={jobs} selected={applicationEditor} today={today} refresh={refresh} close={closeApplication} /> : <p className="home-page__empty">Save a job in Import posting first, then return here to record an application. <button className="home-page__record-action" type="button" onClick={closeApplication}>Close</button></p>}
       </div>}
-      {data.applications.length > 0 && <details className="home-page__application-history"><summary>Recorded applications ({data.applications.length})</summary><ul>{data.applications.map(({ record, card_missing }) => {
-        const card = data.recent_jobs.find(j => j.card.card_key === record.card_key)?.card ?? jobs?.find(j => j.card_key === record.card_key)
-        const title = card_missing ? 'Job deleted' : card ? jobTitle(card) : 'Saved job'
+      {data.applications.length > 0 && <details className="home-page__application-history"><summary>Recorded applications ({data.applications.length})</summary><ul>{data.applications.map(({ record, card_missing, card_title }) => {
+        const card = card_title ? undefined
+          : data.recent_jobs.find(j => j.card.card_key === record.card_key)?.card ?? jobs?.find(j => j.card_key === record.card_key)
+        const title = card_missing ? 'Job deleted' : card_title || (card ? jobTitle(card) : 'Saved job')
         return <ApplicationRow key={record.application_id} record={record} title={title} refresh={refresh} />
       })}</ul></details>}
     </section>

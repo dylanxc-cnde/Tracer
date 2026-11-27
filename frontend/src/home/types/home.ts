@@ -29,7 +29,7 @@ export type HomeOverview = {
   today: { tasks: Task[]; completed_count: number; completed_tasks: Task[]; events: EventView[] }
   upcoming: { events: EventView[]; tasks: Task[] }
   your_search: { active: number; awaiting_reply: number; interviews: number }
-  applications: { record: ApplicationRecord; card_missing: boolean }[]
+  applications: { record: ApplicationRecord; card_missing: boolean; card_title?: string | null }[]
   recent_jobs: { card: PostingCard; application: ApplicationRecord | null }[]
   recent_activity: { event: ActivityEvent; card_missing: boolean }[]
   ai_usage: {

@@ -59,7 +59,8 @@ function overview(v: unknown): boolean {
   return list(t.tasks, task) && list(t.completed_tasks, task) && count(t.completed_count) && list(t.events, eventView)
     && list(u.tasks, task) && list(u.events, eventView)
     && ['active', 'awaiting_reply', 'interviews'].every(k => count((v.your_search as Record<string, unknown>)[k]))
-    && list(v.applications, a => record(a) && application(a.record) && typeof a.card_missing === 'boolean')
+    && list(v.applications, a => record(a) && application(a.record) && typeof a.card_missing === 'boolean'
+      && (a.card_title === undefined || nullableText(a.card_title)))
     && list(v.recent_jobs, j => record(j) && card(j.card) && (j.application === null || application(j.application)))
     && list(v.recent_activity, a => record(a) && activity(a.event) && typeof a.card_missing === 'boolean')
     && usage.status === 'not_recorded' && usage.tokens === null && usage.estimated_cost_usd === null

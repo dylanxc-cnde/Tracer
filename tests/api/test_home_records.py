@@ -447,6 +447,54 @@ def test_only_cards_with_explicit_applications_are_counted(client):
     assert your_search["awaiting_reply"] == 1
 
 
+def test_overview_names_older_applications_from_current_cards(client, database_path):
+    older_titles = (
+        "Werkstudentin für barrierefreie Fahrgastinformation im Rheinland (DEMO)",
+        "Praktikum zur Planung kommunaler Energieversorgungsnetze in Berlin (DEMO)",
+    )
+    store = PostingCardStore(database_path)
+    older_cards = []
+    for offset, title in enumerate(older_titles):
+        details = make_posting_details().model_dump(mode="json")
+        details["identity"]["position_title"]["value"] = title
+        card = PostingCard(
+            import_key=uuid4(),
+            posting=details,
+            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(days=offset),
+        )
+        store.add(card)
+        older_cards.append(card)
+
+    newer_keys = {save_card(client, f"Newer saved job {index}")["card_key"] for index in range(5)}
+    first_key, second_key = (str(card.card_key) for card in older_cards)
+    first = post_application(client, first_key)
+    second = post_application(client, second_key, status="interviewing")
+    assert first.status_code == second.status_code == 201
+
+    def applications_by_card():
+        overview = get_overview(client)
+        assert {job["card"]["card_key"] for job in overview["recent_jobs"]} == newer_keys
+        return {view["record"]["card_key"]: view for view in overview["applications"]}
+
+    assert applications_by_card() == {
+        first_key: {"record": first.json(), "card_missing": False, "card_title": older_titles[0]},
+        second_key: {"record": second.json(), "card_missing": False, "card_title": older_titles[1]},
+    }
+
+    alias = "Meine Werkstudentenstelle in der Fahrgastinformation (DEMO)"
+    updated = client.patch(
+        f"/posting/card/{first_key}",
+        json=make_card_update_request(position_title=older_titles[0], posting_alias=alias),
+    )
+    assert updated.status_code == 200
+    assert applications_by_card()[first_key]["card_title"] == alias
+
+    assert client.delete(f"/posting/card/{second_key}").status_code == 204
+    assert applications_by_card()[second_key] == {
+        "record": second.json(), "card_missing": True, "card_title": None,
+    }
+
+
 def test_application_recording_is_idempotent_and_one_per_card(client):
     card_key = save_card(client)["card_key"]
     application_id = str(uuid4())

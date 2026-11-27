@@ -256,18 +256,27 @@ class HomeStore:
             applications = self._all(connection, "home_applications", ApplicationRecord)
             activity = self._all(connection, "home_activity_events", ActivityEvent)
             cards = self._all(connection, "posting_cards", PostingCard)
-            card_keys = {card.card_key for card in cards}
+            card_titles = {}
+            for card in cards:
+                position_title = card.posting.identity.position_title
+                card_titles[card.card_key] = card.posting_alias or (
+                    position_title.value if position_title else None
+                ) or "Untitled job"
             application_by_card = {record.card_key: record for record in applications}
             pending = sorted((task for task in tasks if task.completed_at is None and (task.due_on is None or task.due_on <= today)), key=lambda task: (task.due_on or date.max, str(task.task_id)))
             completed = sorted((task for task in tasks if task.completed_at is not None and day_start <= task.completed_at < day_end), key=lambda task: (task.completed_at, str(task.task_id)))
             scheduled = sorted((event for event in events if not event.cancelled), key=lambda event: (event.starts_at, str(event.event_id)))
+            application_history = sorted(
+                applications, key=lambda record: (record.created_at, str(record.application_id)),
+                reverse=True,
+            )
             recent_cards = sorted(cards, key=lambda card: (card.created_at, str(card.card_key)), reverse=True)[:5]
             recent_activity = sorted(activity, key=lambda event: (event.occurred_at, str(event.event_id)), reverse=True)[:10]
             return {
                 "today": {"tasks": pending, "completed_count": len(completed), "completed_tasks": completed,
-                          "events": tuple({"event": event, "card_missing": event.card_key is not None and event.card_key not in card_keys} for event in scheduled if day_start <= event.starts_at < day_end)},
+                          "events": tuple({"event": event, "card_missing": event.card_key is not None and event.card_key not in card_titles} for event in scheduled if day_start <= event.starts_at < day_end)},
                 "upcoming": {
-                    "events": tuple({"event": event, "card_missing": event.card_key is not None and event.card_key not in card_keys} for event in scheduled if day_start <= event.starts_at < upcoming_end),
+                    "events": tuple({"event": event, "card_missing": event.card_key is not None and event.card_key not in card_titles} for event in scheduled if day_start <= event.starts_at < upcoming_end),
                     # Date facts use the supplied local date, never a UTC offset
                     # converted into an assumed region or timezone.
                     "tasks": tuple(sorted((task for task in tasks if task.completed_at is None and task.due_on is not None and today <= task.due_on < today + timedelta(days=14)), key=lambda task: (task.due_on, str(task.task_id)))),
@@ -277,7 +286,11 @@ class HomeStore:
                     "awaiting_reply": sum(record.status == "applied" for record in applications),
                     "interviews": sum(event.kind == "interview" and day_start <= event.starts_at < interviews_end for event in scheduled),
                 },
-                "applications": tuple({"record": record, "card_missing": record.card_key not in card_keys} for record in sorted(applications, key=lambda record: (record.created_at, str(record.application_id)), reverse=True)),
+                "applications": tuple({
+                    "record": record,
+                    "card_missing": record.card_key not in card_titles,
+                    "card_title": card_titles.get(record.card_key),
+                } for record in application_history),
                 "recent_jobs": tuple({"card": card, "application": application_by_card.get(card.card_key)} for card in recent_cards),
-                "recent_activity": tuple({"event": event, "card_missing": event.card_key is not None and event.card_key not in card_keys} for event in recent_activity),
+                "recent_activity": tuple({"event": event, "card_missing": event.card_key is not None and event.card_key not in card_titles} for event in recent_activity),
             }

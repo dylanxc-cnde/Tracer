@@ -104,8 +104,10 @@ end)`; daylight-saving days need not be 24 hours. Due-date Upcoming uses the
   `awaiting_reply`: exactly `applied`. `interviews`: noncancelled interview
   events starting in the supplied seven-day window, not AI guesses or an
   inferred application count.
-- `applications`: newest-first `{record, card_missing}` for the application
-  management view, including references to deleted Cards.
+- `applications`: newest-first `{record, card_missing, card_title}` for the
+  application management view. The title uses the current Card alias or position
+  title, with “Untitled job” for unnamed Cards and null for deleted Cards. It is
+  available for linked Cards of any age.
 - `recent_jobs`: at most five live saved Cards, newest creation first, each
   `{card, application}`; `application` is null unless explicitly recorded.
 - `recent_activity`: at most ten newest `{event, card_missing}` operations.

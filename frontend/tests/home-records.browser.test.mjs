@@ -134,7 +134,11 @@ function makeState(seed = {}) {
         awaiting_reply: state.applications.filter((a) => a.status === 'applied').length,
         interviews: live.filter((e) => e.kind === 'interview' && inside(e.starts_at, 'day_start', 'interviews_end')).length,
       },
-      applications: [...state.applications].reverse().map((record_) => ({ record: record_, card_missing: missing(record_.card_key) })),
+      applications: [...state.applications].reverse().map((record_) => {
+        const card = state.cards.find(({ card_key }) => card_key === record_.card_key)
+        const title = card ? card.posting_alias || card.posting.identity.position_title?.value || 'Untitled job' : null
+        return { record: record_, card_missing: !card, card_title: title }
+      }),
       recent_jobs: [...state.cards].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5)
         .map((card) => ({ card, application: state.applications.find((a) => a.card_key === card.card_key) ?? null })),
       recent_activity: [...state.activities].reverse().slice(0, 10).map((e) => ({ event: e, card_missing: missing(e.card_key) })),
@@ -611,7 +615,70 @@ test('HF-APP-REC an application is recorded only by an explicit submit and every
   expect(state.unexpected, 'All non-Vite requests must be explicitly mocked').toEqual([])
 })
 
+test('R004-03 old Home overviews still render recorded applications without extra reads', async ({ page, context, baseURL }) => {
+  const state = makeState(seededRecords())
+  await installHome({ context, baseURL, state, routes: {
+    'GET /home/overview': (route, request) => {
+      const overview = state.overview(new URL(request.url()).searchParams)
+      return route.fulfill({ json: {
+        ...overview,
+        applications: overview.applications.map(({ record, card_missing }) => ({ record, card_missing })),
+      } })
+    },
+  } })
+  await openHome(page, VIEWPORTS[0])
+  const history = page.locator('details.home-page__application-history')
+  await history.locator('summary').press('Enter')
+  await expect(history.getByRole('listitem').filter({ hasText: LONG_TITLE })).toContainText('· applied')
+  await expect(history.getByRole('listitem').filter({ hasText: 'Job deleted' })).toContainText('· interviewing')
+  expect(state.calls.filter(call => call.startsWith('GET /posting/card'))).toEqual([])
+  expect(state.writes).toEqual([])
+  expect(state.unexpected).toEqual([])
+})
+
 for (const viewport of VIEWPORTS) {
+  test(`R004-03 older applications have distinct job names at ${viewport.width}×${viewport.height}`, async ({ page, context, baseURL }, testInfo) => {
+    const oldAlias = 'Übersicht zur Werkstudentenstelle für datengestützte Fahrgastinformation und barrierefreie Verkehrsplanung (DEMO)'
+    const oldTitle = 'Praktikum (m/w/d) für Planung kommunaler Energieversorgungsnetze und nachhaltige Infrastruktur in Berlin (DEMO)'
+    const olderWithAlias = { ...cardOf(6, LONG_TITLE, LONG_COMPANY), posting_alias: oldAlias }
+    const olderWithTitle = cardOf(7, oldTitle, LONG_COMPANY)
+    const savedApplications = [
+      { application_id: uuid(601), card_key: olderWithAlias.card_key, status: 'applied' },
+      { application_id: uuid(602), card_key: olderWithTitle.card_key, status: 'interviewing' },
+      { application_id: uuid(603), card_key: uuid(999), status: 'withdrawn' },
+    ].map(record => ({ ...record, applied_on: dateOf(-1), created_at: iso(-1, 9), updated_at: iso(-1, 9) }))
+    const recentCards = Array.from({ length: 5 }, (_, index) => cardOf(index + 1, `Neuere gespeicherte Stelle ${index + 1} (DEMO)`, LONG_COMPANY))
+    const state = makeState({ cards: [...recentCards, olderWithAlias, olderWithTitle], applications: savedApplications })
+    await installHome({ context, baseURL, state })
+    await openHome(page, viewport)
+    const history = page.locator('details.home-page__application-history')
+    const recent = page.getByRole('list', { name: 'Recent saved jobs' })
+    await expect(recent.getByRole('listitem')).toHaveCount(5)
+    await expect(recent).not.toContainText(oldAlias)
+    await expect(recent).not.toContainText(oldTitle)
+    await history.locator('summary').press('Enter')
+    await expect(history.getByRole('listitem')).toHaveCount(3)
+    await expect(history.getByRole('listitem').filter({ hasText: 'Job deleted · withdrawn' })).toHaveCount(1)
+
+    for (const [title, status] of [[oldAlias, 'applied'], [oldTitle, 'interviewing']]) {
+      const row = history.getByRole('listitem').filter({ hasText: title })
+      const change = row.getByRole('button', { name: 'Change status', exact: true })
+      const form = row.getByRole('form', { name: 'Change application status', exact: true })
+      await expect(row).toContainText(`${title} · ${status}`)
+      await expect(change).toHaveAccessibleDescription(title)
+      await change.press('Enter')
+      await expect(form.getByRole('combobox', { name: 'Status', exact: true })).toHaveValue(status)
+      await form.getByRole('button', { name: 'Cancel', exact: true }).press('Enter')
+      await expect(change).toBeFocused()
+    }
+
+    expect(state.calls.filter(call => call.startsWith('GET /posting/card'))).toEqual([])
+    expect(state.writes).toEqual([])
+    expect(state.unexpected).toEqual([])
+    expect(await horizontalProblems(page)).toEqual([])
+    await page.screenshot({ path: testInfo.outputPath('older-applications.png') })
+  })
+
   test(`NS-05 application status saves explicitly and reconciles a lost response at ${viewport.width}×${viewport.height}`, async ({ page, context, baseURL }, testInfo) => {
     const state = makeState(seededRecords())
     const applicationId = state.applications[0].application_id
