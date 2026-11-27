@@ -120,10 +120,18 @@ export function PostingCardDetails({
     dialogRef.current?.focus({ preventScroll: true })
   }
 
+  function handleClose() {
+    const dialog = dialogRef.current
+    if (!dialog?.open) return
+    dialog.close()
+    // Clear the owner's state before the browser's queued close event.
+    onClose()
+  }
+
   function handleDiscardRecovery() {
     // Keep the verified server version when dropping the draft.
     editor.useSavedVersion()
-    dialogRef.current?.close()
+    handleClose()
   }
 
   function isSectionModified(section: keyof PostingDetails): boolean {
@@ -175,14 +183,15 @@ export function PostingCardDetails({
       ref={dialogRef}
       className="posting-card-details"
       tabIndex={-1}
-      onClose={onClose}
       onCancel={(event) => {
+        if (event.target !== event.currentTarget) return
+        event.preventDefault()
         if (editor.saveError !== null) {
-          event.preventDefault()
           handleDismissSaveError()
         } else if (editor.isEditing) {
-          event.preventDefault()
           editor.cancelEditing()
+        } else {
+          handleClose()
         }
       }}
     >
@@ -196,7 +205,7 @@ export function PostingCardDetails({
         saveButton={saveButton}
         hasChanges={editor.hasChanges}
         onCancel={editor.cancelEditing}
-        onClose={() => dialogRef.current?.close()}
+        onClose={handleClose}
         onEdit={editor.startEditing}
         onSave={editor.saveCardChanges}
         isReadOnly={isReadOnly}

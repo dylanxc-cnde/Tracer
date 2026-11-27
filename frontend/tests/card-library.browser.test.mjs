@@ -266,6 +266,10 @@ test('Discarding recovery keeps the verified Card for the next edit', async ({ p
   const { dialog, calls, patches, unexpected } = await submitCardDraft({ page, context, baseURL }, 'committed')
   await dialog.getByRole('button', { name: 'Read saved Card', exact: true }).press('Enter')
   await expect(dialog.getByRole('button', { name: 'Use saved version', exact: true })).toBeVisible()
+  // Dismissal must update the owner even before the browser delivers its close event.
+  await dialog.evaluate(element => {
+    element.addEventListener('close', event => event.stopImmediatePropagation(), { capture: true, once: true })
+  })
   await dialog.getByRole('button', { name: 'Discard draft and close', exact: true }).press('Enter')
   await expect(dialog).toHaveCount(0)
   expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
