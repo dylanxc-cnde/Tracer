@@ -8,6 +8,20 @@ import type {
   PostingCard,
   UpdatePostingCardRequest,
 } from '../postings/types/postingCard'
+import type { PostingParseResult, PostingRefinementReason } from '../postings/types/postingParse'
+
+const refinementMessages: Record<PostingRefinementReason, string> = {
+  too_many_postings: 'Several postings were found. Choose one to review, or narrow the source and analyze again.',
+  ambiguous_target: 'Add the job title or other identifying details to the source and analyze again.',
+  insufficient_detail: 'The source only includes part of the posting. Add more of the posting and analyze again.',
+}
+
+function getParseFeedback(result: PostingParseResult) {
+  if (result.status === 'complete') return 'Review the proposed posting before saving.'
+  if (result.status === 'not_found') return 'No job posting found. Paste the text of a specific job and analyze again.'
+  return (result.refinement_reason && refinementMessages[result.refinement_reason])
+    || 'Add more detail to the source and analyze again.'
+}
 
 export function PostingImportPage() {
   const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
@@ -28,6 +42,9 @@ export function PostingImportPage() {
     deleteCreatedCard,
     syncPostingCardUpdate,
   } = usePostingImportSession()
+  const suggestions = parseResult?.status === 'refinement_required'
+    ? (parseResult.refinement_suggestions ?? [])
+    : []
 
   function getSaveButtonLabel() {
     if (createdCard) return 'Saved'
@@ -80,10 +97,14 @@ export function PostingImportPage() {
         {isAnalyzingPosting ? 'Analyzing...' : 'Analyze'}
       </button>
 
-      <p className="posting-import-page__parse-status">
-        Parse status: {parseResult?.status ?? 'none'} · Candidates:{' '}
-        {parseResult?.postings.length ?? 0}
-      </p>
+      <div role="status">
+        {parseResult && <div className="posting-import-page__parse-status">
+          <p>{getParseFeedback(parseResult)}</p>
+          {suggestions.length > 0 && (
+            <ul>{suggestions.map((suggestion, index) => <li key={index}>{suggestion}</li>)}</ul>
+          )}
+        </div>}
+      </div>
 
       {parseResult && parseResult.postings.length > 0 && (
         <section className="posting-import-page__candidate-list">

@@ -1199,9 +1199,20 @@ button:disabled {
 }
 
 .posting-import-page__parse-status {
+  max-width: 75ch;
   margin: 20px 0 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-ui);
+  overflow-wrap: anywhere;
+}
+
+.posting-import-page__parse-status > p {
+  margin: 0;
+}
+
+.posting-import-page__parse-status > ul {
+  margin: 8px 0 0;
+  padding-inline-start: 20px;
 }
 
 .posting-import-page__candidate-list,

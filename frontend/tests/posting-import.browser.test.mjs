@@ -45,7 +45,7 @@ const B = postingFixture(
 )
 const parsePath = (posting) => `/posting/import/${posting.importKey}/parse-results`
 
-async function openImport({ page, context, baseURL }, { releaseA, releaseCard } = {}) {
+async function openImport({ page, context, baseURL }, { releaseA, releaseCard, resultA } = {}) {
   const imports = []
   const parses = []
   const cards = []
@@ -70,10 +70,11 @@ async function openImport({ page, context, baseURL }, { releaseA, releaseCard } 
       if (posting) {
         parses.push(posting.importKey)
         if (posting === A) await releaseA
-        await route.fulfill({ json: {
+        const completeResult = {
           status: 'complete', postings: [{ details: posting.details, parse_ambiguities: [] }],
           refinement_reason: null, refinement_suggestions: [],
-        } })
+        }
+        await route.fulfill({ json: (posting === A ? resultA : undefined) ?? completeResult })
         return
       }
       if (url.pathname === '/posting/card') {
@@ -145,6 +146,54 @@ test('Posting import discards a selected proposal after the source changes and s
   }])
   expect(unexpected).toEqual([])
 })
+
+const additionalSource = 'Ergänze die vollständigen Abschnitte zu Aufgaben, Voraussetzungen und Arbeitszeit während der Vorlesungszeit.'
+
+for (const { resultA, message } of [
+  {
+    resultA: {
+      status: 'refinement_required',
+      postings: [{ details: A.details, parse_ambiguities: [] }],
+      refinement_reason: 'insufficient_detail',
+      refinement_suggestions: [additionalSource],
+    },
+    message: 'The source only includes part of the posting. Add more of the posting and analyze again.',
+  },
+  {
+    resultA: {
+      status: 'not_found', postings: [], refinement_reason: null, refinement_suggestions: [],
+    },
+    message: 'No job posting found. Paste the text of a specific job and analyze again.',
+  },
+]) {
+  test(`Posting import guides a new analysis after ${resultA.status}`, async ({ page, context, baseURL }) => {
+    const { input, analyze, confirm, parses, cards, unexpected } = await openImport(
+      { page, context, baseURL }, { resultA },
+    )
+    await input.fill(A.importSource.text)
+    await analyze.click()
+    const feedback = page.getByRole('main').getByRole('status')
+    await expect(feedback).toContainText(message)
+    await expect(input).toHaveValue(A.importSource.text)
+    if (resultA.status === 'refinement_required') {
+      await expect(feedback.getByRole('listitem')).toHaveText(additionalSource)
+      await expect(page.getByRole('heading', { name: A.title })).toBeVisible()
+      await expect(confirm).toBeDisabled()
+    } else {
+      await expect(confirm).toHaveCount(0)
+    }
+    expect(cards).toEqual([])
+
+    await input.fill(B.importSource.text)
+    await expect(feedback).toBeEmpty()
+    await analyze.click()
+    await expect(page.getByRole('heading', { name: B.title })).toBeVisible()
+    await expect(feedback).toHaveText('Review the proposed posting before saving.')
+    expect(parses).toEqual([A.importKey, B.importKey])
+    expect(cards).toEqual([])
+    expect(unexpected).toEqual([])
+  })
+}
 
 test('Posting import ignores a parse response for source text edited while parsing', async ({ page, context, baseURL }) => {
   const gate = Promise.withResolvers()
