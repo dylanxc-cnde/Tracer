@@ -1,5 +1,5 @@
 import { writeFile } from 'node:fs/promises'
-import { expect, test } from '@playwright/test'
+import { expect, test as base } from '@playwright/test'
 import { CARD, frameTargets, scrollOffsets, visibilityProblem } from './profile-matching.browser.test.mjs'
 
 // Home shared-records behavior in the real App DOM, imported by
@@ -23,12 +23,19 @@ const SMALL_TITLE = 'Praktikum Softwareentwicklung (DEMO)'
 
 // ------------------------------------------------------------------ local dates
 
+const homeNow = new Date('2026-11-27T12:00:00.000Z')
+const test = base.extend({
+  timezoneId: 'UTC',
+  page: async ({ page }, provide) => {
+    await page.clock.setFixedTime(homeNow)
+    await provide(page)
+  },
+})
 const pad = (n) => String(n).padStart(2, '0')
-const dayAt = (offset, hour = 12, minute = 0) => {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset, hour, minute)
-}
-const dateOf = (offset) => { const d = dayAt(offset); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
+const dayAt = (offset, hour = 12, minute = 0) => new Date(Date.UTC(
+  homeNow.getUTCFullYear(), homeNow.getUTCMonth(), homeNow.getUTCDate() + offset, hour, minute,
+))
+const dateOf = (offset) => dayAt(offset).toISOString().slice(0, 10)
 const localInput = (offset, hour, minute = 0) => `${dateOf(offset)}T${pad(hour)}:${pad(minute)}`
 const iso = (offset, hour = 12, minute = 0) => dayAt(offset, hour, minute).toISOString()
 const uuid = (n) => `f0000000-0000-4000-8000-${String(n).padStart(12, '0')}`
@@ -53,7 +60,7 @@ const activity = (n, kind, at, subject, cardKey = null) => ({ event_id: uuid(400
 // windows, creation of a task is not an activity, completion/adjustment each count once.
 function makeState(seed = {}) {
   const state = { calls: [], writes: [], unexpected: [], adjustments: 0 }
-  const now = () => new Date().toISOString()
+  const now = () => homeNow.toISOString()
   state.load = ({ tasks = [], events = [], applications = [], activities = [], cards = [], providers = [] } = {}) => {
     Object.assign(state, {
       tasks: structuredClone(tasks), events: structuredClone(events), applications: structuredClone(applications),
@@ -246,7 +253,7 @@ function seededRecords({ providers = [] } = {}) {
     tasks: [
       task(1, LONG_TASK, { due_on: dateOf(-1) }), task(2, 'Lebenslauf aktualisieren (DEMO)'), task(3, 'Referenzen sammeln (DEMO)'),
       task(4, 'Portfolio-Link prüfen (DEMO)', { due_on: dateOf(5) }),
-      task(5, 'Erledigte Aufgabe (DEMO)', { completed_at: new Date().toISOString() }),
+      task(5, 'Erledigte Aufgabe (DEMO)', { completed_at: homeNow.toISOString() }),
     ],
     events: [
       event(1, LONG_EVENT, 'interview', iso(0, 23, 55)),
@@ -261,7 +268,7 @@ function seededRecords({ providers = [] } = {}) {
       activity(1, 'card_saved', iso(-3, 9), 'card:1', cardA.card_key), activity(2, 'card_saved', iso(-2, 9), 'card:2', cardB.card_key),
       activity(3, 'application_recorded', iso(-1, 9), 'application:601', cardA.card_key),
       activity(4, 'application_recorded', iso(-1, 10), 'application:602', gone),
-      activity(5, 'task_completed', new Date().toISOString(), 'task:5'),
+      activity(5, 'task_completed', homeNow.toISOString(), 'task:5'),
     ],
     providers,
   }
@@ -323,7 +330,7 @@ test('HF-EMPTY a new user sees short explanations and entry points, unrecorded h
   // With no recorded operation there is no recording start: every elapsed day is "not recorded".
   await expect(page.getByText(/No activity has been recorded yet/)).toBeVisible()
   await expect(heatCell(page, dateOf(0), 'Not recorded')).toHaveCount(1)
-  await expect(heatCell(page, `${new Date().getFullYear()}-01-01`, 'Not recorded')).toHaveCount(1)
+  await expect(heatCell(page, `${homeNow.getUTCFullYear()}-01-01`, 'Not recorded')).toHaveCount(1)
   await expect(page.locator('rect[aria-label$=": 0 recorded workspace operations"]')).toHaveCount(0)
   expect(state.unexpected, 'All non-Vite requests must be explicitly mocked').toEqual([])
 })
@@ -365,7 +372,7 @@ test('HF-SEEDED many records with long German text render from server facts with
   await expect(region(page, 'Recent activity').getByRole('listitem'))
     .toContainText(['Task completed', 'Application recorded · Job deleted', 'Application recorded', 'Job saved', 'Job saved'])
   await expect(heatCell(page, dateOf(0), '1 recorded workspace operations')).toHaveCount(1)
-  await expect(heatCell(page, `${new Date().getFullYear()}-01-01`, 'Not recorded')).toHaveCount(1)
+  await expect(heatCell(page, `${homeNow.getUTCFullYear()}-01-01`, 'Not recorded')).toHaveCount(1)
 
   // Long text wraps inside the column and stays uncovered at both required window sizes.
   for (const viewport of VIEWPORTS) {

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test as base } from '@playwright/test'
 import { postingFixture } from './fixtures/posting.mjs'
 
 const API = 'http://127.0.0.1:8000'
@@ -85,7 +85,7 @@ async function openWorkspace({ page, context, baseURL }, { failFirstActivity = f
   return { navigation, activityReads, cardReads, unexpected }
 }
 
-test.use({ timezoneId: 'Europe/Berlin', locale: 'en-GB' })
+const test = base.extend({ timezoneId: 'Europe/Berlin', locale: 'en-GB' })
 
 test('Activity groups recent local operations and opens linked jobs only when requested', async ({ page, context, baseURL }) => {
   const { navigation, activityReads, cardReads, unexpected } = await openWorkspace({ page, context, baseURL })
