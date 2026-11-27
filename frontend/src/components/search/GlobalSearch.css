@@ -58,6 +58,23 @@
   box-shadow: var(--shadow-popover);
   font-size: var(--font-size-caption);
   overflow-wrap: anywhere;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease, visibility 0s 160ms;
+}
+
+.global-search__panel:not([inert]) {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-search__panel { transition: none; }
 }
 
 .global-search__panel p { margin: 4px 0 12px; }

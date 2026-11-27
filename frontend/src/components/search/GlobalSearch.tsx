@@ -148,7 +148,7 @@ export function GlobalSearch({ onGoHome }: { onGoHome: () => void }) {
         {query ? <button type="button" className="global-search__clear" aria-label="Clear search" onClick={handleClearSearch}><IconX aria-hidden="true" /></button>
           : <kbd className="app-shell__search-shortcut" aria-hidden="true">Ctrl K</kbd>}
       </div>
-      {isOpen && <section className="global-search__panel" aria-label="Local workspace search">
+      <section className="global-search__panel" aria-label="Local workspace search" inert={!isOpen}>
         <p id={helpId} className="global-search__help">Local records only · ↑ ↓ to choose · Enter to open · Esc to close</p>
         {!query.trim() && <p>Search saved jobs, companies, notes, tasks, events and applications.</p>}
         {isLoading && <p role="status">Searching local records…</p>}
@@ -166,7 +166,7 @@ export function GlobalSearch({ onGoHome }: { onGoHome: () => void }) {
             </button>
           </li>)}
         </ul>
-      </section>}
+      </section>
     </div>
     {selection && <SearchResultViewer key={`${selection.target.kind}:${selection.target.id}`} target={selection.target} onClose={closeViewer}
       onGoHome={() => { closeViewer(); onGoHome() }} />}
