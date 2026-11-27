@@ -20,6 +20,10 @@ type PostingImportReview = {
   sourceRevision: number
 }
 
+type PostingImportReceipt =
+  | { phase: 'creating'; deletedImportKeys: Set<string> }
+  | { phase: 'unparsed' | 'parsed'; importKey: string }
+
 type PostingImportSessionProviderProps = {
   children: ReactNode
 }
@@ -52,7 +56,7 @@ export function PostingImportSessionProvider({
   const [isDeletingCreatedCard, setIsDeletingCreatedCard] = useState(false)
   const sourceRevision = useRef(0)
   const importActionPending = useRef(false)
-  const unparsedImportKey = useRef<string | null>(null)
+  const importReceipt = useRef<PostingImportReceipt | null>(null)
 
   const sourceValue = sourceValues[sourceKind]
   const importSource = getImportSource(sourceKind, sourceValue)
@@ -69,7 +73,7 @@ export function PostingImportSessionProvider({
 
   function invalidateSourceReview() {
     sourceRevision.current += 1
-    unparsedImportKey.current = null
+    importReceipt.current = null
     clearReview()
     setImportSessionError(null)
   }
@@ -101,23 +105,30 @@ export function PostingImportSessionProvider({
     setCreatedCard(null)
 
     try {
-      let importKey = unparsedImportKey.current
+      const receipt = importReceipt.current
+      let importKey = receipt?.phase === 'unparsed' ? receipt.importKey : null
       if (importKey === null) {
+        const pendingReceipt: PostingImportReceipt = { phase: 'creating', deletedImportKeys: new Set() }
+        importReceipt.current = pendingReceipt
         const postingImport = await createPostingImport(importSource)
         if (submittedRevision !== sourceRevision.current) return
+
         importKey = postingImport.import_key
+        if (pendingReceipt.deletedImportKeys.has(importKey)) throw new MissingPostingImportError()
         // A manual retry can reuse this saved source if parsing fails.
-        unparsedImportKey.current = importKey
+        importReceipt.current = { phase: 'unparsed', importKey }
       }
 
       const result = await parsePostingImport(importKey)
       if (submittedRevision !== sourceRevision.current) return
 
-      unparsedImportKey.current = null
+      importReceipt.current = { phase: 'parsed', importKey }
       setReview({ importKey, result, sourceRevision: submittedRevision })
     } catch (caughtError: unknown) {
       if (submittedRevision !== sourceRevision.current) return
-      if (caughtError instanceof MissingPostingImportError) unparsedImportKey.current = null
+      if (importReceipt.current?.phase === 'creating' || caughtError instanceof MissingPostingImportError) {
+        importReceipt.current = null
+      }
       if (caughtError instanceof Error) {
         setImportSessionError(caughtError.message)
       } else {
@@ -203,11 +214,13 @@ export function PostingImportSessionProvider({
   }
 
   function syncPostingImportDeletion(deletedImportKey: string) {
-    if (unparsedImportKey.current === deletedImportKey) {
+    const receipt = importReceipt.current
+    if (receipt?.phase === 'creating') {
+      // History can delete the stored import before its create receipt arrives.
+      receipt.deletedImportKeys.add(deletedImportKey)
+    } else if (receipt?.importKey === deletedImportKey) {
       invalidateSourceReview()
-      return
     }
-    if (review?.importKey === deletedImportKey) clearReview()
   }
 
   const session: PostingImportSession = {
