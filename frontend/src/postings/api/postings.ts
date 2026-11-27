@@ -4,6 +4,7 @@ import type {
   PostingSourceCheck,
   RecordPostingSourceCheckRequest,
   UpdatePostingCardRequest,
+  WatchedPostingCard,
 } from '../types/postingCard'
 import type {
   PostingImportReceipt,
@@ -35,6 +36,10 @@ export class PostingSourceCheckUncertainError extends Error {
 
 export class PostingSourceCheckUnavailableError extends Error {
   constructor() { super('The submitted link is no longer available.') }
+}
+
+export class PostingWatchlistUncertainError extends Error {
+  constructor() { super('Change outcome unknown. Check the watchlist before trying again.') }
 }
 
 export async function createPostingImport(
@@ -166,6 +171,46 @@ export async function getPostingCard(cardKey: string, signal: AbortSignal): Prom
   const card: unknown = await response.json()
   if (!isPostingCardResponse(card, cardKey)) throw new Error('The saved Card response could not be read.')
   return card
+}
+
+function isWatchedPostingCard(value: unknown): value is WatchedPostingCard {
+  return typeof value === 'object' && value !== null &&
+    'card_key' in value && typeof value.card_key === 'string' && value.card_key !== '' &&
+    'watched_at' in value && typeof value.watched_at === 'string' &&
+    Number.isFinite(Date.parse(value.watched_at))
+}
+
+export async function getPostingWatchlist(signal: AbortSignal): Promise<WatchedPostingCard[]> {
+  const response = await fetch(`${API_BASE_URL}/posting/watchlist`, { signal, cache: 'no-store' })
+  if (!response.ok) throw new Error('Could not load watchlist.')
+
+  const watched: unknown = await response.json().catch(() => null)
+  if (!Array.isArray(watched) || !watched.every(isWatchedPostingCard)) {
+    throw new Error('The watchlist response could not be read.')
+  }
+  return watched
+}
+
+export async function changePostingWatch(cardKey: string, watching: boolean): Promise<WatchedPostingCard | null> {
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}/posting/watchlist/${encodeURIComponent(cardKey)}`, {
+      method: watching ? 'PUT' : 'DELETE',
+    })
+  } catch {
+    throw new PostingWatchlistUncertainError()
+  }
+  if (response.status >= 500) throw new PostingWatchlistUncertainError()
+  if (response.status === 404) throw new MissingPostingCardError()
+  if (!response.ok) throw new Error('Could not update watchlist.')
+
+  if (!watching) {
+    if (response.status !== 204) throw new PostingWatchlistUncertainError()
+    return null
+  }
+  const saved: unknown = await response.json().catch(() => null)
+  if (!isWatchedPostingCard(saved) || saved.card_key !== cardKey) throw new PostingWatchlistUncertainError()
+  return saved
 }
 
 export async function getPostingCardSourceReceipt(cardKey: string, signal: AbortSignal): Promise<PostingImportReceipt | null> {

@@ -14,6 +14,7 @@ from tracer.postings import (
     PostingParseResult,
 )
 from tracer.postings.models.posting_source_check import PostingSourceCheck
+from tracer.postings.models.posting_watchlist import WatchedPostingCard
 from tracer.postings.parsers.openai_posting_parser import (
     OpenAIPostingParser,
 )
@@ -33,6 +34,7 @@ from tracer.postings.stores.posting_card_store import PostingCardStore
 from tracer.postings.stores.posting_import_request_store import (
     PostingImportRequestStore,
 )
+from tracer.postings.stores.posting_watchlist_store import PostingWatchlistStore
 from tracer.settings.api_key_store import ApiKeyStore
 from tracer.settings.settings_store import SettingsStore
 
@@ -71,6 +73,7 @@ def create_postings_router(
         posting_card_store
     )
     source_checks = PostingSourceCheckService(database_path)
+    watchlist = PostingWatchlistStore(database_path)
     router = APIRouter(prefix="/posting", tags=["postings"])
     resolve_posting_parser_service = ResolvePostingParserService(
         SettingsStore(database_path),
@@ -259,6 +262,21 @@ def create_postings_router(
     @router.get("/card")
     def read_posting_cards() -> tuple[PostingCard, ...]:
         return posting_card_store.get_all()
+
+    @router.get("/watchlist")
+    def read_posting_watchlist() -> tuple[WatchedPostingCard, ...]:
+        return watchlist.list_watched()
+
+    @router.put("/watchlist/{card_key}")
+    def watch_posting_card(card_key: UUID) -> WatchedPostingCard:
+        watched = watchlist.watch(card_key)
+        if watched is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Posting card not found")
+        return watched
+
+    @router.delete("/watchlist/{card_key}", status_code=status.HTTP_204_NO_CONTENT)
+    def unwatch_posting_card(card_key: UUID) -> None:
+        watchlist.unwatch(card_key)
 
     @router.patch("/card/{card_key}")
     def update_posting_card(

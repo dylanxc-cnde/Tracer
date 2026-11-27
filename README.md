@@ -40,8 +40,9 @@ the saved version.
 
 The browser app currently has Home, Market, Import Posting, Card Library,
 Activity, Import History, and Settings. Market compares saved jobs by shared
-role domains and opens their saved details. Profile loads the saved display name
-and saves changes only when you select Save changes; Cancel restores the last saved name.
+role domains, opens their saved details, and lets you manage a local watchlist.
+Profile loads the saved display name and saves changes only when you select
+Save changes; Cancel restores the last saved name.
 Leaving Profile discards unsaved edits. API Settings manages provider metadata
 and write-only credentials and selects the provider/model for posting parsing.
 Activity shows recorded workspace changes from the last 30 days and can reopen saved jobs.

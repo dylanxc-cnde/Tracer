@@ -22,6 +22,8 @@ def test_posting_routes_share_a_prefix_and_documentation_tag(tmp_path):
         "/posting/card/{card_key}/original": {"get"},
         "/posting/card/{card_key}/source-receipt": {"get"},
         "/posting/card/{card_key}/source-checks": {"get", "post"},
+        "/posting/watchlist": {"get"},
+        "/posting/watchlist/{card_key}": {"put", "delete"},
     }
     for operations in posting_paths.values():
         for operation in operations.values():

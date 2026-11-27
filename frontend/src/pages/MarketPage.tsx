@@ -2,24 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { PostingCardDetails } from '../components/posting-card/details/PostingCardDetails'
 import { getPostingCard, listPostingCards, MissingPostingCardError } from '../postings/api/postings'
 import type { PostingCard } from '../postings/types/postingCard'
+import { savedJobCompany, savedJobTitle } from './marketJobs'
+import type { MarketJobRead } from './marketJobs'
+import { MarketWatchlist } from './MarketWatchlist'
 import './MarketPage.css'
 
 type SavedJobs =
   | { status: 'loading' | 'failed' }
   | { status: 'ready'; cards: PostingCard[] }
 
-type Detail =
-  | { status: 'loading'; cardKey: string }
-  | { status: 'failed'; cardKey: string; message: string }
-  | { status: 'opened'; card: PostingCard; opener: HTMLButtonElement }
-
-function jobTitle(card: PostingCard) {
-  return card.posting_alias ?? card.posting.identity.position_title?.value ?? 'Unknown position'
-}
-
-function jobCompany(card: PostingCard) {
-  return card.posting.identity.company_name?.value ?? 'Unknown company'
-}
+type DetailScope = 'related' | 'watchlist'
+type Detail = (MarketJobRead | { status: 'opened'; card: PostingCard; opener: HTMLButtonElement }) & { scope: DetailScope }
 
 function savedRoleDomains(card: PostingCard) {
   const domains = new Map<string, string>()
@@ -38,7 +31,7 @@ export function MarketPage() {
   const [referenceKey, setReferenceKey] = useState('')
   const [detail, setDetail] = useState<Detail | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
-  const detailRequest = useRef<{ cardKey: string; controller: AbortController }>(null)
+  const detailRequest = useRef<{ cardKey: string; scope: DetailScope; controller: AbortController }>(null)
 
   useEffect(() => {
     let active = true
@@ -69,45 +62,61 @@ export function MarketPage() {
     setListAttempt((attempt) => attempt + 1)
   }
 
+  function dismissDetails(scope: DetailScope) {
+    if (detailRequest.current?.scope === scope) {
+      detailRequest.current.controller.abort()
+      detailRequest.current = null
+    }
+    setDetail((current) => current?.scope === scope ? null : current)
+  }
+
   function handleReferenceChange(cardKey: string) {
-    detailRequest.current?.controller.abort()
-    detailRequest.current = null
-    setDetail(null)
+    dismissDetails('related')
     setReferenceKey(cardKey)
   }
 
-  async function handleOpenJob(cardKey: string, opener: HTMLButtonElement) {
-    if (detailRequest.current?.cardKey === cardKey) return
+  async function handleOpenJob(cardKey: string, opener: HTMLButtonElement, scope: DetailScope) {
+    if (detailRequest.current?.cardKey === cardKey && detailRequest.current.scope === scope) return
     detailRequest.current?.controller.abort()
-    const request = { cardKey, controller: new AbortController() }
+    const request = { cardKey, scope, controller: new AbortController() }
     detailRequest.current = request
-    setDetail({ status: 'loading', cardKey })
+    setDetail({ status: 'loading', cardKey, scope })
+
+    function isCurrent() {
+      return detailRequest.current === request && !request.controller.signal.aborted && opener.isConnected &&
+        (scope === 'related' || opener.closest('details')?.open)
+    }
 
     try {
       const card = await getPostingCard(cardKey, request.controller.signal)
-      if (detailRequest.current === request && !request.controller.signal.aborted) {
-        setDetail({ status: 'opened', card, opener })
+      if (isCurrent()) {
+        setDetail({ status: 'opened', card, opener, scope })
       }
     } catch (error) {
-      if (detailRequest.current === request && !request.controller.signal.aborted) {
+      if (isCurrent()) {
         setDetail({
           status: 'failed',
           cardKey,
+          scope,
           message: error instanceof MissingPostingCardError
             ? 'This saved job is no longer available.'
             : 'Could not open the saved job. Try again.',
         })
       }
     } finally {
-      if (detailRequest.current === request) detailRequest.current = null
+      if (detailRequest.current === request) {
+        detailRequest.current = null
+        setDetail((current) => current?.status === 'loading' ? null : current)
+      }
     }
   }
 
   function handleCloseJob() {
     if (detail?.status !== 'opened') return
-    const { opener } = detail
+    const { opener, scope } = detail
     setDetail(null)
-    if (opener.isConnected && !opener.disabled && opener.getAttribute('aria-disabled') !== 'true') {
+    if (opener.isConnected && !opener.disabled && opener.getAttribute('aria-disabled') !== 'true' &&
+      (scope === 'related' || opener.closest('details')?.open)) {
       opener.focus({ preventScroll: true })
     }
   }
@@ -134,6 +143,12 @@ export function MarketPage() {
   return (
     <div className="market-page">
       <h1 className="page-title">Market</h1>
+      <MarketWatchlist
+        cards={cards}
+        detailRead={detail?.scope === 'watchlist' && detail.status !== 'opened' ? detail : null}
+        onOpenJob={(cardKey, opener) => void handleOpenJob(cardKey, opener, 'watchlist')}
+        onDismiss={() => dismissDetails('watchlist')}
+      />
       <section aria-labelledby="market-related-jobs-title">
         <h2 id="market-related-jobs-title" tabIndex={-1} ref={heading}>Related saved jobs</h2>
         <p className="market-page__description">Compare role domains recorded in your saved Cards.</p>
@@ -147,11 +162,11 @@ export function MarketPage() {
           <select value={referenceKey} onChange={(event) => handleReferenceChange(event.target.value)}>
             <option value="">Choose a saved job</option>
             {cards.map((card) => <option key={card.card_key} value={card.card_key}>
-              {jobTitle(card)} · {jobCompany(card)}
+              {savedJobTitle(card)} · {savedJobCompany(card)}
             </option>)}
           </select>
         </label>}
-        {reference && <p className="market-page__reference-title" aria-hidden="true">{jobTitle(reference)}</p>}
+        {reference && <p className="market-page__reference-title" aria-hidden="true">{savedJobTitle(reference)}</p>}
         {resultStatus && <p className="market-page__result-status" role="status">{resultStatus}</p>}
         {relatedJobs.length > 0 && <ul
           key={referenceKey}
@@ -159,12 +174,12 @@ export function MarketPage() {
           aria-labelledby="market-related-jobs-title"
         >
           {relatedJobs.map(({ card, sharedDomains }) => {
-            const status = detail?.status !== 'opened' && detail?.cardKey === card.card_key ? detail : null
+            const status = detail?.scope === 'related' && detail.status !== 'opened' && detail.cardKey === card.card_key ? detail : null
             const isOpening = status?.status === 'loading'
             return <li key={card.card_key} className="market-page__job">
               <div className="market-page__job-copy">
-                <h3>{jobTitle(card)}</h3>
-                <p className="market-page__company">{jobCompany(card)}</p>
+                <h3>{savedJobTitle(card)}</h3>
+                <p className="market-page__company">{savedJobCompany(card)}</p>
                 <dl className="market-page__reason">
                   <dt>Shared role domains</dt>
                   <dd>{sharedDomains.join(' · ')}</dd>
@@ -173,10 +188,10 @@ export function MarketPage() {
               <button
                 className="market-page__action"
                 type="button"
-                aria-label={`View saved job: ${jobTitle(card)}`}
+                aria-label={`View saved job: ${savedJobTitle(card)}`}
                 aria-haspopup="dialog"
                 aria-disabled={isOpening}
-                onClick={(event) => void handleOpenJob(card.card_key, event.currentTarget)}
+                onClick={(event) => void handleOpenJob(card.card_key, event.currentTarget, 'related')}
               >{isOpening ? 'Opening…' : 'View saved job'}</button>
               {status?.status === 'failed' && <p className="market-page__error" role="alert">{status.message}</p>}
             </li>

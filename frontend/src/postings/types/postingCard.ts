@@ -110,3 +110,8 @@ export type RecordPostingSourceCheckRequest = {
 export type PostingSourceCheck = RecordPostingSourceCheckRequest & {
   recorded_at: string
 }
+
+export type WatchedPostingCard = {
+  card_key: string
+  watched_at: string
+}
