@@ -21,12 +21,12 @@ export function CardLibraryPage() {
   const [cards, setCards] = useState<PostingCard[]>([])
   const [isLoadingCards, setIsLoadingCards] = useState(true)
   const [hasLoadedCards, setHasLoadedCards] = useState(false)
-  const [deletingCardKey, setDeletingCardKey] = useState<string | null>(null)
+  const [deletingCardKeys, setDeletingCardKeys] = useState<ReadonlySet<string>>(() => new Set())
   const [error, setError] = useState<string | null>(null)
   const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
   const [isShowingOriginal, setIsShowingOriginal] = useState(false)
   const initialCardsRequest = useRef<Promise<PostingCard[]> | null>(null)
-  const cardViewRequest = useRef(0)
+  const pendingOriginal = useRef<{ cardKey: string } | null>(null)
 
   useEffect(() => {
     let isActive = true
@@ -59,7 +59,7 @@ export function CardLibraryPage() {
     // Ignore a late response after the user has left this page.
     return () => {
       isActive = false
-      cardViewRequest.current += 1
+      pendingOriginal.current = null
     }
   }, [])
 
@@ -91,7 +91,10 @@ export function CardLibraryPage() {
       return
     }
 
-    setDeletingCardKey(cardKey)
+    if (pendingOriginal.current?.cardKey === cardKey) {
+      pendingOriginal.current = null
+    }
+    setDeletingCardKeys((currentKeys) => new Set([...currentKeys, cardKey]))
     setError(null)
 
     try {
@@ -107,18 +110,22 @@ export function CardLibraryPage() {
         setError('Something went wrong while deleting the card.')
       }
     } finally {
-      setDeletingCardKey(null)
+      setDeletingCardKeys((currentKeys) => {
+        const remainingKeys = new Set(currentKeys)
+        remainingKeys.delete(cardKey)
+        return remainingKeys
+      })
     }
   }
 
   function handleOpenCard(card: PostingCard) {
-    cardViewRequest.current += 1
+    pendingOriginal.current = null
     setIsShowingOriginal(false)
     setOpenedCard(card)
   }
 
   function handleCloseCard() {
-    cardViewRequest.current += 1
+    pendingOriginal.current = null
     setOpenedCard(null)
   }
 
@@ -142,21 +149,24 @@ export function CardLibraryPage() {
   }
 
   async function handleShowOriginalCard(cardKey: string) {
-    const request = ++cardViewRequest.current
+    const request = { cardKey }
+    pendingOriginal.current = request
     setError(null)
 
     try {
       const originalCard = await getOriginalPostingCard(cardKey)
-      if (request !== cardViewRequest.current) return
+      if (request !== pendingOriginal.current) return
       setIsShowingOriginal(true)
       setOpenedCard(originalCard)
     } catch (caughtError: unknown) {
-      if (request !== cardViewRequest.current) return
+      if (request !== pendingOriginal.current) return
       if (caughtError instanceof Error) {
         setError(caughtError.message)
       } else {
         setError("Something went wrong while loading the original card.")
       }
+    } finally {
+      if (request === pendingOriginal.current) pendingOriginal.current = null
     }
   }
 
@@ -213,7 +223,7 @@ export function CardLibraryPage() {
             {cards.length > 0 && (
               <CardLibrary
                 cards={cards}
-                deletingCardKey={deletingCardKey}
+                deletingCardKeys={deletingCardKeys}
                 onDelete={handleDeleteCard}
                 onOpen={handleOpenCard}
                 onShowOriginal={handleShowOriginalCard}

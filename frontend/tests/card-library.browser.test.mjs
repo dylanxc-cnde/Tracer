@@ -117,6 +117,61 @@ for (const { outcome, status } of [{ outcome: 'success', status: 200 }, { outcom
   })
 }
 
+for (const { originalKey, status, label } of [
+  { originalKey: A_KEY, status: 200, label: 'ignores the deleted Card’s late original' },
+  { originalKey: A_KEY, status: 503, label: 'ignores the deleted Card’s late original error' },
+  { originalKey: B_KEY, status: 200, label: 'keeps the other Card’s pending original' },
+]) {
+  test(`Card library ${label} after a confirmed delete`, async ({ page, context, baseURL }) => {
+    const gate = Promise.withResolvers()
+    const cardA = savedCard(A_KEY, A_IMPORT, A_CURRENT)
+    const cardB = savedCard(B_KEY, B_IMPORT, B_CURRENT)
+    const originalPath = `${LIST_PATH}/${originalKey}/original`
+    const isOriginalA = originalKey === A_KEY
+    let originalReads = 0
+    const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+      [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [cardA, cardB] }),
+      [`GET ${originalPath}`]: async (route) => {
+        originalReads += 1
+        await gate.promise
+        const original = isOriginalA ? savedCard(A_KEY, A_IMPORT, A_ORIGINAL) : cardB
+        await route.fulfill({ status, json: status === 200 ? original : { detail: 'Synthetic read failure' } })
+      },
+      [`DELETE ${A_PATH}`]: route => route.fulfill({ status: 204 }),
+    })
+
+    const showOriginal = page.getByRole('button', { name: `Show original: ${isOriginalA ? A_CURRENT : B_CURRENT}`, exact: true })
+    const deleteA = page.getByRole('button', { name: `Delete: ${A_CURRENT}`, exact: true })
+    let lateResponse
+    try {
+      await showOriginal.press('Enter')
+      await expect.poll(() => originalReads).toBe(1)
+      page.once('dialog', native => native.accept())
+      await deleteA.press('Enter')
+      await expect(page.getByRole('status')).toHaveText('1 saved job')
+      lateResponse = page.waitForResponse(`${API}${originalPath}`)
+    } finally {
+      gate.resolve()
+    }
+
+    const response = await lateResponse
+    expect(response.status()).toBe(status)
+    expect(await response.finished()).toBeNull()
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const dialog = page.getByRole('dialog')
+    if (isOriginalA) {
+      await expect(dialog).toHaveCount(0)
+      await expect(page.getByRole('alert')).toHaveCount(0)
+      await expect(page.getByRole('button', { name: `Show original: ${A_CURRENT}`, exact: true })).toHaveCount(0)
+    } else {
+      await expect(dialog.getByRole('heading', { name: B_CURRENT, exact: true })).toBeVisible()
+      await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
+    }
+    expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${originalPath}`, `DELETE ${A_PATH}`])
+    expect(unexpected).toEqual([])
+  })
+}
+
 const DRAFT_TITLE = 'Korrigiertes Praktikum für Fahrgastinformation und barrierefreie Verkehrsplanung im Rheinland (DEMO)'
 const SERVER_NOTE = 'Serverbestätigte Notiz zur Einarbeitung und Abstimmung mit der Netzleitstelle (DEMO)'
 

@@ -4,7 +4,7 @@ import { formatAddressPreview, formatEnumValue } from '../posting-card/details/P
 
 type CardLibraryProps = {
   cards: PostingCard[]
-  deletingCardKey: string | null
+  deletingCardKeys: ReadonlySet<string>
   onDelete: (cardKey: string) => void
   onOpen: (card: PostingCard) => void
   onShowOriginal: (cardKey: string) => void
@@ -12,7 +12,7 @@ type CardLibraryProps = {
 
 export function CardLibrary({
   cards,
-  deletingCardKey,
+  deletingCardKeys,
   onDelete,
   onOpen,
   onShowOriginal,
@@ -28,7 +28,7 @@ export function CardLibrary({
         const workMode = workModes.length > 0
           ? workModes.map(formatEnumValue).join(' · ')
           : 'Work mode not specified'
-        const isDeleting = deletingCardKey === card.card_key
+        const isDeleting = deletingCardKeys.has(card.card_key)
 
         return (
           <li key={card.card_key} className="card-library__row">
