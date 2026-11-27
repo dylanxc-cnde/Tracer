@@ -30,14 +30,15 @@ export function GlobalSearch({ onGoHome }: { onGoHome: () => void }) {
     setError(null)
     setActiveIndex(-1)
   }
+  function focusInputWithoutOpening() {
+    restoringFocus.current = true
+    input.current?.focus({ preventScroll: true })
+    restoringFocus.current = false
+  }
   function dismiss(restoreFocus = false) {
     generation.current += 1
     setIsOpen(false)
-    if (restoreFocus) {
-      restoringFocus.current = true
-      input.current?.focus({ preventScroll: true })
-      restoringFocus.current = false
-    }
+    if (restoreFocus) focusInputWithoutOpening()
   }
   function changeQuery(value: string) {
     generation.current += 1
@@ -47,6 +48,16 @@ export function GlobalSearch({ onGoHome }: { onGoHome: () => void }) {
     setData(null)
     setError(null)
     setActiveIndex(-1)
+  }
+  function handleClearSearch() {
+    changeQuery('')
+    focusInputWithoutOpening()
+  }
+  function handleRetrySearch() {
+    focusInputWithoutOpening()
+    setError(null)
+    setIsLoading(true)
+    setAttempt(value => value + 1)
   }
   function select(result: SearchResult) {
     dismiss()
@@ -63,9 +74,7 @@ export function GlobalSearch({ onGoHome }: { onGoHome: () => void }) {
     if (selection || !returnFocus.current) return
     returnFocus.current = false
     // Restore focus without reopening the panel or issuing another search.
-    restoringFocus.current = true
-    input.current?.focus({ preventScroll: true })
-    restoringFocus.current = false
+    focusInputWithoutOpening()
   }, [selection])
 
   useEffect(() => {
@@ -136,14 +145,14 @@ export function GlobalSearch({ onGoHome }: { onGoHome: () => void }) {
             }
             if (event.key === 'Enter' && isOpen && activeIndex >= 0 && results[activeIndex]) { event.preventDefault(); select(results[activeIndex]) }
           }} />
-        {query ? <button type="button" className="global-search__clear" aria-label="Clear search" onClick={() => { changeQuery(''); input.current?.focus() }}><IconX aria-hidden="true" /></button>
+        {query ? <button type="button" className="global-search__clear" aria-label="Clear search" onClick={handleClearSearch}><IconX aria-hidden="true" /></button>
           : <kbd className="app-shell__search-shortcut" aria-hidden="true">Ctrl K</kbd>}
       </div>
       {isOpen && <section className="global-search__panel" aria-label="Local workspace search">
         <p id={helpId} className="global-search__help">Local records only · ↑ ↓ to choose · Enter to open · Esc to close</p>
         {!query.trim() && <p>Search saved jobs, companies, notes, tasks, events and applications.</p>}
         {isLoading && <p role="status">Searching local records…</p>}
-        {error && <div><p role="alert">{error}</p><button type="button" onClick={() => { setError(null); setIsLoading(true); setAttempt(value => value + 1) }}>Retry search</button></div>}
+        {error && <div><p role="alert">{error}</p><button type="button" onClick={handleRetrySearch}>Retry search</button></div>}
         {data && !results.length && <p role="status">No local records match “{query.trim()}”.</p>}
         {data && results.length > 0 && <p className="global-search__count" role="status">{results.length} results{data.has_more ? ' · More matches available; narrow your search.' : ''}</p>}
         <ul id={listId} role="listbox" aria-label="Search results" aria-busy={isLoading}>
