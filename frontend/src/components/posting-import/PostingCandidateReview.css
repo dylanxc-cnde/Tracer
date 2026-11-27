@@ -1,0 +1,63 @@
+.posting-candidate-review__notice {
+  margin: 10px 0 0;
+  color: var(--color-attention);
+  font-weight: 600;
+}
+
+.posting-candidate-review {
+  margin-block-start: 12px;
+  overflow-wrap: anywhere;
+}
+
+.posting-candidate-review > summary {
+  width: fit-content;
+  padding: 6px 0;
+  color: var(--color-action-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.posting-candidate-review > summary:focus-visible {
+  outline: 3px solid var(--color-action-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+.posting-candidate-review__content {
+  display: grid;
+  gap: 16px;
+  margin-block-start: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface-muted);
+}
+
+.posting-candidate-review__content h4 { margin: 0 0 8px; }
+.posting-candidate-review__content p { margin: 4px 0; }
+.posting-candidate-review__content ul:not([class]) { margin-block: 6px; padding-inline-start: 20px; }
+
+.posting-candidate-review__content .posting-candidate-review__entries {
+  display: grid;
+  gap: 8px;
+  margin-block: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.posting-candidate-review__entries > li {
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .posting-candidate-review[open] > .posting-candidate-review__content {
+    animation: posting-candidate-review-expand 160ms ease-out;
+  }
+}
+
+@keyframes posting-candidate-review-expand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

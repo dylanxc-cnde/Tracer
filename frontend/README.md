@@ -13,7 +13,7 @@ and Card creation and updates.
 - Text and Link inputs for a posting, with a live character count for Text;
 - TypeScript contracts cover posting imports, parsed results, and cards;
 - Analyze creates an import and asks FastAPI to parse it;
-- parsed candidates are shown as selectable cards;
+- each candidate has a review disclosure for role details, requirements, and unresolved interpretations with source excerpts;
 - every candidate needs an explicit user selection, even when there is only one;
 - Confirm sends the selected posting back to FastAPI and saves a Posting Card;
 - a Load button retrieves saved Cards and renders them through `CardLibrary`

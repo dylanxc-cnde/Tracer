@@ -1,5 +1,7 @@
+import { useId } from 'react'
 import type { ParsedPosting } from '../../postings/types/postingParse'
 import { formatAddressPreview } from '../posting-card/details/PostingCardFormatters'
+import { PostingCandidateReview } from './PostingCandidateReview'
 
 type PostingCandidateCardProps = {
   posting: ParsedPosting
@@ -12,6 +14,7 @@ export function PostingCandidateCard({
   isSelected,
   onSelect,
 }: PostingCandidateCardProps) {
+  const titleId = useId()
   const title =
     posting.details.identity.position_title?.value ?? 'Unknown position'
 
@@ -28,17 +31,20 @@ export function PostingCandidateCard({
 
   return (
     <article
+      aria-labelledby={titleId}
       className={
         isSelected
           ? 'posting-candidate posting-candidate--selected'
           : 'posting-candidate'
       }
     >
-      <h3 className="posting-candidate__title">{title}</h3>
+      <h3 id={titleId} className="posting-candidate__title">{title}</h3>
 
       <p className="posting-candidate__metadata">{company}</p>
       <p className="posting-candidate__metadata">{location}</p>
       <p className="posting-candidate__metadata">{workModes}</p>
+
+      <PostingCandidateReview posting={posting} titleId={titleId} />
 
       <button
         className="button--primary posting-candidate__select-button"

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { postingFixture } from './fixtures/posting.mjs'
 
 const API = 'http://127.0.0.1:8000'
 const CREATED_AT = '2026-11-27T10:00:00Z'
@@ -7,34 +8,6 @@ const SAVED_TITLE = 'Gespeicherte Werkstudentenstelle für Energieversorgung und
 const OLD_CARD_KEY = 'a0000000-0000-4000-8000-000000000036'
 const OLD_SAVED_TITLE = 'Gespeichertes Praktikum in der Verkehrsplanung (DEMO)'
 const oldCardPath = `/posting/card/${OLD_CARD_KEY}`
-
-function postingFixture(importKey, title, importSource) {
-  const source = { excerpts: [], source_urls: [] }
-  const details = {
-    identity: {
-      source, company_name: null, department_name: null, position_title: { value: title, origin: 'source' },
-      external_job_id: null, canonical_posting_url: null, source_platform: null, published_on: null, posting_language: null,
-    },
-    company: { source, industry_tags: [], employee_range: null, company_summary: null },
-    classification: {
-      source, role_families: null, workload_type: null, contract_type: null, seniority: null,
-      internship_requirement: null, eligibility: null,
-    },
-    work_conditions: {
-      source, primary_address: null, address_candidates: [], work_modes: null, weekly_hours: null,
-      schedule: null, travel_requirement: null, start_on: null, duration: null,
-    },
-    role_content: { source, role_summary: null, responsibilities: [], domains: [] },
-    requirements: { source, groups: [] },
-    compensation: { source, entries: [], benefits: [], vacation_days: null },
-    application_instructions: {
-      source, channels: null, application_url: null, required_email_subject: null,
-      required_documents: [], special_instructions: [], application_deadline: null,
-    },
-    contact: null,
-  }
-  return { importKey, title, details, importSource }
-}
 
 const A = postingFixture(
   'a0000000-0000-4000-8000-000000000031',
@@ -57,8 +30,45 @@ const LINK = postingFixture(
   'Werkstudent (m/w/d) für barrierefreie Fahrgastinformation und Mobilitätsforschung (DEMO)',
   { kind: 'url', url: 'https://tracer-fixture.invalid/stellen/werkstudent-mobilitaetsforschung' },
 )
+const LOCATION_EXCERPT = 'Das Projektteam arbeitet in Köln und Düsseldorf. Deinen tatsächlichen Einsatzort teilen wir dir erst nach der endgültigen Projektzuteilung mit.'
+const LOCATION_DESCRIPTION = 'Die Anzeige nennt Köln und Düsseldorf, lässt aber offen, an welchem Standort die Werkstudententätigkeit nach der Projektzuteilung tatsächlich ausgeübt wird.'
+const ROLE_EXCERPT = 'Du wertest Fahrgastzählungen aus und erstellst barrierefreie Berichte für die regionale Verkehrsplanung.'
+const ELIGIBILITY_EXCERPT = 'Du bist während der Beschäftigung an einer deutschen Hochschule immatrikuliert.'
+const REQUIREMENT_EXCERPT = 'Kenntnisse in SQL oder Python sind erforderlich, zum Beispiel mit PostgreSQL. Erfahrung mit der Dokumentation technischer Änderungen wird ebenfalls erwähnt.'
+const REVIEW_TITLE = 'Werkstudent (m/w/d) für barrierefreie Fahrgastinformation und Verkehrsplanung im Rheinland (DEMO)'
+const REVIEW_SAVED_TITLE = 'Gespeicherte Werkstudentenstelle für Verkehrsplanung im Rheinland (DEMO)'
+const REVIEW = postingFixture(
+  'a0000000-0000-4000-8000-000000000037', REVIEW_TITLE,
+  { kind: 'text', source_url: null, text: [REVIEW_TITLE, LOCATION_EXCERPT, ROLE_EXCERPT, ELIGIBILITY_EXCERPT, REQUIREMENT_EXCERPT].join('\n\n') },
+)
+REVIEW.ambiguities = [{
+  field_path: 'work_conditions.primary_address', description: LOCATION_DESCRIPTION,
+  alternatives: ['Köln', 'Düsseldorf'], source: { excerpts: [LOCATION_EXCERPT], source_urls: [] },
+}]
+REVIEW.details.role_content = {
+  source: { excerpts: [ROLE_EXCERPT], source_urls: [] }, role_summary: null, domains: [],
+  responsibilities: [{ origin: 'source', value: 'Fahrgastzählungen auswerten und barrierefreie Berichte erstellen' }],
+}
+REVIEW.details.classification = {
+  ...REVIEW.details.classification,
+  source: { excerpts: [ELIGIBILITY_EXCERPT], source_urls: [] },
+  eligibility: { origin: 'source', value: 'Immatrikulation an einer deutschen Hochschule' },
+}
+REVIEW.details.requirements = {
+  source: { excerpts: [REQUIREMENT_EXCERPT], source_urls: [] },
+  groups: [
+    { origin: 'source', importance: 'required', item_rule: 'any_of', items: [
+      { name: 'SQL', category: 'skill', is_example: false },
+      { name: 'Python', category: 'skill', is_example: false },
+      { name: 'PostgreSQL', category: 'skill', is_example: true },
+    ] },
+    { origin: 'source', importance: 'unknown', item_rule: 'unknown', items: [
+      { name: 'Dokumentation technischer Änderungen', category: 'experience', is_example: false },
+    ] },
+  ],
+}
 const REPLACEMENT_A = { ...A, importKey: 'a0000000-0000-4000-8000-000000000035' }
-const fixtures = [A, B, LINK]
+const fixtures = [A, B, LINK, REVIEW]
 const parsePath = (posting) => `/posting/import/${posting.importKey}/parse-results`
 
 async function openImport(
@@ -103,7 +113,7 @@ async function openImport(
         }
         if (posting === A) await releaseA
         const completeResult = {
-          status: 'complete', postings: [{ details: posting.details, parse_ambiguities: [] }],
+          status: 'complete', postings: [{ details: posting.details, parse_ambiguities: posting.ambiguities ?? [] }],
           refinement_reason: null, refinement_suggestions: [],
         }
         await route.fulfill({ json: (posting === A ? resultA : undefined) ?? completeResult })
@@ -116,7 +126,9 @@ async function openImport(
         if (savedPosting) {
           await releaseCard
           const cardKey = savedPosting === A ? OLD_CARD_KEY : CARD_KEY
-          const postingAlias = savedPosting === A ? OLD_SAVED_TITLE : SAVED_TITLE
+          let postingAlias = SAVED_TITLE
+          if (savedPosting === A) postingAlias = OLD_SAVED_TITLE
+          if (savedPosting === REVIEW) postingAlias = REVIEW_SAVED_TITLE
           await route.fulfill({ status: 201, json: {
             card_key: cardKey, import_key: savedPosting.importKey, schema_version: 1, created_at: CREATED_AT,
             posting: savedPosting.details, posting_alias: postingAlias, user_notes: null, tags: [],
@@ -188,6 +200,89 @@ test('Posting import discards a selected proposal after the source changes and s
   expect(cards).toEqual([{
     import_key: B.importKey, posting: B.details, posting_alias: null, user_notes: null, tags: [],
   }])
+  expect(unexpected).toEqual([])
+})
+
+test('Posting import reviews proposal uncertainties and source evidence before explicit selection and save', async ({ page, context, baseURL }) => {
+  const { input, analyze, confirm, imports, parses, cards, deletes, unexpected } = await openImport({ page, context, baseURL })
+  await input.fill(REVIEW.importSource.text)
+  await analyze.click()
+
+  const candidate = page.getByRole('article', { name: REVIEW.title })
+  const review = candidate.getByText('Review proposal', { exact: true })
+  const uncertainties = candidate.getByRole('heading', { name: 'Uncertainties' })
+  const uncertaintySource = candidate.getByText('View uncertainty source', { exact: true })
+  const locationQuote = candidate.getByText(LOCATION_EXCERPT, { exact: true })
+
+  await expect(candidate.getByText('Unknown location', { exact: true })).toBeVisible()
+  await expect(candidate.getByText('Location needs review', { exact: true })).toBeVisible()
+  await expect(review).toHaveAccessibleDescription(`${REVIEW.title} Location needs review`)
+  await expect(confirm).toBeDisabled()
+  await expect(uncertainties).toBeHidden()
+  await review.focus()
+  await page.keyboard.press('Enter')
+  await expect(review).toBeFocused()
+  await expect(uncertainties).toBeVisible()
+  await expect(candidate.getByText('Location', { exact: true })).toBeVisible()
+  await expect(candidate.getByText(LOCATION_DESCRIPTION, { exact: true })).toBeVisible()
+  await expect(candidate.getByText('Köln', { exact: true })).toBeVisible()
+  await expect(candidate.getByText('Düsseldorf', { exact: true })).toBeVisible()
+  await expect(locationQuote).toBeHidden()
+  await uncertaintySource.focus()
+  await page.keyboard.press('Space')
+  await expect(uncertaintySource).toBeFocused()
+  await expect(locationQuote).toBeVisible()
+
+  await expect(candidate.getByRole('heading', { name: 'Role and responsibilities' })).toBeVisible()
+  await expect(candidate.getByText('Fahrgastzählungen auswerten und barrierefreie Berichte erstellen', { exact: true })).toBeVisible()
+  await expect(candidate.getByRole('heading', { name: 'Requirements' })).toBeVisible()
+  await expect(candidate.getByText('Immatrikulation an einer deutschen Hochschule', { exact: false })).toBeVisible()
+  const requiredGroup = candidate.getByRole('listitem').filter({ has: page.getByText('Required', { exact: true }) })
+  await expect(requiredGroup.getByText('Choose any one', { exact: true })).toBeVisible()
+  await expect(requiredGroup.getByText('SQL', { exact: true })).toBeVisible()
+  await expect(requiredGroup.getByText('Python', { exact: true })).toBeVisible()
+  const examplesLabel = requiredGroup.getByText('Examples', { exact: true })
+  await expect(examplesLabel).toBeVisible()
+  await expect(examplesLabel.locator('+ ul').getByText('PostgreSQL', { exact: true })).toBeVisible()
+  const unknownGroup = candidate.getByRole('listitem').filter({ has: page.getByText('Importance unknown', { exact: true }) })
+  await expect(unknownGroup.getByText('Combination unclear', { exact: true })).toBeVisible()
+  await expect(unknownGroup.getByText('Dokumentation technischer Änderungen', { exact: true })).toBeVisible()
+
+  const roleQuote = candidate.getByText(ROLE_EXCERPT, { exact: true })
+  const eligibilityQuote = candidate.getByText(ELIGIBILITY_EXCERPT, { exact: true })
+  const requirementQuote = candidate.getByText(REQUIREMENT_EXCERPT, { exact: true })
+  await expect(roleQuote).toBeHidden()
+  await expect(eligibilityQuote).toBeHidden()
+  await expect(requirementQuote).toBeHidden()
+  await candidate.getByText('View role source', { exact: true }).press('Enter')
+  await expect(roleQuote).toBeVisible()
+  await expect(eligibilityQuote).toBeHidden()
+  await candidate.getByText('View eligibility source', { exact: true }).press('Enter')
+  await expect(eligibilityQuote).toBeVisible()
+  await expect(requirementQuote).toBeHidden()
+  await candidate.getByText('View requirements source', { exact: true }).press('Enter')
+  await expect(requirementQuote).toBeVisible()
+
+  await review.focus()
+  await page.keyboard.press('Space')
+  await expect(review).toBeFocused()
+  await expect(uncertainties).toBeHidden()
+  await expect(locationQuote).toBeHidden()
+  expect(imports).toEqual([REVIEW.importSource])
+  expect(parses).toEqual([REVIEW.importKey])
+  expect(cards).toEqual([])
+
+  await candidate.getByRole('button', { name: 'Select', exact: true }).click()
+  await expect(confirm).toBeEnabled()
+  expect(cards).toEqual([])
+  await confirm.click()
+  await expect(page.getByRole('heading', { name: REVIEW_SAVED_TITLE })).toBeVisible()
+  expect(imports).toEqual([REVIEW.importSource])
+  expect(parses).toEqual([REVIEW.importKey])
+  expect(cards).toEqual([{
+    import_key: REVIEW.importKey, posting: REVIEW.details, posting_alias: null, user_notes: null, tags: [],
+  }])
+  expect(deletes).toEqual([])
   expect(unexpected).toEqual([])
 })
 

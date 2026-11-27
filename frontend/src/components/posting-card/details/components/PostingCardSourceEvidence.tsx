@@ -6,12 +6,14 @@ type PostingCardSourceEvidenceProps = {
   source: PostingSource
   areSourcesVisible: boolean
   isModified: boolean
+  summaryLabel?: string
 }
 
 export function PostingCardSourceEvidence({
   source,
   areSourcesVisible,
   isModified,
+  summaryLabel = 'View source',
 }: PostingCardSourceEvidenceProps) {
   if (!areSourcesVisible) {
     return null
@@ -36,7 +38,7 @@ export function PostingCardSourceEvidence({
 
   return (
     <details className="posting-card-source-evidence">
-      <summary>View source</summary>
+      <summary>{summaryLabel}</summary>
 
       {source.excerpts.length > 0 && (
         <ul className="posting-card-source-evidence__list">
