@@ -32,6 +32,26 @@ const LINK = postingFixture(
 )
 const LOCATION_EXCERPT = 'Das Projektteam arbeitet in Köln und Düsseldorf. Deinen tatsächlichen Einsatzort teilen wir dir erst nach der endgültigen Projektzuteilung mit.'
 const LOCATION_DESCRIPTION = 'Die Anzeige nennt Köln und Düsseldorf, lässt aber offen, an welchem Standort die Werkstudententätigkeit nach der Projektzuteilung tatsächlich ausgeübt wird.'
+const DATE_UNCERTAINTIES = [
+  {
+    fieldPath: 'identity.published_on', label: 'Publication date',
+    description: 'Der Kopf der Anzeige und der Eintrag im Stellenportal nennen unterschiedliche Veröffentlichungsdaten.',
+    alternatives: ['3. November 2026', '6. November 2026'],
+    excerpt: 'Veröffentlicht am 3. November 2026. Im Stellenportal ist der 6. November 2026 als Veröffentlichungsdatum eingetragen.',
+  },
+  {
+    fieldPath: 'application_instructions.application_deadline', label: 'Application deadline',
+    description: 'Die Bewerbungsfrist in der Anzeige widerspricht dem Datum im Bewerbungsformular.',
+    alternatives: ['15. Dezember 2026', '19. Dezember 2026'],
+    excerpt: 'Bitte bewirb dich bis zum 15. Dezember 2026. Das Bewerbungsformular nennt als Frist den 19. Dezember 2026.',
+  },
+]
+const OTHER_UNCERTAINTY = {
+  fieldPath: 'application_instructions.interview_round', label: 'Uncertain field',
+  description: 'Die Anzeige nennt eine unterschiedliche Anzahl an Gesprächsrunden.',
+  alternatives: ['Eine Gesprächsrunde', 'Zwei Gesprächsrunden'],
+  excerpt: 'Im Auswahlverfahren ist eine Gesprächsrunde vorgesehen. Der Abschnitt zum Ablauf nennt zwei Gesprächsrunden.',
+}
 const ROLE_EXCERPT = 'Du wertest Fahrgastzählungen aus und erstellst barrierefreie Berichte für die regionale Verkehrsplanung.'
 const ELIGIBILITY_EXCERPT = 'Du bist während der Beschäftigung an einer deutschen Hochschule immatrikuliert.'
 const REQUIREMENT_EXCERPT = 'Kenntnisse in SQL oder Python sind erforderlich, zum Beispiel mit PostgreSQL. Erfahrung mit der Dokumentation technischer Änderungen wird ebenfalls erwähnt.'
@@ -39,12 +59,21 @@ const REVIEW_TITLE = 'Werkstudent (m/w/d) für barrierefreie Fahrgastinformation
 const REVIEW_SAVED_TITLE = 'Gespeicherte Werkstudentenstelle für Verkehrsplanung im Rheinland (DEMO)'
 const REVIEW = postingFixture(
   'a0000000-0000-4000-8000-000000000037', REVIEW_TITLE,
-  { kind: 'text', source_url: null, text: [REVIEW_TITLE, LOCATION_EXCERPT, ROLE_EXCERPT, ELIGIBILITY_EXCERPT, REQUIREMENT_EXCERPT].join('\n\n') },
+  {
+    kind: 'text', source_url: null,
+    text: [
+      REVIEW_TITLE, LOCATION_EXCERPT, ...DATE_UNCERTAINTIES.map(({ excerpt }) => excerpt), OTHER_UNCERTAINTY.excerpt,
+      ROLE_EXCERPT, ELIGIBILITY_EXCERPT, REQUIREMENT_EXCERPT,
+    ].join('\n\n'),
+  },
 )
-REVIEW.ambiguities = [{
-  field_path: 'work_conditions.primary_address', description: LOCATION_DESCRIPTION,
-  alternatives: ['Köln', 'Düsseldorf'], source: { excerpts: [LOCATION_EXCERPT], source_urls: [] },
-}]
+REVIEW.ambiguities = [
+  { fieldPath: 'work_conditions.primary_address', description: LOCATION_DESCRIPTION, alternatives: ['Köln', 'Düsseldorf'], excerpt: LOCATION_EXCERPT },
+  ...DATE_UNCERTAINTIES,
+  OTHER_UNCERTAINTY,
+].map(({ fieldPath, description, alternatives, excerpt }) => ({
+  field_path: fieldPath, description, alternatives, source: { excerpts: [excerpt], source_urls: [] },
+}))
 REVIEW.details.role_content = {
   source: { excerpts: [ROLE_EXCERPT], source_urls: [] }, role_summary: null, domains: [],
   responsibilities: [{ origin: 'source', value: 'Fahrgastzählungen auswerten und barrierefreie Berichte erstellen' }],
@@ -221,8 +250,9 @@ test('Posting import reviews proposal uncertainties and source evidence before e
   const candidate = page.getByRole('article', { name: REVIEW.title })
   const review = candidate.getByText('Review proposal', { exact: true })
   const uncertainties = candidate.getByRole('heading', { name: 'Uncertainties' })
-  const uncertaintySource = candidate.getByText('View uncertainty source', { exact: true })
-  const locationQuote = candidate.getByText(LOCATION_EXCERPT, { exact: true })
+  const location = candidate.getByRole('listitem').filter({ has: page.getByText(LOCATION_DESCRIPTION, { exact: true }) })
+  const uncertaintySource = location.getByText('View uncertainty source', { exact: true })
+  const locationQuote = location.getByText(LOCATION_EXCERPT, { exact: true })
 
   await expect(candidate.getByText('Unknown location', { exact: true })).toBeVisible()
   await expect(candidate.getByText('Location needs review', { exact: true })).toBeVisible()
@@ -242,6 +272,20 @@ test('Posting import reviews proposal uncertainties and source evidence before e
   await page.keyboard.press('Space')
   await expect(uncertaintySource).toBeFocused()
   await expect(locationQuote).toBeVisible()
+
+  for (const { label, description, alternatives, excerpt } of [...DATE_UNCERTAINTIES, OTHER_UNCERTAINTY]) {
+    const ambiguity = candidate.getByRole('listitem').filter({ has: page.getByText(description, { exact: true }) })
+    await expect(ambiguity.getByText(label, { exact: true })).toBeVisible()
+    for (const alternative of alternatives) {
+      await expect(ambiguity.getByText(alternative, { exact: true })).toBeVisible()
+    }
+    const quote = ambiguity.getByText(excerpt, { exact: true })
+    await expect(quote).toBeHidden()
+    const source = ambiguity.getByText('View uncertainty source', { exact: true })
+    await source.press('Enter')
+    await expect(source).toBeFocused()
+    await expect(quote).toBeVisible()
+  }
 
   await expect(candidate.getByRole('heading', { name: 'Role and responsibilities' })).toBeVisible()
   await expect(candidate.getByText('Fahrgastzählungen auswerten und barrierefreie Berichte erstellen', { exact: true })).toBeVisible()

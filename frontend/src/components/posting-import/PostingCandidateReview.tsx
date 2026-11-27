@@ -10,8 +10,18 @@ const importanceLabels: Record<RequirementImportance, string> = {
   unknown: 'Importance unknown',
 }
 
-function isLocationAmbiguity(fieldPath: string) {
-  return /^work_conditions\.(primary_address|address_candidates)(?:\.|\[|$)/.test(fieldPath)
+const ambiguityFieldLabels = new Map([
+  ['work_conditions.primary_address', 'Location'],
+  ['work_conditions.address_candidates', 'Location'],
+  ['work_conditions.work_modes', 'Work mode'],
+  ['identity.published_on', 'Publication date'],
+  ['application_instructions.application_deadline', 'Application deadline'],
+  ['compensation.entries', 'Compensation'],
+])
+
+function getAmbiguityFieldLabel(fieldPath: string) {
+  const field = /^[a-z_]+\.[a-z_]+(?=\.|\[|$)/.exec(fieldPath)?.[0]
+  return ambiguityFieldLabels.get(field ?? '') ?? 'Uncertain field'
 }
 
 function RequirementGroup({ group }: { group: Requirement }) {
@@ -36,7 +46,7 @@ function RequirementGroup({ group }: { group: Requirement }) {
 export function PostingCandidateReview({ posting, titleId }: { posting: ParsedPosting; titleId: string }) {
   const { details, parse_ambiguities: ambiguities } = posting
   const { role_content: role, requirements, classification } = details
-  const hasLocationAmbiguity = ambiguities.some(ambiguity => isLocationAmbiguity(ambiguity.field_path))
+  const hasLocationAmbiguity = ambiguities.some(ambiguity => getAmbiguityFieldLabel(ambiguity.field_path) === 'Location')
   const hasRoleDetails = role.role_summary !== null || role.responsibilities.length > 0
   const notice = hasLocationAmbiguity ? 'Location needs review' : 'Extraction needs review'
   const noticeId = `${titleId}-review-notice`
@@ -52,7 +62,7 @@ export function PostingCandidateReview({ posting, titleId }: { posting: ParsedPo
             <ul className="posting-candidate-review__entries">
               {ambiguities.map((ambiguity, index) => (
                 <li key={`${ambiguity.field_path}-${index}`}>
-                  <strong>{isLocationAmbiguity(ambiguity.field_path) ? 'Location' : 'Uncertain field'}</strong>
+                  <strong>{getAmbiguityFieldLabel(ambiguity.field_path)}</strong>
                   <p>{ambiguity.description}</p>
                   {ambiguity.alternatives.length > 0 && <>
                     <p>Alternatives</p>
