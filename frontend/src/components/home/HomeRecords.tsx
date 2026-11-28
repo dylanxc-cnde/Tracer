@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { IconBuilding, IconCalendarEvent, IconFileText, IconMail, IconPlus } from '@tabler/icons-react'
 import { PostingCardDetails } from '../posting-card/details/PostingCardDetails'
 import { visiblePostingText } from '../posting-card/details/PostingCardFormatters'
@@ -180,9 +180,17 @@ const applicationStatusLabels: Record<ApplicationStatus, string> = {
   applied: 'Applied', interviewing: 'Interviewing', offer: 'Offer', rejected: 'Rejected', withdrawn: 'Withdrawn',
 }
 
-type LinkedJobRead = { eventId: string; cardKey: string; error?: string }
+type LinkedJobRead = { sourceKey: string; cardKey: string; error?: string }
+type CardOpener = { trigger: HTMLButtonElement; sourceKey?: string }
 
-function ApplicationRow({ record, title, refresh }: { record: ApplicationRecord; title: string; refresh: HomeRecordsRefresh }) {
+function canUseCardOpener({ trigger, sourceKey }: CardOpener) {
+  return trigger.isConnected && trigger.closest('details:not([open])') === null &&
+    (sourceKey === undefined || trigger.dataset.jobSource === sourceKey)
+}
+
+function ApplicationRow({ record, title, refresh, linkedJobAction }: {
+  record: ApplicationRecord; title: string; refresh: HomeRecordsRefresh; linkedJobAction: ReactNode
+}) {
   const [draft, setDraft] = useState<{ initial: ApplicationStatus; status: ApplicationStatus } | null>(null)
   const [receipt, setReceipt] = useState<{ previous: ApplicationRecord; status: ApplicationStatus } | null>(null)
   const latestRecord = useRef(record)
@@ -254,8 +262,11 @@ function ApplicationRow({ record, title, refresh }: { record: ApplicationRecord;
       <span className="home-page__application-row-copy">
         <strong id={titleId}>{title}</strong> · {savedStatus} · <time dateTime={record.applied_on}>{dateFact(record.applied_on)}</time>
       </span>
-      {!isEditing && <button ref={action} type="button" className="home-page__record-action" aria-describedby={titleId}
-        onClick={handleChangeStatus} disabled={write.pending}>Change status</button>}
+      <div className="home-page__record-actions">
+        {linkedJobAction}
+        {!isEditing && <button ref={action} type="button" className="home-page__record-action" aria-describedby={titleId}
+          onClick={handleChangeStatus} disabled={write.pending}>Change status</button>}
+      </div>
     </div>
     {isEditing && <form ref={editor} tabIndex={-1} className="home-page__record-form home-page__application-status-form"
       aria-label="Change application status" aria-describedby={titleId} onSubmit={handleSubmit}>
@@ -292,8 +303,9 @@ export function HomeRecords({ data, today, refresh, homeIntent }: {
   const jobsGuard = useRef(false)
   const applicationHeading = useRef<HTMLHeadingElement>(null)
   const applicationHistory = useRef<HTMLDetailsElement>(null)
+  const applicationHistorySummary = useRef<HTMLElement>(null)
   const eventHeading = useRef<HTMLHeadingElement>(null)
-  const opener = useRef<HTMLElement | null>(null)
+  const opener = useRef<CardOpener | null>(null)
   const confirmedApplication = applicationEditor?.kind === 'fixed'
     ? data.applications.find(({ record }) => record.card_key === applicationEditor.card.card_key)?.record
     : undefined
@@ -309,7 +321,6 @@ export function HomeRecords({ data, today, refresh, homeIntent }: {
   }, [alreadyRecorded])
   async function openApplication(key: string) {
     if (jobsGuard.current) return
-    opener.current = document.activeElement as HTMLElement
     setApplicationEditor({ kind: 'choose', cardKey: key })
     setJobsError(null)
     setJobsLoading(true)
@@ -330,23 +341,42 @@ export function HomeRecords({ data, today, refresh, homeIntent }: {
     setEventEditor(null)
     requestAnimationFrame(() => eventHeading.current?.focus({ preventScroll: true }))
   }
-  async function handleOpenLinkedJob(event: ScheduleEvent, trigger: HTMLButtonElement) {
-    const cardKey = event.card_key
-    if (!cardKey || (pendingLinkedJob.current?.eventId === event.event_id && pendingLinkedJob.current.cardKey === cardKey)) return
+  function handleApplicationHistorySummary() {
+    const request = pendingLinkedJob.current
+    if (!applicationHistory.current?.open || !request?.sourceKey.startsWith('application:')) return
+    request.controller.abort()
+    pendingLinkedJob.current = null
+    setLinkedJobRead(null)
+  }
+  function handleCloseOpenedCard() {
+    const previousOpener = opener.current
+    opener.current = null
+    setOpenedCard(null)
+    requestAnimationFrame(() => {
+      if (!previousOpener || (document.activeElement !== document.body && document.activeElement !== previousOpener.trigger)) return
+      if (canUseCardOpener(previousOpener)) {
+        previousOpener.trigger.focus({ preventScroll: true })
+      } else if (previousOpener.sourceKey?.startsWith('application:')) {
+        (applicationHistorySummary.current ?? applicationHeading.current)?.focus({ preventScroll: true })
+      }
+    })
+  }
+  async function handleOpenLinkedJob(sourceKey: string, cardKey: string, trigger: HTMLButtonElement) {
+    if (pendingLinkedJob.current?.sourceKey === sourceKey && pendingLinkedJob.current.cardKey === cardKey) return
     pendingLinkedJob.current?.controller.abort()
-    const request = { eventId: event.event_id, cardKey, controller: new AbortController() }
+    const request = { sourceKey, cardKey, controller: new AbortController() }
     pendingLinkedJob.current = request
-    setLinkedJobRead({ eventId: event.event_id, cardKey })
-    const stillLinked = () => trigger.isConnected && trigger.value === cardKey
+    setLinkedJobRead({ sourceKey, cardKey })
+    const stillLinked = () => canUseCardOpener({ trigger, sourceKey }) && trigger.value === cardKey
     try {
       const card = await getPostingCard(cardKey, request.controller.signal)
       if (request.controller.signal.aborted || !stillLinked()) return
-      opener.current = trigger
+      opener.current = { trigger, sourceKey }
       setOpenedCard(card)
       setLinkedJobRead(null)
     } catch (error) {
       if (request.controller.signal.aborted || !stillLinked()) return
-      setLinkedJobRead({ eventId: event.event_id, cardKey, error: error instanceof MissingPostingCardError
+      setLinkedJobRead({ sourceKey, cardKey, error: error instanceof MissingPostingCardError
         ? 'This linked job is no longer available.' : 'Could not open the linked job. Try again.' })
     } finally {
       if (pendingLinkedJob.current === request) {
@@ -355,14 +385,14 @@ export function HomeRecords({ data, today, refresh, homeIntent }: {
       }
     }
   }
-  function renderLinkedJobAction(event: ScheduleEvent, missing: boolean) {
-    if (!event.card_key || missing) return null
-    const read = linkedJobRead?.eventId === event.event_id && linkedJobRead.cardKey === event.card_key ? linkedJobRead : null
+  function renderLinkedJobAction(sourceKey: string, cardKey: string | null, title: string, missing: boolean) {
+    if (!cardKey || missing) return null
+    const read = linkedJobRead?.sourceKey === sourceKey && linkedJobRead.cardKey === cardKey ? linkedJobRead : null
     const opening = read !== null && !read.error
     return <>
-      <button type="button" className="home-page__record-action" aria-label={`View linked job: ${event.title}`}
-        aria-haspopup="dialog" aria-disabled={opening} value={event.card_key}
-        onClick={(e) => { if (!opening) void handleOpenLinkedJob(event, e.currentTarget) }}>
+      <button type="button" className="home-page__record-action" aria-label={`View linked job: ${title}`}
+        aria-haspopup="dialog" aria-disabled={opening} value={cardKey} data-job-source={sourceKey}
+        onClick={(e) => { if (!opening) void handleOpenLinkedJob(sourceKey, cardKey, e.currentTarget) }}>
         {opening ? 'Opening…' : 'View linked job'}
       </button>
       {read?.error && <span role="alert">{read.error}</span>}
@@ -381,7 +411,7 @@ export function HomeRecords({ data, today, refresh, homeIntent }: {
           <span className="home-page__eyebrow">Next up · {nextEvent.event.kind}</span><strong>{nextEvent.event.title}</strong>
           <span>{dateTime(nextEvent.event.starts_at)}{nextEvent.card_missing ? ' · Job deleted' : ''}</span>
           <button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor({ kind: 'adjust', event: nextEvent.event })}>Adjust event</button>
-          {renderLinkedJobAction(nextEvent.event, nextEvent.card_missing)}
+          {renderLinkedJobAction(`today:${nextEvent.event.event_id}`, nextEvent.event.card_key, nextEvent.event.title, nextEvent.card_missing)}
         </article> : <p className="home-page__empty">No more events scheduled today. Add one in Upcoming.</p>}
         <TaskForm today={today} refresh={refresh} />
         <ul className="home-page__task-list home-page__stable-list" aria-label="Today's tasks">{data.today.tasks.map(t => <TaskRow key={t.task_id} task={t} refresh={refresh} />)}</ul>
@@ -397,7 +427,7 @@ export function HomeRecords({ data, today, refresh, homeIntent }: {
           {item.event && <div className="home-page__record-actions">
             <button className="home-page__record-action" type="button" disabled={eventEditor !== null}
               onClick={() => { if (item.event) setEventEditor({ kind: 'adjust', event: item.event }) }}>Adjust</button>
-            {renderLinkedJobAction(item.event, item.cardMissing)}
+            {renderLinkedJobAction(`upcoming:${item.event.event_id}`, item.event.card_key, item.event.title, item.cardMissing)}
           </div>}
         </li>)}</ul>}
       </section>
@@ -416,13 +446,15 @@ export function HomeRecords({ data, today, refresh, homeIntent }: {
           : jobs?.length ? <ApplicationForm jobs={jobs} editor={applicationEditor} today={today} refresh={refresh} close={closeApplication} />
           : <p className="home-page__empty">Save a job in Import posting first, then return here to record an application. <button className="home-page__record-action" type="button" onClick={closeApplication}>Close</button></p>}
       </div>}
-      {data.applications.length > 0 && <details className="home-page__application-history" ref={applicationHistory}><summary>Recorded applications ({data.applications.length})</summary><ul>{data.applications.map(({ record, card_missing, card_title }) => {
+      {data.applications.length > 0 && <details className="home-page__application-history" ref={applicationHistory}>
+        <summary ref={applicationHistorySummary} onClick={handleApplicationHistorySummary}>Recorded applications ({data.applications.length})</summary><ul>{data.applications.map(({ record, card_missing, card_title }) => {
         const confirmedTitle = visiblePostingText(card_title)
         const handedOffCard = applicationJob?.card_key === record.card_key ? applicationJob : undefined
         const card = confirmedTitle ? undefined : handedOffCard ??
           data.recent_jobs.find(j => j.card.card_key === record.card_key)?.card ?? jobs?.find(j => j.card_key === record.card_key)
         const title = card_missing ? 'Job deleted' : confirmedTitle ?? (card ? jobTitle(card) : 'Saved job')
-        return <ApplicationRow key={record.application_id} record={record} title={title} refresh={refresh} />
+        return <ApplicationRow key={record.application_id} record={record} title={title} refresh={refresh}
+          linkedJobAction={renderLinkedJobAction(`application:${record.application_id}`, record.card_key, title, card_missing)} />
       })}</ul></details>}
     </section>
     <section className="home-page__recent-jobs" aria-labelledby="home-recent-jobs-title"><div className="home-page__section-heading"><h2 className="home-page__section-title" id="home-recent-jobs-title">Recent jobs</h2><span className="home-page__count">Latest saved jobs</span></div>
@@ -430,10 +462,10 @@ export function HomeRecords({ data, today, refresh, homeIntent }: {
         pendingLinkedJob.current?.controller.abort()
         pendingLinkedJob.current = null
         setLinkedJobRead(null)
-        opener.current = event.currentTarget
+        opener.current = { trigger: event.currentTarget }
         setOpenedCard(card)
       }}>{jobTitle(card)}</button><span>{card.posting.identity.company_name?.value || 'Company not specified'}</span><span>{application ? `Application: ${application.status}` : 'Saved · No application recorded'}</span></div>{!application && <button className="home-page__record-action" type="button" disabled={applicationEditor !== null} onClick={() => void openApplication(card.card_key)}>Record application</button>}</li>)}</ul>}
     </section>
-    {openedCard && <PostingCardDetails card={openedCard} isReadOnly onUpdate={async () => { throw new Error('Edit this job in Card library.') }} onClose={() => { setOpenedCard(null); requestAnimationFrame(() => opener.current?.focus({ preventScroll: true })) }} />}
+    {openedCard && <PostingCardDetails card={openedCard} isReadOnly onUpdate={async () => { throw new Error('Edit this job in Card library.') }} onClose={handleCloseOpenedCard} />}
   </>
 }

@@ -920,6 +920,129 @@ test('R004-03 old Home overviews still render recorded applications without extr
 })
 
 for (const viewport of VIEWPORTS) {
+  test(`Home opens current jobs from older recorded applications at ${viewport.width}×${viewport.height}`, async ({ page, context, baseURL }, testInfo) => {
+    const tablet = viewport.width === 900
+    if (tablet) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const older = cardOf(6, LONG_TITLE, LONG_COMPANY)
+    const currentTitle = `${LONG_TITLE} – aktualisiert`
+    const current = cardOf(6, currentTitle, `${LONG_COMPANY} – Standort Nord`)
+    const recentCards = Array.from({ length: 5 }, (_, index) => cardOf(index + 1, `Neuere gespeicherte Stelle ${index + 1} (DEMO)`, LONG_COMPANY))
+    const applications = [
+      { application_id: uuid(650), card_key: older.card_key, status: 'interviewing' },
+      { application_id: uuid(651), card_key: uuid(999), status: 'withdrawn' },
+    ].map(record => ({ ...record, applied_on: dateOf(-2), created_at: iso(-2, 9), updated_at: iso(-2, 9) }))
+    const state = makeState({ cards: [...recentCards, older], applications })
+    const detailPath = `/posting/card/${older.card_key}`
+    const detailRead = `GET ${detailPath}`
+    const postingReads = () => state.calls.filter(call => call.startsWith('GET /posting/'))
+    const held = deferred()
+    const replied = deferred()
+    const diagnostics = []
+    page.on('pageerror', error => diagnostics.push({ type: 'pageerror', text: error.message }))
+    page.on('console', message => {
+      if (['error', 'warning'].includes(message.type())) {
+        diagnostics.push({ type: message.type(), url: message.location().url, text: message.text() })
+      }
+    })
+    await installHome({ context, baseURL, state, routes: {
+      [detailRead]: async route => {
+        const reads = count(state, detailRead)
+        if (reads === 1 && tablet) {
+          await held.promise
+          try { await route.fulfill({ json: older }) } finally { replied.resolve() }
+          return
+        }
+        if (reads === 1) return route.fulfill({ status: 503, json: { detail: 'Synthetic detail outage' } })
+        if (!tablet && reads === 3) return route.fulfill({ status: 404, json: { detail: 'Posting card not found' } })
+        return route.fulfill({ json: current })
+      },
+    } })
+    await openHome(page, viewport)
+    const history = region(page, 'Your search').locator('details.home-page__application-history')
+    const summary = history.getByText('Recorded applications (2)', { exact: true })
+    const row = history.getByRole('listitem').filter({ hasText: LONG_TITLE })
+    const missingRow = history.getByRole('listitem').filter({ hasText: 'Job deleted · withdrawn' })
+    const opener = row.getByRole('button', { name: `View linked job: ${LONG_TITLE}`, exact: true })
+    const dialog = page.getByRole('dialog')
+    await expect(page.getByRole('list', { name: 'Recent saved jobs', exact: true })).not.toContainText(LONG_TITLE)
+    await summary.press('Enter')
+    await expect(opener).toHaveText('View linked job')
+    await expect(missingRow).toBeVisible()
+    await expect(missingRow.getByRole('button', { name: /View linked job/ })).toHaveCount(0)
+    expect(postingReads()).toEqual([])
+    await history.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath('older-application-actions.png'), animations: 'disabled' })
+
+    try {
+      await opener.press('Enter')
+      await expect.poll(postingReads).toEqual([detailRead])
+      if (tablet) {
+        await summary.press('Enter')
+        await expect(history).not.toHaveAttribute('open', '')
+        await summary.press('Enter')
+        await expect(history).toHaveAttribute('open', '')
+        await expect(summary).toBeFocused()
+        await expect(dialog).toHaveCount(0)
+        expect(postingReads()).toEqual([detailRead])
+        await expect(opener).toBeEnabled()
+        await opener.press('Enter')
+        await expect(dialog.getByRole('heading', { name: currentTitle, exact: true })).toBeVisible()
+      } else {
+        await expect(history.getByRole('alert')).toHaveText('Could not open the linked job. Try again.')
+        await expect(opener).toBeFocused()
+      }
+    } finally {
+      held.resolve()
+    }
+    if (tablet) {
+      await replied.promise
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+      await expect(dialog.getByRole('heading', { name: LONG_TITLE, exact: true })).toHaveCount(0)
+    } else {
+      await expect(dialog).toHaveCount(0)
+      await page.keyboard.press('Enter')
+    }
+
+    await expect(dialog.getByRole('heading', { name: currentTitle, exact: true })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: 'Review match', exact: true })).toHaveCount(0)
+    await page.screenshot({ path: testInfo.outputPath('older-application-current-card.png'), animations: 'disabled' })
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(opener).toBeFocused()
+    expect(postingReads()).toEqual([detailRead, detailRead])
+
+    if (!tablet) {
+      state.cards = state.cards.filter(card => card.card_key !== older.card_key)
+      await page.keyboard.press('Enter')
+      await expect(history.getByRole('alert')).toHaveText('This linked job is no longer available.')
+      await expect(dialog).toHaveCount(0)
+      await page.getByRole('button', { name: 'Refresh Home', exact: true }).press('Enter')
+      await expect(history.getByRole('listitem').filter({ hasText: 'Job deleted · interviewing' })).toBeVisible()
+      await expect(history.getByRole('button', { name: /View linked job/ })).toHaveCount(0)
+      expect(postingReads()).toEqual([detailRead, detailRead, detailRead])
+      expect(diagnostics.length).toBeLessThanOrEqual(2)
+      for (const diagnostic of diagnostics) {
+        expect(diagnostic).toEqual({ type: 'error', url: `${API}${detailPath}`, text: expect.stringMatching(/503|404/) })
+      }
+    } else {
+      await page.keyboard.press('Enter')
+      await expect(dialog.getByRole('heading', { name: currentTitle, exact: true })).toBeVisible()
+      state.cards = state.cards.filter(card => card.card_key !== older.card_key)
+      await page.clock.setFixedTime(dayAt(1, 0, 1))
+      await expect(history.locator('li').filter({ hasText: 'Job deleted · interviewing' })).toHaveCount(1)
+      await page.keyboard.press('Escape')
+      await expect(dialog).toHaveCount(0)
+      await expect(summary).toBeFocused()
+      expect(postingReads()).toEqual([detailRead, detailRead, detailRead])
+      expect(diagnostics).toEqual([])
+    }
+    expect(state.writes).toEqual([])
+    expect(state.unexpected).toEqual([])
+  })
+}
+
+for (const viewport of VIEWPORTS) {
   test(`R004-03 older applications have distinct job names at ${viewport.width}×${viewport.height}`, async ({ page, context, baseURL }, testInfo) => {
     const oldAlias = 'Übersicht zur Werkstudentenstelle für datengestützte Fahrgastinformation und barrierefreie Verkehrsplanung (DEMO)'
     const oldTitle = 'Praktikum (m/w/d) für Planung kommunaler Energieversorgungsnetze und nachhaltige Infrastruktur in Berlin (DEMO)'
