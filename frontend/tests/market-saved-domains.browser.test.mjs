@@ -29,21 +29,33 @@ const cards = [
   savedCard(5, 'Werkstudentin für abteilungsübergreifende Aufgaben (DEMO)', [' ', '\t']),
 ]
 
-async function enterMarket({ page, context, baseURL }, savedCards) {
+const positionTitle = card => card.posting.identity.position_title.value
+const cardPath = card => `${CARDS}/${card.card_key}`
+
+async function enterMarket({ page, context, baseURL }, savedCards, details = {}) {
   const calls = []
   const unexpected = []
   const diagnostics = []
-  page.on('pageerror', error => diagnostics.push(error.message))
+  page.on('pageerror', error => diagnostics.push({ type: 'pageerror', text: error.message }))
   page.on('console', message => {
-    if (['error', 'warning'].includes(message.type())) diagnostics.push(message.text())
+    if (['error', 'warning'].includes(message.type())) {
+      diagnostics.push({ type: message.type(), url: message.location().url, text: message.text() })
+    }
   })
   await context.route('**/*', async route => {
     const request = route.request()
     const url = new URL(request.url())
-    if (url.origin === API && request.method() === 'GET' && url.pathname === CARDS && !url.search) {
-      calls.push(url.pathname)
-      await route.fulfill({ json: savedCards })
-      return
+    if (url.origin === API && request.method() === 'GET' && !url.search) {
+      if (url.pathname === CARDS) {
+        calls.push(url.pathname)
+        await route.fulfill({ json: savedCards })
+        return
+      }
+      if (Object.hasOwn(details, url.pathname)) {
+        calls.push(url.pathname)
+        await details[url.pathname](route)
+        return
+      }
     }
     if (url.origin === baseURL && request.method() === 'GET' && !['fetch', 'xhr'].includes(request.resourceType())) {
       await route.continue()
@@ -139,3 +151,162 @@ for (const { label, savedCards } of [
     expect(diagnostics).toEqual([])
   })
 }
+
+const domainControl = (chart, domain, count) => chart.getByRole('button', { name: `${domain} ${count} of 5`, exact: true })
+const savedJobControl = (group, card) => group.getByRole('button', { name: `View saved job: ${positionTitle(card)}`, exact: true })
+
+async function expectContributors(chart, name, contributors) {
+  const list = chart.getByRole('list', { name, exact: true })
+  await expect(list.getByRole('listitem')).toHaveCount(contributors.length)
+  for (const card of contributors) {
+    await expect(savedJobControl(list, card)).toBeVisible()
+  }
+  return list
+}
+
+for (const width of [1440, 900]) {
+  test(`Market role-domain drilldown shows exactly the contributing Cards at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const saved = cards[0]
+    const fresh = structuredClone(saved)
+    fresh.posting.identity.position_title.value += ' – aktualisiert'
+    const { summary, chart, calls, unexpected, diagnostics } = await enterMarket({ page, context, baseURL }, cards, {
+      [cardPath(saved)]: route => route.fulfill({ json: fresh }),
+    })
+    await summary.press('Enter')
+    const data = domainControl(chart, 'Datenanalyse', 3)
+    const mobility = domainControl(chart, LONG_DOMAIN, 2)
+    const missing = domainControl(chart, MISSING, 2)
+    await expect(data).toHaveAttribute('aria-expanded', 'false')
+    await page.keyboard.press('Tab')
+    await expect(data).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(data).toBeFocused()
+    await expect(data).toHaveAttribute('aria-expanded', 'true')
+    const dataList = await expectContributors(chart, 'Saved Cards in Datenanalyse', cards.slice(0, 3))
+    expect(calls).toEqual([CARDS])
+    await dataList.scrollIntoViewIfNeeded()
+    expect(await chart.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('role-domain-contributing-cards.png'), animations: 'disabled' })
+
+    const opener = savedJobControl(dataList, saved)
+    await page.keyboard.press('Tab')
+    await expect(opener).toBeFocused()
+    await page.keyboard.press('Enter')
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('heading', { name: positionTitle(fresh), exact: true })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: 'Review match', exact: true })).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(opener).toBeFocused()
+
+    await mobility.press('Enter')
+    await expect(data).toHaveAttribute('aria-expanded', 'false')
+    await expect(dataList).toHaveCount(0)
+    await expect(mobility).toBeFocused()
+    await expectContributors(chart, `Saved Cards in ${LONG_DOMAIN}`, cards.slice(0, 2))
+
+    await missing.press('Enter')
+    await expect(mobility).toHaveAttribute('aria-expanded', 'false')
+    await expect(missing).toHaveAttribute('aria-expanded', 'true')
+    const missingList = await expectContributors(chart, MISSING, cards.slice(3))
+    await page.keyboard.press('Enter')
+    await expect(missingList).toHaveCount(0)
+    await expect(missing).toBeFocused()
+    expect(calls).toEqual([CARDS, cardPath(saved)])
+    expect(unexpected).toEqual([])
+    expect(diagnostics).toEqual([])
+  })
+}
+
+for (const action of ['switching groups', 'collapsing the chart']) {
+  test(`Market role-domain drilldown ignores pending details after ${action}`, async ({ page, context, baseURL }) => {
+    const held = Promise.withResolvers()
+    const replied = Promise.withResolvers()
+    const saved = cards[0]
+    const path = cardPath(saved)
+    const { summary, chart, calls, unexpected, diagnostics } = await enterMarket({ page, context, baseURL }, cards, {
+      [path]: async route => {
+        try {
+          await held.promise
+          await route.fulfill({ json: saved })
+        } finally {
+          replied.resolve()
+        }
+      },
+    })
+    const data = domainControl(chart, 'Datenanalyse', 3)
+    const mobility = domainControl(chart, LONG_DOMAIN, 2)
+    try {
+      await summary.press('Enter')
+      await data.press('Enter')
+      const list = await expectContributors(chart, 'Saved Cards in Datenanalyse', cards.slice(0, 3))
+      await savedJobControl(list, saved).press('Enter')
+      await expect.poll(() => calls).toEqual([CARDS, path])
+      if (action === 'switching groups') {
+        await mobility.press('Enter')
+        await expect(list).toHaveCount(0)
+      } else {
+        await summary.press('Enter')
+        await expect(chart).not.toHaveAttribute('open', '')
+      }
+    } finally {
+      held.resolve()
+    }
+
+    await replied.promise
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(chart.getByRole('alert')).toHaveCount(0)
+    if (action === 'switching groups') {
+      const list = await expectContributors(chart, `Saved Cards in ${LONG_DOMAIN}`, cards.slice(0, 2))
+      await expect(savedJobControl(list, saved)).toBeEnabled()
+      await expect(mobility).toBeFocused()
+    } else {
+      await summary.press('Enter')
+      await expect(data).toHaveAttribute('aria-expanded', 'false')
+      await expect(chart.getByRole('list', { name: 'Saved Cards in Datenanalyse', exact: true })).toHaveCount(0)
+    }
+    expect(calls).toEqual([CARDS, path])
+    expect(unexpected).toEqual([])
+    expect(diagnostics).toEqual([])
+  })
+}
+
+test('Market role-domain drilldown retries a failed Card read from the same keyboard opener', async ({ page, context, baseURL }) => {
+  const saved = cards[0]
+  const path = cardPath(saved)
+  let attempts = 0
+  const { summary, chart, calls, unexpected, diagnostics } = await enterMarket({ page, context, baseURL }, cards, {
+    [path]: route => ++attempts === 1
+      ? route.fulfill({ status: 503, json: { detail: 'Synthetic detail failure' } })
+      : route.fulfill({ json: saved }),
+  })
+  await summary.press('Enter')
+  await domainControl(chart, 'Datenanalyse', 3).press('Enter')
+  const list = chart.getByRole('list', { name: 'Saved Cards in Datenanalyse', exact: true })
+  const opener = savedJobControl(list, saved)
+  await opener.press('Enter')
+  const alert = list.getByRole('alert')
+  const dialog = page.getByRole('dialog')
+  await expect(alert).toHaveText('Could not open the saved job. Try again.')
+  await expect(dialog).toHaveCount(0)
+  await expect(opener).toBeFocused()
+  expect(calls).toEqual([CARDS, path])
+
+  await page.keyboard.press('Enter')
+  await expect(dialog.getByRole('heading', { name: positionTitle(saved), exact: true })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
+  await expect(alert).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(opener).toBeFocused()
+  expect(calls).toEqual([CARDS, path, path])
+  expect(unexpected).toEqual([])
+  expect(diagnostics.length).toBeLessThanOrEqual(1)
+  for (const diagnostic of diagnostics) {
+    expect(diagnostic).toEqual({ type: 'error', url: API + path, text: expect.stringContaining('503') })
+  }
+})

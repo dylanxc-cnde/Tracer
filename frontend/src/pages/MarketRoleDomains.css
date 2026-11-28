@@ -10,7 +10,8 @@
   cursor: pointer;
 }
 
-.market-role-domains > summary:focus-visible {
+.market-role-domains > summary:focus-visible,
+.market-role-domains__toggle:focus-visible {
   outline: 2px solid var(--color-action-primary);
   outline-offset: 3px;
 }
@@ -43,6 +44,35 @@
   overflow-wrap: anywhere;
 }
 
+.market-role-domains__toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  width: 100%;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.market-role-domains__toggle svg {
+  align-self: center;
+  width: 16px;
+  height: 16px;
+}
+
+.market-role-domains__toggle:hover,
+.market-role-domains__toggle[aria-expanded='true'] {
+  background-color: var(--color-action-soft);
+}
+
+.market-role-domains__toggle[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
 .market-role-domains__count {
   flex: none;
   margin: 0;
@@ -70,4 +100,15 @@
   padding-top: 10px;
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-secondary);
+}
+
+.market-role-domains__missing-values {
+  margin: 0;
+}
+
+.market-role-domains__evidence.market-page__jobs {
+  margin: 10px 0 4px;
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid var(--color-border-subtle);
+  animation: none;
 }

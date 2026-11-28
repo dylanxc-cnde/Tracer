@@ -12,7 +12,7 @@ type SavedJobs =
   | { status: 'loading' | 'failed' }
   | { status: 'ready'; cards: PostingCard[] }
 
-type DetailScope = 'related' | 'watchlist'
+type DetailScope = 'related' | 'watchlist' | 'role-domains'
 type Detail = (MarketJobRead | { status: 'opened'; card: PostingCard; opener: HTMLButtonElement }) & { scope: DetailScope }
 
 export function MarketPage() {
@@ -188,7 +188,12 @@ export function MarketPage() {
           })}
         </ul>}
       </section>
-      {savedJobs.status === 'ready' && <MarketRoleDomains cards={savedJobs.cards} />}
+      {savedJobs.status === 'ready' && <MarketRoleDomains
+        cards={savedJobs.cards}
+        detailRead={detail?.scope === 'role-domains' && detail.status !== 'opened' ? detail : null}
+        onOpenJob={(cardKey, opener) => void handleOpenJob(cardKey, opener, 'role-domains')}
+        onDismiss={() => dismissDetails('role-domains')}
+      />}
       {detail?.status === 'opened' && <PostingCardDetails
         card={detail.card}
         isReadOnly
