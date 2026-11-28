@@ -133,6 +133,7 @@ export function MarketPage() {
       const card = await getPostingCard(cardKey, request.controller.signal)
       if (isCurrent()) {
         reconcileSavedJob(cardKey, card)
+        watchlist.current?.observeCardIdentity(cardKey, card)
         setDetail({ status: 'opened', card, focusTargets, scope })
       }
     } catch (error) {
@@ -140,6 +141,7 @@ export function MarketPage() {
         const missing = error instanceof MissingPostingCardError
         if (missing) {
           reconcileSavedJob(cardKey)
+          watchlist.current?.observeCardIdentity(cardKey, null)
           setReferenceKey((current) => current === cardKey ? '' : current)
         }
         setDetail({

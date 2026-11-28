@@ -113,10 +113,17 @@ export type PostingSourceCheck = RecordPostingSourceCheckRequest & {
 
 export type PostingSourceObservation = Pick<PostingSourceCheck, 'result' | 'recorded_at'>
 
+export type WatchedPostingCardIdentity = {
+  posting_alias: string | null
+  position_title: string | null
+  company_name: string | null
+}
+
 export type WatchedPostingCard = {
   card_key: string
   watch_id: string
   watched_at: string
+  card_identity?: WatchedPostingCardIdentity | null
   last_source_check?: PostingSourceObservation | null
 }
 

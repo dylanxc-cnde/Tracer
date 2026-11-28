@@ -1,8 +1,9 @@
 import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Ref, SyntheticEvent } from 'react'
+import { visiblePostingText } from '../components/posting-card/details/PostingCardFormatters'
 import { changePostingWatch, getPostingWatchlist, MissingPostingCardError, PostingWatchlistChangedError, PostingWatchlistUncertainError } from '../postings/api/postings'
 import { postingSourceCheckLabels } from '../postings/sourceCheckLabels'
-import type { PostingCard, PostingSourceObservation, PostingWatchChange, WatchedPostingCard } from '../postings/types/postingCard'
+import type { PostingCard, PostingSourceObservation, PostingWatchChange, WatchedPostingCard, WatchedPostingCardIdentity } from '../postings/types/postingCard'
 import { savedJobCompany, savedJobTitle } from './marketJobs'
 import type { MarketJobRead } from './marketJobs'
 import './MarketWatchlist.css'
@@ -11,6 +12,7 @@ type Recovery = { change: PostingWatchChange; status: 'check' | 'retry' | 'chang
 type Feedback = { error: boolean; message: string }
 
 export type MarketWatchlistHandle = {
+  observeCardIdentity: (cardKey: string, card: PostingCard | null) => void
   observeSourceCheck: (cardKey: string, observation: PostingSourceObservation) => void
 }
 
@@ -47,6 +49,24 @@ function keepLatestProjection(row: WatchedPostingCard, previous: WatchedPostingC
   return latest === row.last_source_check ? row : { ...row, last_source_check: latest }
 }
 
+function cardIdentity(card: PostingCard): WatchedPostingCardIdentity {
+  return {
+    posting_alias: card.posting_alias,
+    position_title: card.posting.identity.position_title?.value ?? null,
+    company_name: card.posting.identity.company_name?.value ?? null,
+  }
+}
+
+function watchJobPresentation(row: WatchedPostingCard | undefined, cachedCard: PostingCard | undefined) {
+  // An explicit null from the Watchlist is authoritative even if the library has an older Card.
+  const identity = row?.card_identity !== undefined ? row.card_identity : cachedCard && cardIdentity(cachedCard)
+  const title = identity
+    ? visiblePostingText(identity.posting_alias) ?? visiblePostingText(identity.position_title) ?? 'Unknown position'
+    : 'Saved job details unavailable'
+  const company = visiblePostingText(identity?.company_name)
+  return { title, company, actionName: company ? `${title} at ${company}` : title, available: Boolean(identity) }
+}
+
 export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }: WatchlistProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [watched, setWatched] = useState<WatchedPostingCard[] | null>(null)
@@ -57,11 +77,20 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
   const [recovery, setRecovery] = useState<Recovery | null>(null)
   const [feedback, setFeedback] = useState<Feedback | null>(null)
   const active = useRef(false)
-  const readRequest = useRef<AbortController>(null)
+  const readRequest = useRef<{
+    controller: AbortController
+    observedIdentities: Map<string, WatchedPostingCardIdentity | null>
+  }>(null)
   const writing = useRef(false)
   const summary = useRef<HTMLElement>(null)
 
   useImperativeHandle(ref, () => ({
+    observeCardIdentity(cardKey, card) {
+      const identity = card ? cardIdentity(card) : null
+      readRequest.current?.observedIdentities.set(cardKey, identity)
+      setWatched((current) => current?.map((row) =>
+        row.card_key === cardKey ? { ...row, card_identity: identity } : row) ?? current)
+    },
     observeSourceCheck(cardKey, observation) {
       if (!summary.current?.closest('details')?.open) return
       setWatched((current) => {
@@ -78,7 +107,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
     active.current = true
     return () => {
       active.current = false
-      readRequest.current?.abort()
+      readRequest.current?.controller.abort()
     }
   }, [])
 
@@ -97,18 +126,23 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
 
   async function readWatchlist({ verify, trigger, replace }: ReadOptions = {}) {
     if (writing.current || (readRequest.current && !replace)) return
-    readRequest.current?.abort()
-    const request = new AbortController()
-    readRequest.current = request
+    readRequest.current?.controller.abort()
+    const controller = new AbortController()
+    const observedIdentities = new Map<string, WatchedPostingCardIdentity | null>()
+    readRequest.current = { controller, observedIdentities }
     setIsReading(true)
     if (recovery?.status === 'retry') setRecovery({ change: recovery.change, status: 'check' })
 
     try {
-      const rows = await getPostingWatchlist(request.signal)
-      if (request.signal.aborted) return
+      const rows = await getPostingWatchlist(controller.signal)
+      if (controller.signal.aborted) return
       setWatched((current) => {
         const previous = new Map(current?.map((row) => [row.card_key, row.last_source_check]))
-        return rows.map((row) => keepLatestProjection(row, previous.get(row.card_key)))
+        return rows.map((row) => {
+          const observed = observedIdentities.get(row.card_key)
+          const accepted = observed === undefined ? row : { ...row, card_identity: observed }
+          return keepLatestProjection(accepted, previous.get(row.card_key))
+        })
       })
       setReadError(false)
       if (verify) {
@@ -128,9 +162,9 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
       }
       returnFocus(trigger)
     } catch {
-      if (!request.signal.aborted) setReadError(true)
+      if (!controller.signal.aborted) setReadError(true)
     } finally {
-      if (!request.signal.aborted) {
+      if (!controller.signal.aborted) {
         readRequest.current = null
         setIsReading(false)
       }
@@ -144,7 +178,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
     if (open) {
       void readWatchlist({ replace: true })
     } else {
-      readRequest.current?.abort()
+      readRequest.current?.controller.abort()
       readRequest.current = null
       setIsReading(false)
       onDismiss()
@@ -159,6 +193,8 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
   const selectedCard = cardsByKey.get(selection)
   const canWatch = !editLocked && selectedCard !== undefined && !watchedKeys.has(selection)
   const pendingCard = recovery ? cardsByKey.get(recovery.change.cardKey) : undefined
+  const pendingRow = recovery ? watched?.find((row) => row.card_key === recovery.change.cardKey) : undefined
+  const pendingLabel = pendingRow || pendingCard ? watchJobPresentation(pendingRow, pendingCard).actionName : 'saved job'
 
   async function writeChange(change: PostingWatchChange, trigger: HTMLButtonElement) {
     if (!canChange || readRequest.current || writing.current) return
@@ -217,7 +253,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
           {feedback.message}
         </p>}
         {recovery && <div className="market-watchlist__recovery">
-          <p>{recovery.change.watching ? 'Watch' : 'Stop watching'} <strong>{pendingCard ? savedJobTitle(pendingCard) : 'saved job'}</strong></p>
+          <p>{recovery.change.watching ? 'Watch' : 'Stop watching'} <strong>{pendingLabel}</strong></p>
           {recovery.status === 'retry' ? <>
             <p role="status">The watchlist does not reflect this change.</p>
             <button className="market-page__action" type="button" aria-disabled={!canChange}
@@ -250,14 +286,14 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
         </div>}
         {watched && watched.length > 0 && <ul aria-label="Watched jobs" className="market-page__jobs">
           {watched.map((row) => {
-            const card = cardsByKey.get(row.card_key)
-            const title = card ? savedJobTitle(card) : 'Saved job details unavailable'
+            const { title, company, actionName, available } = watchJobPresentation(row, cardsByKey.get(row.card_key))
             const detail = detailRead?.cardKey === row.card_key ? detailRead : null
             const isOpening = detail?.status === 'loading'
+            const canStop = available && !editLocked
             return <li key={row.watch_id} className="market-page__job">
               <div className="market-page__job-copy">
                 <h3>{title}</h3>
-                {card && <p className="market-page__company">{savedJobCompany(card)}</p>}
+                {available && <p className="market-page__company">{company ?? 'Unknown company'}</p>}
                 <time dateTime={row.watched_at}>{new Date(row.watched_at).toLocaleString('en-GB', {
                   dateStyle: 'medium', timeStyle: 'short',
                 })}</time>
@@ -275,14 +311,14 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
                 </dl>}
               </div>
               <div className="market-watchlist__row-actions">
-                <button className="market-page__action" type="button" aria-label={`View saved job: ${title}`}
+                <button className="market-page__action" type="button" aria-label={`View saved job: ${actionName}`}
                   aria-haspopup="dialog" aria-disabled={isOpening}
                   onClick={(event) => onOpenJob(row.card_key, event.currentTarget)}>
                   {isOpening ? 'Opening…' : 'View saved job'}
                 </button>
-                <button className="market-page__action" type="button" aria-label={`Stop watching: ${title}`}
-                  aria-disabled={editLocked} onClick={(event) => {
-                    if (!editLocked) void writeChange({ cardKey: row.card_key, watching: false, watchId: row.watch_id }, event.currentTarget)
+                <button className="market-page__action" type="button" aria-label={`Stop watching: ${actionName}`}
+                  aria-disabled={!canStop} onClick={(event) => {
+                    if (canStop) void writeChange({ cardKey: row.card_key, watching: false, watchId: row.watch_id }, event.currentTarget)
                   }}>Stop watching</button>
               </div>
               {detail?.status === 'failed' && <p className="market-page__error" role="alert">{detail.message}</p>}

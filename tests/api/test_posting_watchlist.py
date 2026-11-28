@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.api.factories import make_posting_details
+from tests.api.factories import make_card_update_request, make_posting_details
 from tracer.api.app import create_app
 from tracer.postings.models.posting_card import PostingCard
 from tracer.postings.stores import posting_watchlist_store
@@ -31,9 +31,11 @@ def client(database_path):
         yield api
 
 
-def add_saved_card(store):
+def add_saved_card(store, *, posting_alias=None):
     # A saved Card remains watchable even without a surviving import receipt.
-    card = PostingCard(import_key=uuid4(), posting=make_posting_details())
+    card = PostingCard(
+        import_key=uuid4(), posting=make_posting_details(), posting_alias=posting_alias
+    )
     store.add(card)
     return str(card.card_key)
 
@@ -84,6 +86,11 @@ def test_watchlist_retains_first_membership_time_and_survives_app_reopen(databas
             "watch_id": watch_id,
             "watched_at": watched_at,
             "last_source_check": None,
+            "card_identity": {
+                "posting_alias": None,
+                "position_title": "Working Student Data Analytics",
+                "company_name": "Velora Grid Systems SE",
+            },
         }
         assert repeated.json() == first.json()
         assert client.get(WATCHLIST_PATH).json() == [second.json(), first.json()]
@@ -101,6 +108,65 @@ def test_watchlist_retains_first_membership_time_and_survives_app_reopen(databas
             assert removed.content == b""
         assert client.get(WATCHLIST_PATH).json() == [second.json()]
         assert client.get(f"/posting/card/{first_key}").json() == before
+
+
+def test_watchlist_projects_current_card_identity_after_correction(
+    client, database_path
+):
+    key = add_saved_card(PostingCardStore(database_path), posting_alias="Earlier alias")
+    watch_path = f"{WATCHLIST_PATH}/{key}"
+    watched = client.put(watch_path)
+    assert watched.status_code == 200
+    assert watched.json()["card_identity"]["posting_alias"] == "Earlier alias"
+
+    card_path = f"/posting/card/{key}"
+    corrected = {
+        "posting_alias": "Meine Auswahl",
+        "position_title": "Werkstudentin für Datenanalyse",
+        "company_name": "Verkehrsverbund Dresden (DEMO)",
+    }
+    cleared = dict.fromkeys(corrected)
+    for identity in (corrected, cleared):
+        response = client.patch(card_path, json=make_card_update_request(**identity))
+        assert response.status_code == 200
+        expected = {**watched.json(), "card_identity": identity}
+        assert client.get(WATCHLIST_PATH).json() == [expected]
+        assert client.put(watch_path).json() == expected
+
+
+@pytest.mark.parametrize(
+    "damaged_payload", ['{"posting_alias":', '{"posting_alias":7}']
+)
+def test_damaged_card_alias_does_not_break_watchlist(
+    client, database_path, damaged_payload
+):
+    cards = PostingCardStore(database_path)
+    damaged_key = add_saved_card(cards, posting_alias="Lost alias")
+    healthy_key = add_saved_card(cards, posting_alias="Meine Auswahl")
+    damaged_path = f"{WATCHLIST_PATH}/{damaged_key}"
+    damaged = client.put(damaged_path)
+    healthy = client.put(f"{WATCHLIST_PATH}/{healthy_key}")
+    assert damaged.status_code == healthy.status_code == 200
+
+    with closing(sqlite3.connect(database_path)) as database, database:
+        database.execute(
+            "UPDATE posting_cards SET payload_json = ? WHERE card_key = ?",
+            (damaged_payload, damaged_key),
+        )
+
+    expected_damaged = {
+        **damaged.json(),
+        "card_identity": {
+            "posting_alias": None,
+            "position_title": "Working Student Data Analytics",
+            "company_name": "Velora Grid Systems SE",
+        },
+    }
+    response = client.get(WATCHLIST_PATH)
+    assert response.status_code == 200
+    assert response.json() == [healthy.json(), expected_damaged]
+    assert healthy.json()["card_identity"]["posting_alias"] == "Meine Auswahl"
+    assert client.put(damaged_path).json() == expected_damaged
 
 
 def test_stale_unwatch_preserves_recreated_membership_at_the_same_time(

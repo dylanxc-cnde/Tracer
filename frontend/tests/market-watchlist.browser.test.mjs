@@ -24,7 +24,9 @@ const card = { card_key: KEY, import_key: IMPORT_KEY, created_at: WATCHED_AT, sc
 async function openWatchlist(
   { page, context, baseURL },
   onWatchRequest,
-  { savedCards = [card], onCardRead, onSourceReceipt, onSourceChecks } = {},
+  {
+    savedCards = [card], onCardRead, onSourceReceipt, onSourceChecks, watchTarget = TARGET,
+  } = {},
 ) {
   const calls = []
   const unexpected = []
@@ -44,7 +46,7 @@ async function openWatchlist(
       await onRead(route)
       return
     }
-    if (url.origin === API && (url.pathname === WATCHLIST || url.pathname === TARGET)) {
+    if (url.origin === API && (url.pathname === WATCHLIST || url.pathname === watchTarget)) {
       calls.push(`${method} ${url.pathname}${url.search}`)
       await onWatchRequest(route, request)
       return
@@ -495,5 +497,138 @@ test('Market requires a valid membership identifier before offering Stop watchin
   await expect(section.getByRole('alert')).toHaveText('Could not load watchlist.')
   await expect(section.getByRole('button', { name: `Stop watching: ${TITLE}`, exact: true })).toHaveCount(0)
   expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`])
+  expect(unexpected).toEqual([])
+})
+
+const REMOTE_TITLE = 'Werkstudentin für barrierefreie Fahrgastinformation und regionale Nahverkehrsentwicklung im Rheinland (DEMO)'
+const FIRST_COMPANY = 'Kommunalverbund für nachhaltige Mobilitätsforschung (DEMO)'
+const SECOND_COMPANY = 'Forschungsnetz für regionale Verkehrsplanung und öffentlichen Nahverkehr (DEMO)'
+const FIRST_CARD = 'a0000000-0000-4000-8000-000000000081'
+const SECOND_CARD = 'a0000000-0000-4000-8000-000000000082'
+const FIRST_MEMBERSHIP = 'a0000000-0000-4000-8000-000000000083'
+const SECOND_MEMBERSHIP = 'a0000000-0000-4000-8000-000000000084'
+
+for (const width of [1440, 900]) {
+  test(`Market identifies newly watched Cards before a scoped keyboard removal at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const staleAlias = 'Vorläufiger Titel aus dem ersten Bibliothekslesen (DEMO)'
+    const revisedTitle = 'Aktualisiertes Praktikum in der kommunalen und regionalen Verkehrsplanung (DEMO)'
+    const revisedCompany = 'Gesellschaft für wissenschaftliche Fahrgastinformatik (DEMO)'
+    const cachedCard = { ...card, posting_alias: staleAlias }
+    const relatedFirst = {
+      ...membership, card_key: FIRST_CARD, watch_id: FIRST_MEMBERSHIP,
+      card_identity: {
+        posting_alias: REMOTE_TITLE, position_title: 'Ursprüngliche Ausschreibung für Stadtplanung (DEMO)', company_name: FIRST_COMPANY,
+      },
+    }
+    const relatedSecond = {
+      ...membership, card_key: SECOND_CARD, watch_id: SECOND_MEMBERSHIP,
+      card_identity: { posting_alias: ' \u200b\t ', position_title: REMOTE_TITLE, company_name: SECOND_COMPANY },
+    }
+    const revised = {
+      ...membership,
+      card_identity: { posting_alias: null, position_title: revisedTitle, company_name: revisedCompany },
+    }
+    const target = `${WATCHLIST}/${SECOND_CARD}`
+    const guardedTarget = `${target}?expected_watch_id=${SECOND_MEMBERSHIP}`
+    const { section, summary, calls, unexpected } = await openWatchlist({ page, context, baseURL }, async (route, request) => {
+      if (request.method() === 'GET') {
+        await route.fulfill({ json: [relatedFirst, relatedSecond, revised] })
+        return
+      }
+      expect(request.method()).toBe('DELETE')
+      expect(new URL(request.url()).search).toBe(`?expected_watch_id=${SECOND_MEMBERSHIP}`)
+      expect(request.postData()).toBeNull()
+      await route.fulfill({ status: 204 })
+    }, { savedCards: [cachedCard], watchTarget: target })
+
+    const list = section.getByRole('list', { name: 'Watched jobs', exact: true })
+    const rows = list.getByRole('listitem')
+    const first = rows.filter({ has: page.getByText(FIRST_COMPANY, { exact: true }) })
+    const second = rows.filter({ has: page.getByText(SECOND_COMPANY, { exact: true }) })
+    await expect(rows).toHaveCount(3)
+    await expect(first.getByRole('heading', { name: REMOTE_TITLE, exact: true })).toBeVisible()
+    await expect(second.getByRole('heading', { name: REMOTE_TITLE, exact: true })).toBeVisible()
+    await expect(first.getByRole('button', { name: `Stop watching: ${REMOTE_TITLE} at ${FIRST_COMPANY}`, exact: true })).toBeEnabled()
+    const current = rows.filter({ has: page.getByRole('heading', { name: revisedTitle, exact: true }) })
+    await expect(current.getByText(revisedCompany, { exact: true })).toBeVisible()
+    await expect(list).not.toContainText(staleAlias)
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`])
+
+    const open = second.getByRole('button', { name: `View saved job: ${REMOTE_TITLE} at ${SECOND_COMPANY}`, exact: true })
+    const stop = second.getByRole('button', { name: `Stop watching: ${REMOTE_TITLE} at ${SECOND_COMPANY}`, exact: true })
+    await open.press('Tab')
+    await expect(stop).toBeFocused()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`])
+    expect(await section.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('recognized-watchlist-targets.png'), animations: 'disabled' })
+
+    await page.keyboard.press('Enter')
+    await expect(second).toHaveCount(0)
+    await expect(first).toBeVisible()
+    await expect(current).toBeVisible()
+    await expect(rows).toHaveCount(2)
+    await expect(summary).toBeFocused()
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${guardedTarget}`])
+    expect(unexpected).toEqual([])
+  })
+}
+
+test('Market disables Stop watching for unavailable watchlist identities', async ({ page, context, baseURL }) => {
+  const legacy = { ...membership, card_key: FIRST_CARD, watch_id: FIRST_MEMBERSHIP }
+  const unavailable = { ...membership, card_key: SECOND_CARD, watch_id: SECOND_MEMBERSHIP, card_identity: null }
+  const { section, calls, unexpected } = await openWatchlist({ page, context, baseURL }, (route, request) => {
+    expect(request.method()).toBe('GET')
+    return route.fulfill({ json: [membership, legacy, unavailable] })
+  })
+
+  const rows = section.getByRole('list', { name: 'Watched jobs', exact: true }).getByRole('listitem')
+  const unknown = rows.filter({ has: page.getByRole('heading', { name: 'Saved job details unavailable', exact: true }) })
+  await expect(rows).toHaveCount(3)
+  await expect(unknown).toHaveCount(2)
+  const unknownStops = unknown.getByRole('button', { name: 'Stop watching: Saved job details unavailable', exact: true })
+  await expect(unknownStops).toHaveCount(2)
+  for (const stop of await unknownStops.all()) {
+    await expect(stop).toBeDisabled()
+    await stop.press('Enter')
+  }
+  await expect(section.getByRole('button', { name: `Stop watching: ${TITLE}`, exact: true })).toBeEnabled()
+  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`])
+  expect(unexpected).toEqual([])
+})
+
+test('Market refreshes the watched identity from an explicitly opened current Card', async ({ page, context, baseURL }) => {
+  const projectedTitle = 'Praktikum in der kommunalen Mobilitätsforschung (DEMO)'
+  const projectedCompany = 'Kommunalverband für Verkehrsplanung (DEMO)'
+  const freshTitle = 'Praktikum für barrierefreie Fahrgastinformation und Tarifdatenanalyse (DEMO)'
+  const freshCompany = 'Verbundgesellschaft für nachhaltigen Regionalverkehr (DEMO)'
+  const fresh = structuredClone(card)
+  fresh.posting.identity.position_title.value = freshTitle
+  fresh.posting.identity.company_name = { origin: 'source', value: freshCompany }
+  const { section, calls, unexpected } = await openWatchlist({ page, context, baseURL }, (route, request) => {
+    expect(request.method()).toBe('GET')
+    return route.fulfill({ json: [{
+      ...membership,
+      card_identity: { posting_alias: null, position_title: projectedTitle, company_name: projectedCompany },
+    }] })
+  }, { onCardRead: route => route.fulfill({ json: fresh }) })
+
+  const row = section.getByRole('list', { name: 'Watched jobs', exact: true }).getByRole('listitem')
+  await expect(row.getByRole('heading', { name: projectedTitle, exact: true })).toBeVisible()
+  await expect(row.getByText(projectedCompany, { exact: true })).toBeVisible()
+  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`])
+  await row.getByRole('button', { name: `View saved job: ${projectedTitle} at ${projectedCompany}`, exact: true }).press('Enter')
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: freshTitle, exact: true })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(row.getByRole('heading', { name: freshTitle, exact: true })).toBeVisible()
+  await expect(row.getByText(freshCompany, { exact: true })).toBeVisible()
+  await expect(row.getByRole('button', { name: `View saved job: ${freshTitle} at ${freshCompany}`, exact: true })).toBeFocused()
+  await expect(row.getByRole('button', { name: `Stop watching: ${freshTitle} at ${freshCompany}`, exact: true })).toBeEnabled()
+  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `GET ${CARD}`])
   expect(unexpected).toEqual([])
 })

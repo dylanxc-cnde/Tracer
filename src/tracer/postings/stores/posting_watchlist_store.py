@@ -5,13 +5,28 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from ..models.posting_watchlist import LatestSourceCheck, WatchedPostingCard
+from ..models.posting_watchlist import (
+    LatestSourceCheck,
+    WatchedCardIdentity,
+    WatchedPostingCard,
+)
 
 
 _SELECT_WATCHED_CARDS = """
     SELECT watch.card_key, watch.watch_id, watch.watched_at,
-           latest.result, latest.recorded_at
+           latest.result, latest.recorded_at,
+           card.card_key IS NOT NULL AS card_exists,
+           CASE WHEN typeof(card.position_title) = 'text' THEN card.position_title END
+               AS position_title,
+           CASE WHEN typeof(card.company_name) = 'text' THEN card.company_name END
+               AS company_name,
+           CASE WHEN json_valid(card.payload_json) THEN
+               CASE WHEN json_type(card.payload_json, '$.posting_alias') = 'text' THEN
+                   json_extract(card.payload_json, '$.posting_alias')
+               END
+           END AS posting_alias
     FROM posting_watchlist AS watch
+    LEFT JOIN posting_cards AS card ON card.card_key = watch.card_key
     LEFT JOIN posting_source_checks AS latest ON latest.check_id = (
         SELECT check_id FROM posting_source_checks
         WHERE card_key = watch.card_key
@@ -59,6 +74,7 @@ class PostingWatchlistStore:
     def _connect(self) -> Iterator[sqlite3.Connection]:
         with closing(sqlite3.connect(self._database_path)) as connection, connection:
             connection.execute("PRAGMA foreign_keys = ON")
+            connection.row_factory = sqlite3.Row
             yield connection
 
     def list_watched(self) -> tuple[WatchedPostingCard, ...]:
@@ -87,20 +103,25 @@ class PostingWatchlistStore:
             return self._to_card(row) if row is not None else None
 
     @staticmethod
-    def _to_card(
-        row: tuple[str, str, str, str | None, str | None],
-    ) -> WatchedPostingCard:
-        card_key, watch_id, watched_at, result, recorded_at = row
+    def _to_card(row: sqlite3.Row) -> WatchedPostingCard:
         observation = None
-        if result is not None:
+        if row["result"] is not None:
             observation = LatestSourceCheck.model_validate(
-                {"result": result, "recorded_at": recorded_at}
+                {"result": row["result"], "recorded_at": row["recorded_at"]}
+            )
+        identity = None
+        if row["card_exists"]:
+            identity = WatchedCardIdentity(
+                posting_alias=row["posting_alias"],
+                position_title=row["position_title"],
+                company_name=row["company_name"],
             )
         return WatchedPostingCard(
-            card_key=UUID(card_key),
-            watch_id=UUID(watch_id),
-            watched_at=datetime.fromisoformat(watched_at),
+            card_key=UUID(row["card_key"]),
+            watch_id=UUID(row["watch_id"]),
+            watched_at=datetime.fromisoformat(row["watched_at"]),
             last_source_check=observation,
+            card_identity=identity,
         )
 
     def unwatch(self, card_key: UUID, expected_watch_id: UUID | None = None) -> bool:

@@ -14,6 +14,16 @@ class LatestSourceCheck(BaseModel):
     recorded_at: AwareDatetime
 
 
+class WatchedCardIdentity(BaseModel):
+    """Display facts from the current saved Card."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    posting_alias: str | None
+    position_title: str | None
+    company_name: str | None
+
+
 class WatchedPostingCard(BaseModel):
     """An explicit watch membership for a saved Card."""
 
@@ -23,3 +33,4 @@ class WatchedPostingCard(BaseModel):
     watch_id: UUID
     watched_at: AwareDatetime
     last_source_check: LatestSourceCheck | None
+    card_identity: WatchedCardIdentity | None

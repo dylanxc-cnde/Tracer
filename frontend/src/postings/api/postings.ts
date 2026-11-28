@@ -7,6 +7,7 @@ import type {
   RecordPostingSourceCheckRequest,
   UpdatePostingCardRequest,
   WatchedPostingCard,
+  WatchedPostingCardIdentity,
 } from '../types/postingCard'
 import type {
   PostingImportReceipt,
@@ -181,12 +182,20 @@ export async function getPostingCard(cardKey: string, signal: AbortSignal): Prom
 
 const watchIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+function isWatchedPostingCardIdentity(value: unknown): value is WatchedPostingCardIdentity {
+  return typeof value === 'object' && value !== null &&
+    'posting_alias' in value && (value.posting_alias === null || typeof value.posting_alias === 'string') &&
+    'position_title' in value && (value.position_title === null || typeof value.position_title === 'string') &&
+    'company_name' in value && (value.company_name === null || typeof value.company_name === 'string')
+}
+
 function isWatchedPostingCard(value: unknown): value is WatchedPostingCard {
   return typeof value === 'object' && value !== null &&
     'card_key' in value && typeof value.card_key === 'string' && value.card_key !== '' &&
     'watch_id' in value && typeof value.watch_id === 'string' && watchIdPattern.test(value.watch_id) &&
     'watched_at' in value && typeof value.watched_at === 'string' &&
     Number.isFinite(Date.parse(value.watched_at)) &&
+    (!('card_identity' in value) || value.card_identity === null || isWatchedPostingCardIdentity(value.card_identity)) &&
     (!('last_source_check' in value) || value.last_source_check === null || isPostingSourceObservation(value.last_source_check))
 }
 
