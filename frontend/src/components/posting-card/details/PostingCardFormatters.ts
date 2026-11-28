@@ -4,6 +4,10 @@ import type {
   WeeklyHours,
 } from '../../../postings/types/postingDetails'
 
+export function visiblePostingText(value: string | null | undefined): string | null {
+  return value != null && /[^\s\p{Default_Ignorable_Code_Point}]/u.test(value) ? value : null
+}
+
 export function formatEnumValue(value: string) {
   return value
     .split('_')

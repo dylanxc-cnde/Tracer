@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { IconChevronRight } from '@tabler/icons-react'
+import { visiblePostingText } from '../components/posting-card/details/PostingCardFormatters'
 import type { PostingCard } from '../postings/types/postingCard'
 import { savedJobCompany, savedJobTitle, savedRoleDomains } from './marketJobs'
 import type { MarketJobRead } from './marketJobs'
@@ -28,6 +29,30 @@ function summarizeRoleDomains(cards: PostingCard[]) {
     right.cards.length - left.cards.length || left.label.localeCompare(right.label, 'de'),
   )
   return { rows, withoutDomains }
+}
+
+function describeContributors(cards: PostingCard[]) {
+  const jobCounts = new Map<string, number>()
+  const addressCounts = new Map<string, number>()
+  const contributors = cards.map((card) => {
+    const title = savedJobTitle(card)
+    const company = savedJobCompany(card)
+    const address = visiblePostingText(card.posting.work_conditions.primary_address?.value)
+    const jobKey = JSON.stringify([title, company])
+    const addressKey = JSON.stringify([title, company, address])
+    jobCounts.set(jobKey, (jobCounts.get(jobKey) ?? 0) + 1)
+    if (address) addressCounts.set(addressKey, (addressCounts.get(addressKey) ?? 0) + 1)
+    return { card, title, company, address, jobKey, addressKey }
+  })
+
+  return contributors.map(({ card, title, company, address, jobKey, addressKey }) => {
+    if (jobCounts.get(jobKey) === 1) return { card, title, company, distinction: null }
+    const jobId = visiblePostingText(card.posting.identity.external_job_id?.value)
+    const needsJobId = !address || (addressCounts.get(addressKey) ?? 0) > 1
+    const jobIdLabel = needsJobId && jobId ? `Job ID: ${jobId}` : null
+    const distinction = [address, jobIdLabel].filter(Boolean).join(' · ') || 'No distinguishing details recorded'
+    return { card, title, company, distinction }
+  })
 }
 
 type RoleDomainsProps = {
@@ -82,16 +107,17 @@ export function MarketRoleDomains({ cards, detailRead, missingJobNotice, onOpenJ
       </span>}
       {expanded && <ul id={panelId} className="market-page__jobs market-role-domains__evidence"
         role="list" aria-label={showBar ? `Saved Cards in ${label}` : missingLabel}>
-        {matchingCards.map((card) => {
-          const title = savedJobTitle(card)
+        {describeContributors(matchingCards).map(({ card, title, company, distinction }) => {
           const status = detailRead?.cardKey === card.card_key ? detailRead : null
           const isOpening = status?.status === 'loading'
+          const buttonLabel = distinction ? `View saved job: ${title} · ${distinction}` : `View saved job: ${title}`
           return <li key={card.card_key} className="market-page__job">
             <div className="market-page__job-copy">
               <h3>{title}</h3>
-              <p className="market-page__company">{savedJobCompany(card)}</p>
+              <p className="market-page__company">{company}</p>
+              {distinction && <p className="market-role-domains__distinction">{distinction}</p>}
             </div>
-            <button className="market-page__action" type="button" aria-label={`View saved job: ${title}`}
+            <button className="market-page__action" type="button" aria-label={buttonLabel}
               aria-haspopup="dialog" aria-disabled={isOpening}
               onClick={(event) => onOpenJob(card.card_key, event.currentTarget, groupTrigger.current)}>
               {isOpening ? 'Opening…' : 'View saved job'}

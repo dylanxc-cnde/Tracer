@@ -26,6 +26,7 @@ import {
 import { createPostingCardUpdateRequest } from './PostingCardDraftRequest'
 import { hasEmptyRequirementDrafts, hasPostingCardDraftChanges } from './PostingCardDraftChanges'
 import { createCardUserDraft } from './PostingCardDraftCreator'
+import { visiblePostingText } from '../PostingCardFormatters'
 import { getSafeHttpUrl } from '../PostingCardSanitizers'
 import { usePostingCardSave } from './usePostingCardSave'
 
@@ -44,9 +45,9 @@ export function usePostingCardEditor(
   const updateRequest = createPostingCardUpdateRequest(draft)
   // This is the saved position title, not the creation-time original snapshot.
   const positionTitle = card.posting.identity.position_title?.value ?? null
-  const displayedAlias = isEditing
+  const displayedAlias = visiblePostingText(isEditing
     ? updateRequest.posting_alias
-    : card.posting_alias
+    : card.posting_alias)
   const displayedTitle =
     displayedAlias ?? positionTitle ?? 'Unknown Position'
   const hasChanges = hasPostingCardDraftChanges(updateRequest, card) ||

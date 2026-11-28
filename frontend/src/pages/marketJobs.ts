@@ -1,3 +1,4 @@
+import { visiblePostingText } from '../components/posting-card/details/PostingCardFormatters'
 import type { PostingCard } from '../postings/types/postingCard'
 
 export type MarketJobRead =
@@ -5,7 +6,7 @@ export type MarketJobRead =
   | { status: 'failed'; cardKey: string; message: string }
 
 export function savedJobTitle(card: PostingCard) {
-  return card.posting_alias ?? card.posting.identity.position_title?.value ?? 'Unknown position'
+  return visiblePostingText(card.posting_alias) ?? card.posting.identity.position_title?.value ?? 'Unknown position'
 }
 
 export function savedJobCompany(card: PostingCard) {

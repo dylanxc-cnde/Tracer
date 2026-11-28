@@ -275,6 +275,84 @@ for (const action of ['switching groups', 'collapsing the chart']) {
   })
 }
 
+for (const width of [1440, 900]) {
+  test(`R009-01 Market keeps legible job titles and distinguishes same-name contributors at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const title = 'Werkstudentin für barrierefreie Fahrgastinformation und Verkehrsplanung'
+    const company = 'Verbund für Schienenpersonennahverkehr (DEMO)'
+    const berlin = 'Invalidenstraße 1, 10115 Berlin, Deutschland'
+    const dresden = 'Wiener Platz 4, 01069 Dresden, Deutschland'
+    const alias = 'Meine Auswahl für das Wintersemester'
+    const unconfirmed = 'Nicht bestätigter Standort'
+    const cases = [
+      { alias: '', address: berlin, jobId: 'BE-21', detail: `${berlin} · Job ID: BE-21` },
+      { alias: '  ', address: dresden, jobId: 'DD-42', detail: dresden },
+      { alias: '\u200b', jobId: 'DE-63', detail: 'Job ID: DE-63' },
+      { alias: null, detail: 'No distinguishing details recorded' },
+      { alias: null, address: berlin, jobId: 'BE-84', detail: `${berlin} · Job ID: BE-84` },
+      { alias, address: berlin },
+    ]
+    const sameNameCards = cases.map(({ alias, address, jobId }, index) => {
+      const card = savedCard(21 + index, title, ['Datenanalyse'])
+      card.posting_alias = alias
+      card.posting.identity.company_name = { value: company, origin: 'source' }
+      if (address) card.posting.work_conditions.primary_address = { value: address, origin: 'source' }
+      if (jobId) card.posting.identity.external_job_id = { value: jobId, origin: 'source' }
+      card.posting.work_conditions.address_candidates = [unconfirmed]
+      return card
+    })
+    const selected = sameNameCards[1]
+    const currentTitle = `${title} – aktualisiert`
+    const current = structuredClone(selected)
+    current.posting.identity.position_title.value = currentTitle
+    const { main, summary, chart, calls, unexpected, diagnostics } = await enterMarket({ page, context, baseURL }, sameNameCards, {
+      [cardPath(selected)]: route => route.fulfill({ json: current }),
+    })
+    const reference = main.getByRole('combobox', { name: 'Reference saved job', exact: true })
+    await expect(reference.getByRole('option', { name: `${title} · ${company}`, exact: true })).toHaveCount(5)
+    await expect(reference.getByRole('option', { name: `${alias} · ${company}`, exact: true })).toHaveCount(1)
+
+    await summary.press('Enter')
+    await chart.getByRole('button', { name: 'Datenanalyse 6 of 6', exact: true }).press('Enter')
+    const contributors = chart.getByRole('list', { name: 'Saved Cards in Datenanalyse', exact: true })
+    const rows = contributors.getByRole('listitem')
+    await expect(rows).toHaveCount(cases.length)
+    for (const [index, testCase] of cases.entries()) {
+      const isAlias = testCase.alias === alias
+      const displayedTitle = isAlias ? alias : title
+      const row = rows.nth(index)
+      await expect(row.getByRole('heading', { name: displayedTitle, exact: true })).toBeVisible()
+      const accessibleSuffix = testCase.detail ? ` · ${testCase.detail}` : ''
+      await expect(row.getByRole('button', { name: `View saved job: ${displayedTitle}${accessibleSuffix}`, exact: true })).toBeVisible()
+      if (testCase.detail) await expect(row.getByText(testCase.detail, { exact: true })).toBeVisible()
+      if (isAlias) await expect(row.getByText(berlin, { exact: true })).toHaveCount(0)
+    }
+    await expect(contributors.getByText(unconfirmed, { exact: true })).toHaveCount(0)
+    await expect(contributors.getByText('DD-42')).toHaveCount(0)
+    await contributors.scrollIntoViewIfNeeded()
+    expect(await chart.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('role-domain-distinguished-contributors.png'), animations: 'disabled' })
+    expect(calls).toEqual([CARDS])
+
+    await page.keyboard.press('Tab')
+    await expect(rows.nth(0).getByRole('button')).toBeFocused()
+    await page.keyboard.press('Tab')
+    const opener = contributors.getByRole('button', { name: `View saved job: ${title} · ${dresden}`, exact: true })
+    await expect(opener).toBeFocused()
+    await page.keyboard.press('Enter')
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('heading', { name: currentTitle, exact: true })).toBeVisible()
+    await expect(dialog.locator('.posting-card-details__position-title')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(contributors.getByRole('button', { name: `View saved job: ${currentTitle}`, exact: true })).toBeFocused()
+    expect(calls).toEqual([CARDS, cardPath(selected)])
+    expect(unexpected).toEqual([])
+    expect(diagnostics).toEqual([])
+  })
+}
+
 test('Market role-domain drilldown retries a failed Card read from the same keyboard opener', async ({ page, context, baseURL }) => {
   const saved = cards[0]
   const path = cardPath(saved)
