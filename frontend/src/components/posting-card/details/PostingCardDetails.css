@@ -57,7 +57,10 @@
   background-color: var(--color-surface);
 }
 
-.posting-card-details__follow-up {
+.posting-card-details__job-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 12px;
 }
 

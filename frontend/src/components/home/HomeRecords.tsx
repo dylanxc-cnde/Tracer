@@ -2,11 +2,12 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { IconBuilding, IconCalendarEvent, IconFileText, IconMail, IconPlus } from '@tabler/icons-react'
 import { PostingCardDetails } from '../posting-card/details/PostingCardDetails'
+import { visiblePostingText } from '../posting-card/details/PostingCardFormatters'
 import {
   adjustEvent, changeApplication, completeTask, createApplication, createEvent, createTask,
   getApplicationJobs, HomeApiError, localDateTime,
 } from '../../home/api/home'
-import type { ApplicationRecord, ApplicationStatus, CreateApplicationRequest, CreateEventRequest, CreateTaskRequest, HomeOverview, ScheduleEvent, Task } from '../../home/types/home'
+import type { ApplicationRecord, ApplicationStatus, CreateApplicationRequest, CreateEventRequest, CreateTaskRequest, HomeCardIntent, HomeOverview, ScheduleEvent, Task } from '../../home/types/home'
 import type { PostingCard } from '../../postings/types/postingCard'
 import { getPostingCard, MissingPostingCardError } from '../../postings/api/postings'
 import { HomeEventJobField } from './HomeEventJobField'
@@ -32,7 +33,7 @@ function creationId(ref: { current: { key: string; id: string } | null }, body: 
   return ref.current.id
 }
 function jobTitle(card: PostingCard): string {
-  return card.posting_alias || card.posting.identity.position_title?.value || 'Untitled job'
+  return visiblePostingText(card.posting_alias) ?? visiblePostingText(card.posting.identity.position_title?.value) ?? 'Untitled job'
 }
 function dateTime(value: string): string {
   return new Date(value).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -134,13 +135,30 @@ function EventForm({ editor, refresh, close }: { editor: EventEditor; refresh: H
   </form>
 }
 
-function ApplicationForm({ jobs, selected, today, refresh, close }: { jobs: PostingCard[]; selected: string; today: string; refresh: HomeRecordsRefresh; close: () => void }) {
-  const [key, setKey] = useState(selected)
-  const [date, setDate] = useState(today)
+type ApplicationEditor = { kind: 'choose'; cardKey: string } | { kind: 'fixed'; card: PostingCard }
+
+function ApplicationForm({ jobs = [], editor, today, refresh, close, confirmedRecord, onAlreadyRecorded }: {
+  jobs?: PostingCard[]; editor: ApplicationEditor; today: string; refresh: HomeRecordsRefresh; close: () => void
+  confirmedRecord?: ApplicationRecord; onAlreadyRecorded?: (card: PostingCard) => void
+}) {
+  const fixedJob = editor.kind === 'fixed' ? editor.card : null
+  const [key, setKey] = useState(editor.kind === 'fixed' ? editor.card.card_key : editor.cardKey)
+  const [date, setDate] = useState(fixedJob ? '' : today)
+  const dateInput = useRef<HTMLInputElement>(null)
   const id = useRef<{ key: string; id: string } | null>(null)
   const write = useRecordWrite(refresh)
-  const selectedJob = jobs.find(card => card.card_key === key)
+  const selectedJob = fixedJob ?? jobs.find(card => card.card_key === key)
+  useLayoutEffect(() => {
+    if (fixedJob && document.activeElement === document.body) dateInput.current?.focus()
+  }, [fixedJob])
+  useLayoutEffect(() => {
+    if (fixedJob && confirmedRecord && confirmedRecord.application_id !== id.current?.id && !write.pending) {
+      onAlreadyRecorded?.(fixedJob)
+    }
+  }, [confirmedRecord, fixedJob, onAlreadyRecorded, write.pending])
   function submit() {
+    if (!key || !date) return
+    if (confirmedRecord && confirmedRecord.application_id !== id.current?.id) return
     const fields = { card_key: key, applied_on: date }
     const body: CreateApplicationRequest = { ...fields, application_id: creationId(id, fields) }
     void write.run({ send: () => createApplication(body), saved: close, matches: data => data.applications.some(a => a.record.application_id === body.application_id) })
@@ -148,10 +166,11 @@ function ApplicationForm({ jobs, selected, today, refresh, close }: { jobs: Post
   return <form className="home-page__record-form" aria-label="Record application" onSubmit={e => { e.preventDefault(); submit() }}>
     <p>Record an application you have already submitted. Saving a job is not applying.</p>
     <fieldset disabled={write.locked}>
-      <label>Job<select value={key} required autoFocus aria-describedby={selectedJob ? 'home-selected-job' : undefined} onChange={e => setKey(e.target.value)}><option value="">Choose a saved job</option>{jobs.map(card => <option key={card.card_key} value={card.card_key}>{jobTitle(card)}</option>)}</select></label>
-      <label>Application date<input type="date" value={date} required onChange={e => setDate(e.target.value)} /></label>
+      {!fixedJob && <label>Job<select value={key} required autoFocus aria-describedby={selectedJob ? 'home-selected-job' : undefined} onChange={e => setKey(e.target.value)}><option value="">Choose a saved job</option>{jobs.map(card => <option key={card.card_key} value={card.card_key}>{jobTitle(card)}</option>)}</select></label>}
+      <label>Application date<input ref={dateInput} type="date" value={date} required
+        aria-describedby={fixedJob ? 'home-selected-job' : undefined} onChange={e => setDate(e.target.value)} /></label>
     </fieldset>
-    {selectedJob && <p className="home-page__selected-job" id="home-selected-job" aria-live="polite">Selected job: <strong>{jobTitle(selectedJob)}</strong> · {selectedJob.posting.identity.company_name?.value || 'Company not specified'}</p>}
+    {selectedJob && <p className="home-page__selected-job" id="home-selected-job" aria-live="polite">Selected job: <strong>{jobTitle(selectedJob)}</strong> · {visiblePostingText(selectedJob.posting.identity.company_name?.value) ?? 'Company not specified'}</p>}
     <div className="home-page__record-actions"><button className="home-page__record-primary" disabled={write.pending || (write.uncertain && !write.checked)}>{write.pending ? 'Saving…' : write.uncertain ? 'Retry same request' : 'Record application'}</button><button type="button" className="home-page__record-action" disabled={write.locked} onClick={close}>Cancel</button></div>
     <WriteFeedback write={write} />
   </form>
@@ -253,12 +272,16 @@ function ApplicationRow({ record, title, refresh }: { record: ApplicationRecord;
   </li>
 }
 
-export function HomeRecords({ data, today, refresh, followUpCard }: {
-  data: HomeOverview; today: string; refresh: HomeRecordsRefresh; followUpCard?: PostingCard
+export function HomeRecords({ data, today, refresh, homeIntent }: {
+  data: HomeOverview; today: string; refresh: HomeRecordsRefresh; homeIntent?: HomeCardIntent
 }) {
   const [eventEditor, setEventEditor] = useState<EventEditor | null>(() =>
-    followUpCard ? { kind: 'create', initialJob: followUpCard } : null)
-  const [applicationEditor, setApplicationEditor] = useState<string | null>(null)
+    homeIntent?.kind === 'follow-up' ? { kind: 'create', initialJob: homeIntent.card } : null)
+  const applicationJob = homeIntent?.kind === 'application' ? homeIntent.card : null
+  const [alreadyRecorded, setAlreadyRecorded] = useState(() => applicationJob && data.applications.some(({ record }) => record.card_key === applicationJob.card_key)
+    ? applicationJob : null)
+  const [applicationEditor, setApplicationEditor] = useState<ApplicationEditor | null>(() =>
+    applicationJob && !alreadyRecorded ? { kind: 'fixed', card: applicationJob } : null)
   const [jobs, setJobs] = useState<PostingCard[] | null>(null)
   const [jobsError, setJobsError] = useState<string | null>(null)
   const [jobsLoading, setJobsLoading] = useState(false)
@@ -268,16 +291,26 @@ export function HomeRecords({ data, today, refresh, followUpCard }: {
   const active = useRef(false)
   const jobsGuard = useRef(false)
   const applicationHeading = useRef<HTMLHeadingElement>(null)
+  const applicationHistory = useRef<HTMLDetailsElement>(null)
   const eventHeading = useRef<HTMLHeadingElement>(null)
   const opener = useRef<HTMLElement | null>(null)
+  const confirmedApplication = applicationEditor?.kind === 'fixed'
+    ? data.applications.find(({ record }) => record.card_key === applicationEditor.card.card_key)?.record
+    : undefined
   useEffect(() => {
     active.current = true
     return () => { active.current = false; pendingLinkedJob.current?.controller.abort() }
   }, [])
+  useLayoutEffect(() => {
+    if (!alreadyRecorded) return
+    const history = applicationHistory.current
+    if (history) history.open = true
+    if (document.activeElement === document.body) applicationHeading.current?.focus()
+  }, [alreadyRecorded])
   async function openApplication(key: string) {
     if (jobsGuard.current) return
     opener.current = document.activeElement as HTMLElement
-    setApplicationEditor(key)
+    setApplicationEditor({ kind: 'choose', cardKey: key })
     setJobsError(null)
     setJobsLoading(true)
     jobsGuard.current = true
@@ -288,6 +321,10 @@ export function HomeRecords({ data, today, refresh, followUpCard }: {
   function closeApplication() {
     setApplicationEditor(null)
     requestAnimationFrame(() => applicationHeading.current?.focus({ preventScroll: true }))
+  }
+  function showRecordedApplication(card: PostingCard) {
+    setAlreadyRecorded(card)
+    setApplicationEditor(null)
   }
   function closeEvent() {
     setEventEditor(null)
@@ -368,13 +405,23 @@ export function HomeRecords({ data, today, refresh, followUpCard }: {
     <section aria-labelledby="home-search-title">
       <div className="home-page__section-heading"><h2 className="home-page__section-title" id="home-search-title" ref={applicationHeading} tabIndex={-1}>Your search</h2><button className="home-page__record-action" type="button" disabled={applicationEditor !== null} onClick={() => void openApplication('')}>Record application</button></div>
       <dl className="home-page__metrics"><div className="home-page__metric"><span className="home-page__metric-icon home-page__metric-icon--applications" aria-hidden="true"><IconFileText /></span><dt>Active applications</dt><dd>{data.your_search.active}</dd></div><div className="home-page__metric"><span className="home-page__metric-icon" aria-hidden="true"><IconMail /></span><dt>Awaiting reply</dt><dd>{data.your_search.awaiting_reply}</dd></div><div className="home-page__metric"><span className="home-page__metric-icon" aria-hidden="true"><IconCalendarEvent /></span><dt>Interviews in next 7 days</dt><dd>{data.your_search.interviews}</dd></div></dl>
-      {applicationEditor !== null && <div className="home-page__application-editor">
-        {jobsLoading ? <p role="status">Loading saved jobs…</p> : jobsError ? <div><p role="alert">{jobsError}</p><button className="home-page__record-action" type="button" onClick={() => void openApplication(applicationEditor)}>Retry loading jobs</button><button className="home-page__record-action" type="button" onClick={closeApplication}>Cancel</button></div> : jobs?.length ? <ApplicationForm jobs={jobs} selected={applicationEditor} today={today} refresh={refresh} close={closeApplication} /> : <p className="home-page__empty">Save a job in Import posting first, then return here to record an application. <button className="home-page__record-action" type="button" onClick={closeApplication}>Close</button></p>}
+      {alreadyRecorded && !applicationEditor && <div role="status">
+        <p>An application is already recorded for this job.</p><p className="home-page__selected-job">{jobTitle(alreadyRecorded)}</p>
       </div>}
-      {data.applications.length > 0 && <details className="home-page__application-history"><summary>Recorded applications ({data.applications.length})</summary><ul>{data.applications.map(({ record, card_missing, card_title }) => {
-        const card = card_title ? undefined
-          : data.recent_jobs.find(j => j.card.card_key === record.card_key)?.card ?? jobs?.find(j => j.card_key === record.card_key)
-        const title = card_missing ? 'Job deleted' : card_title || (card ? jobTitle(card) : 'Saved job')
+      {applicationEditor !== null && <div className="home-page__application-editor">
+        {applicationEditor.kind === 'fixed' ? <ApplicationForm editor={applicationEditor} today={today} refresh={refresh}
+            close={closeApplication} confirmedRecord={confirmedApplication} onAlreadyRecorded={showRecordedApplication} />
+          : jobsLoading ? <p role="status">Loading saved jobs…</p>
+          : jobsError ? <div><p role="alert">{jobsError}</p><button className="home-page__record-action" type="button" onClick={() => void openApplication(applicationEditor.cardKey)}>Retry loading jobs</button><button className="home-page__record-action" type="button" onClick={closeApplication}>Cancel</button></div>
+          : jobs?.length ? <ApplicationForm jobs={jobs} editor={applicationEditor} today={today} refresh={refresh} close={closeApplication} />
+          : <p className="home-page__empty">Save a job in Import posting first, then return here to record an application. <button className="home-page__record-action" type="button" onClick={closeApplication}>Close</button></p>}
+      </div>}
+      {data.applications.length > 0 && <details className="home-page__application-history" ref={applicationHistory}><summary>Recorded applications ({data.applications.length})</summary><ul>{data.applications.map(({ record, card_missing, card_title }) => {
+        const confirmedTitle = visiblePostingText(card_title)
+        const handedOffCard = applicationJob?.card_key === record.card_key ? applicationJob : undefined
+        const card = confirmedTitle ? undefined : handedOffCard ??
+          data.recent_jobs.find(j => j.card.card_key === record.card_key)?.card ?? jobs?.find(j => j.card_key === record.card_key)
+        const title = card_missing ? 'Job deleted' : confirmedTitle ?? (card ? jobTitle(card) : 'Saved job')
         return <ApplicationRow key={record.application_id} record={record} title={title} refresh={refresh} />
       })}</ul></details>}
     </section>

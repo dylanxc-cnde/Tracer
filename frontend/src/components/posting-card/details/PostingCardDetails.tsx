@@ -54,6 +54,7 @@ type PostingCardDetailsProps = {
   onSavedVersion?: (card: PostingCard) => void
   onSourceCheckObserved?: (observation: PostingSourceObservation) => void
   onPlanFollowUp?: (card: PostingCard) => void
+  onRecordApplication?: (card: PostingCard) => void
 }
 
 type SourceInspection = { cardKey: string }
@@ -67,6 +68,7 @@ export function PostingCardDetails({
   onSavedVersion,
   onSourceCheckObserved,
   onPlanFollowUp,
+  onRecordApplication,
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const saveButton = useRef<HTMLButtonElement>(null)
@@ -139,10 +141,10 @@ export function PostingCardDetails({
     onClose()
   }
 
-  function handlePlanFollowUp() {
+  function handleOpenHomeDraft(action: (card: PostingCard) => void) {
     if (!dialogRef.current?.open) return
     handleClose()
-    onPlanFollowUp?.(card)
+    action(card)
   }
 
   function handleDiscardRecovery() {
@@ -257,10 +259,19 @@ export function PostingCardDetails({
           </button>
         </div>
 
-        {!isOriginalSnapshot && !editor.isEditing && onPlanFollowUp && (
-          <button className="posting-card-details__follow-up" type="button" onClick={handlePlanFollowUp}>
-            Plan follow-up
-          </button>
+        {!isOriginalSnapshot && !editor.isEditing && (onPlanFollowUp || onRecordApplication) && (
+          <div className="posting-card-details__job-actions">
+            {onPlanFollowUp && (
+              <button type="button" onClick={() => handleOpenHomeDraft(onPlanFollowUp)}>
+                Plan follow-up
+              </button>
+            )}
+            {onRecordApplication && (
+              <button type="button" onClick={() => handleOpenHomeDraft(onRecordApplication)}>
+                Record application
+              </button>
+            )}
+          </div>
         )}
 
         <div className={`posting-card-details__quick-facts${editor.isEditing ? ' posting-card-details__quick-facts--editing' : ''}`}>

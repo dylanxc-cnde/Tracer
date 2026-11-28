@@ -1,5 +1,7 @@
 import type { PostingCard } from '../../postings/types/postingCard'
 
+export type HomeCardIntent = { kind: 'follow-up' | 'application'; card: PostingCard }
+
 export type ApplicationStatus = 'applied' | 'interviewing' | 'offer' | 'rejected' | 'withdrawn'
 export type EventKind = 'interview' | 'deadline' | 'other'
 export type ActivityKind = 'card_saved' | 'card_updated' | 'task_completed' | 'application_recorded'

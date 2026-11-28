@@ -9,6 +9,7 @@ import { MarketPage } from './pages/MarketPage'
 import { PostingImportPage } from './pages/PostingImportPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { GlobalSearch } from './components/search/GlobalSearch'
+import type { HomeCardIntent } from './home/types/home'
 import type { PostingCard } from './postings/types/postingCard'
 
 type AppPage =
@@ -20,7 +21,7 @@ type AppPage =
   | 'import-history'
   | 'settings'
 
-type AppLocation = { page: AppPage; followUpCard?: PostingCard }
+type AppLocation = { page: AppPage; homeIntent?: HomeCardIntent }
 
 function App() {
   const [location, setLocation] = useState<AppLocation>({ page: 'posting-import' })
@@ -30,8 +31,12 @@ function App() {
     setLocation((current) => current.page === page ? current : { page })
   }
 
-  function handlePlanFollowUp(followUpCard: PostingCard) {
-    setLocation({ page: 'home', followUpCard })
+  function handlePlanFollowUp(card: PostingCard) {
+    setLocation({ page: 'home', homeIntent: { kind: 'follow-up', card } })
+  }
+
+  function handleRecordApplication(card: PostingCard) {
+    setLocation({ page: 'home', homeIntent: { kind: 'application', card } })
   }
 
   return (
@@ -121,8 +126,8 @@ function App() {
 
       {/* Recreate only the page container so its scroll position starts at the top. */}
       <main key={currentPage} className={`app-shell__content app-shell__content--${currentPage}`}>
-        {currentPage === 'home' && <HomePage followUpCard={location.followUpCard} />}
-        {currentPage === 'market' && <MarketPage onPlanFollowUp={handlePlanFollowUp} />}
+        {currentPage === 'home' && <HomePage homeIntent={location.homeIntent} />}
+        {currentPage === 'market' && <MarketPage onPlanFollowUp={handlePlanFollowUp} onRecordApplication={handleRecordApplication} />}
         {currentPage === 'posting-import' && <PostingImportPage />}
         {currentPage === 'card-library' && <CardLibraryPage />}
         {currentPage === 'activity' && <ActivityPage />}

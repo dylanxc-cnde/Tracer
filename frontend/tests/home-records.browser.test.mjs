@@ -690,6 +690,145 @@ test('HF-TASK-DONE completing a task updates every area once, even after a lost 
 
 // ------------------------------------------------------------------ applications
 
+async function openMarketApplication({ page, context, baseURL }, {
+  alreadyRecorded = false, currentAlias = null, loseCreateResponse = false,
+} = {}) {
+  const card = { ...cardOf(1, LONG_TITLE, LONG_COMPANY), posting_alias: alreadyRecorded ? '\u200b' : null }
+  const currentTitle = `${LONG_TITLE} – aktualisiert`
+  const currentCompany = `${LONG_COMPANY} – Standort Nord`
+  const current = { ...cardOf(1, currentTitle, currentCompany), posting_alias: currentAlias }
+  const applications = alreadyRecorded ? [{
+    application_id: uuid(700), card_key: card.card_key, status: 'applied', applied_on: dateOf(-1),
+    created_at: iso(-1), updated_at: iso(-1),
+  }] : []
+  const state = makeState({ cards: [card], applications })
+  const detailRead = `GET /posting/card/${card.card_key}`
+  const postingReads = () => state.calls.filter(call => call.startsWith('GET /posting/'))
+  const expectedReads = ['GET /posting/card', 'GET /posting/watchlist', detailRead]
+  await installHome({ context, baseURL, state, routes: {
+    'GET /posting/watchlist': route => route.fulfill({ json: [{
+      card_key: card.card_key, watch_id: uuid(701), watched_at: iso(-2),
+      card_identity: { posting_alias: null, position_title: LONG_TITLE, company_name: LONG_COMPANY },
+    }] }),
+    [detailRead]: route => route.fulfill({ json: current }),
+    ...(loseCreateResponse ? { 'POST /home/applications': async (route, request) => {
+      state.createApplication(request.postDataJSON())
+      await route.abort('failed')
+    } } : {}),
+  } })
+  await page.goto('/')
+  await mainNavigation(page).getByRole('button', { name: 'Market', exact: true }).press('Enter')
+  await expect(page.getByRole('combobox', { name: 'Reference saved job', exact: true })).toBeVisible()
+  await page.getByText('Watchlist', { exact: true }).press('Enter')
+  const watched = page.getByRole('list', { name: 'Watched jobs', exact: true })
+  await watched.getByRole('button', { name: `View saved job: ${LONG_TITLE} at ${LONG_COMPANY}`, exact: true }).press('Enter')
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: currentTitle, exact: true })).toBeVisible()
+  expect(postingReads()).toEqual(expectedReads)
+  expect(state.writes).toEqual([])
+  await dialog.getByRole('button', { name: 'Record application', exact: true }).press('Enter')
+  await expect(dialog).toHaveCount(0)
+  const search = region(page, 'Your search')
+  const form = search.getByRole('form', { name: 'Record application', exact: true })
+  return { state, card, search, form, currentTitle, currentCompany, postingReads, expectedReads }
+}
+
+for (const viewport of VIEWPORTS) {
+  test(`Market opens an unsaved application record for the current Card at ${viewport.width}×${viewport.height}`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize(viewport)
+    if (viewport.width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const diagnostics = []
+    page.on('pageerror', error => diagnostics.push(error.message))
+    page.on('console', message => { if (['error', 'warning'].includes(message.type())) diagnostics.push(message.text()) })
+    const { state, card, form, currentTitle, currentCompany, postingReads, expectedReads } = await openMarketApplication(
+      { page, context, baseURL }, { currentAlias: viewport.width === 900 ? '\u200b' : null },
+    )
+    const date = form.getByLabel('Application date', { exact: true })
+    const submit = form.getByRole('button', { name: 'Record application', exact: true })
+    await expect(date).toBeFocused()
+    await expect(date).toHaveValue('')
+    await expect(form.getByText(/Selected job:/)).toContainText(currentTitle)
+    await expect(form.getByText(/Selected job:/)).toContainText(currentCompany)
+    await expect(form.getByRole('combobox', { name: 'Job', exact: true })).toHaveCount(0)
+    expect(state.writes).toEqual([])
+    expect(postingReads()).toEqual(expectedReads)
+    await form.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath('application-record-draft.png'), animations: 'disabled' })
+
+    await submit.press('Enter')
+    await expect(date).toBeFocused()
+    expect(state.writes).toEqual([])
+    await date.fill(dateOf(-2))
+    await submit.press('Enter')
+    await expect(form).toHaveCount(0)
+    await expect(metric(page, 'Active applications')).toHaveText('1')
+    await expect(heading(page, 'Your search')).toBeFocused()
+    expect(state.writes).toEqual([{ key: 'POST /home/applications', path: '/home/applications', body: {
+      application_id: expect.stringMatching(UUID_PATTERN), card_key: card.card_key, applied_on: dateOf(-2),
+    } }])
+    expect(postingReads()).toEqual(expectedReads)
+    expect(state.unexpected).toEqual([])
+    expect(diagnostics).toEqual([])
+  })
+}
+
+test('Market application handoff shows the existing Home record without starting a duplicate', async ({ page, context, baseURL }) => {
+  const { state, search, form, currentTitle, postingReads, expectedReads } = await openMarketApplication(
+    { page, context, baseURL }, { alreadyRecorded: true },
+  )
+  await expect(search.getByText('An application is already recorded for this job.', { exact: true })).toBeVisible()
+  await expect(form).toHaveCount(0)
+  await expect(metric(page, 'Active applications')).toHaveText('1')
+  const history = search.locator('details.home-page__application-history')
+  await expect(history).toHaveAttribute('open', '')
+  await expect(history.getByRole('listitem')).toContainText(`${currentTitle} · applied`)
+  expect(state.writes).toEqual([])
+  expect(postingReads()).toEqual(expectedReads)
+  expect(state.unexpected).toEqual([])
+})
+
+test('Home refresh replaces a Market application draft when another client recorded this job', async ({ page, context, baseURL }) => {
+  const { state, card, search, form, postingReads, expectedReads } = await openMarketApplication({ page, context, baseURL })
+  await form.getByLabel('Application date', { exact: true }).fill(dateOf(-2))
+  state.applications.push({
+    application_id: uuid(702), card_key: card.card_key, status: 'interviewing', applied_on: dateOf(-1),
+    created_at: iso(-1), updated_at: iso(-1),
+  })
+  const overviewReads = count(state, 'GET /home/overview')
+  await page.getByRole('button', { name: 'Refresh Home', exact: true }).press('Enter')
+  await expect(search.getByText('An application is already recorded for this job.', { exact: true })).toBeVisible()
+  await expect(form).toHaveCount(0)
+  const history = search.locator('details.home-page__application-history')
+  await expect(history).toHaveAttribute('open', '')
+  await expect(history.getByRole('listitem')).toHaveCount(1)
+  await expect(history.getByRole('listitem')).toContainText(`${LONG_TITLE} · interviewing`)
+  expect(count(state, 'GET /home/overview')).toBe(overviewReads + 1)
+  expect(state.writes).toEqual([])
+  expect(postingReads()).toEqual(expectedReads)
+  expect(state.unexpected).toEqual([])
+})
+
+test('Home verifies its own Market application after losing the save response', async ({ page, context, baseURL }) => {
+  const { state, card, search, form, postingReads, expectedReads } = await openMarketApplication(
+    { page, context, baseURL }, { loseCreateResponse: true },
+  )
+  await form.getByLabel('Application date', { exact: true }).fill(dateOf(-2))
+  await form.getByRole('button', { name: 'Record application', exact: true }).press('Enter')
+  await expect(form.getByRole('alert')).toContainText('Save outcome unknown')
+  await expect(form.getByRole('button', { name: 'Retry same request', exact: true })).toBeDisabled()
+  const posts = bodiesOf(state, 'POST /home/applications')
+  expect(posts).toEqual([{ application_id: expect.stringMatching(UUID_PATTERN), card_key: card.card_key, applied_on: dateOf(-2) }])
+  expect(state.applications).toHaveLength(1)
+  expect(state.applications[0].application_id).toBe(posts[0].application_id)
+  await form.getByRole('button', { name: 'Refresh to check', exact: true }).press('Enter')
+  await expect(form).toHaveCount(0)
+  await expect(metric(page, 'Active applications')).toHaveText('1')
+  await expect(search.getByText('An application is already recorded for this job.', { exact: true })).toHaveCount(0)
+  expect(state.writes).toHaveLength(1)
+  expect(postingReads()).toEqual(expectedReads)
+  expect(state.unexpected).toEqual([])
+})
+
 test('HF-APP-REC an application is recorded only by an explicit submit and every related area follows', async ({ page, context, baseURL }) => {
   const cardA = cardOf(1, LONG_TITLE, LONG_COMPANY)
   const cardB = cardOf(2, SMALL_TITLE, 'Kleine Firma GmbH (DEMO)')
