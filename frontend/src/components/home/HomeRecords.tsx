@@ -8,6 +8,8 @@ import {
 } from '../../home/api/home'
 import type { ApplicationRecord, ApplicationStatus, CreateApplicationRequest, CreateEventRequest, CreateTaskRequest, HomeOverview, ScheduleEvent, Task } from '../../home/types/home'
 import type { PostingCard } from '../../postings/types/postingCard'
+import { getPostingCard, MissingPostingCardError } from '../../postings/api/postings'
+import { HomeEventJobField } from './HomeEventJobField'
 import { useRecordWrite } from './useRecordWrite'
 import type { HomeRecordsRefresh } from './useRecordWrite'
 import './HomeRecords.css'
@@ -86,16 +88,23 @@ function EventForm({ event, refresh, close }: { event: ScheduleEvent | null; ref
   const [start, setStart] = useState(event ? localDateTime(event.starts_at) : '')
   const [end, setEnd] = useState(event?.ends_at ? localDateTime(event.ends_at) : '')
   const [cancelled, setCancelled] = useState(event?.cancelled ?? false)
+  const [cardKey, setCardKey] = useState(event?.card_key ?? null)
   const [validation, setValidation] = useState<string | null>(null)
   const id = useRef<{ key: string; id: string } | null>(null)
   const write = useRecordWrite(refresh)
   function submit() {
     if (end && new Date(end) < new Date(start)) { setValidation('End time must not precede start time.'); return }
     setValidation(null)
-    const fields = { title: title.trim(), kind, starts_at: new Date(start).toISOString(), ends_at: end ? new Date(end).toISOString() : null, cancelled }
+    const fields = {
+      title: title.trim(), kind, starts_at: new Date(start).toISOString(),
+      ends_at: end ? new Date(end).toISOString() : null, cancelled,
+      ...(cardKey !== (event?.card_key ?? null) ? { card_key: cardKey } : {}),
+    }
+    const verifyLinkedJob = event === null || 'card_key' in fields
     const body: CreateEventRequest = { ...fields, event_id: event?.event_id ?? creationId(id, fields) }
     void write.run({ send: () => event ? adjustEvent(event.event_id, fields) : createEvent(body), saved: close,
       matches: data => [...data.today.events, ...data.upcoming.events].some(v => v.event.event_id === body.event_id
+        && (!verifyLinkedJob || v.event.card_key === cardKey)
         && v.event.title === body.title && v.event.kind === body.kind && new Date(v.event.starts_at).getTime() === new Date(body.starts_at).getTime()
         && (v.event.ends_at === null) === (body.ends_at === null)
         && (v.event.ends_at === null || new Date(v.event.ends_at).getTime() === new Date(body.ends_at!).getTime()) && v.event.cancelled === cancelled),
@@ -109,6 +118,7 @@ function EventForm({ event, refresh, close }: { event: ScheduleEvent | null; ref
       <label>Ends (optional)<input type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} /></label>
       {event && <label className="home-page__check-label"><input type="checkbox" checked={cancelled} onChange={e => setCancelled(e.target.checked)} />Cancel this event</label>}
     </fieldset>
+    <HomeEventJobField cardKey={cardKey} onChange={setCardKey} disabled={write.locked} />
     {validation && <p role="alert">{validation}</p>}
     <div className="home-page__record-actions"><button className="home-page__record-primary" disabled={write.pending || (write.uncertain && !write.checked)}>{write.pending ? 'Saving…' : write.uncertain ? 'Retry same request' : event ? 'Save event' : 'Add event'}</button><button type="button" className="home-page__record-action" onClick={close} disabled={write.locked}>Cancel editing</button></div>
     <WriteFeedback write={write} />
@@ -141,6 +151,8 @@ function ApplicationForm({ jobs, selected, today, refresh, close }: { jobs: Post
 const applicationStatusLabels: Record<ApplicationStatus, string> = {
   applied: 'Applied', interviewing: 'Interviewing', offer: 'Offer', rejected: 'Rejected', withdrawn: 'Withdrawn',
 }
+
+type LinkedJobRead = { eventId: string; cardKey: string; error?: string }
 
 function ApplicationRow({ record, title, refresh }: { record: ApplicationRecord; title: string; refresh: HomeRecordsRefresh }) {
   const [draft, setDraft] = useState<{ initial: ApplicationStatus; status: ApplicationStatus } | null>(null)
@@ -239,12 +251,17 @@ export function HomeRecords({ data, today, refresh }: { data: HomeOverview; toda
   const [jobsError, setJobsError] = useState<string | null>(null)
   const [jobsLoading, setJobsLoading] = useState(false)
   const [openedCard, setOpenedCard] = useState<PostingCard | null>(null)
+  const [linkedJobRead, setLinkedJobRead] = useState<LinkedJobRead | null>(null)
+  const pendingLinkedJob = useRef<(LinkedJobRead & { controller: AbortController }) | null>(null)
   const active = useRef(false)
   const jobsGuard = useRef(false)
   const applicationHeading = useRef<HTMLHeadingElement>(null)
   const eventHeading = useRef<HTMLHeadingElement>(null)
   const opener = useRef<HTMLElement | null>(null)
-  useEffect(() => { active.current = true; return () => { active.current = false } }, [])
+  useEffect(() => {
+    active.current = true
+    return () => { active.current = false; pendingLinkedJob.current?.controller.abort() }
+  }, [])
   async function openApplication(key: string) {
     if (jobsGuard.current) return
     opener.current = document.activeElement as HTMLElement
@@ -264,16 +281,59 @@ export function HomeRecords({ data, today, refresh }: { data: HomeOverview; toda
     setEventEditor(null)
     requestAnimationFrame(() => eventHeading.current?.focus({ preventScroll: true }))
   }
+  async function handleOpenLinkedJob(event: ScheduleEvent, trigger: HTMLButtonElement) {
+    const cardKey = event.card_key
+    if (!cardKey || (pendingLinkedJob.current?.eventId === event.event_id && pendingLinkedJob.current.cardKey === cardKey)) return
+    pendingLinkedJob.current?.controller.abort()
+    const request = { eventId: event.event_id, cardKey, controller: new AbortController() }
+    pendingLinkedJob.current = request
+    setLinkedJobRead({ eventId: event.event_id, cardKey })
+    const stillLinked = () => trigger.isConnected && trigger.value === cardKey
+    try {
+      const card = await getPostingCard(cardKey, request.controller.signal)
+      if (request.controller.signal.aborted || !stillLinked()) return
+      opener.current = trigger
+      setOpenedCard(card)
+      setLinkedJobRead(null)
+    } catch (error) {
+      if (request.controller.signal.aborted || !stillLinked()) return
+      setLinkedJobRead({ eventId: event.event_id, cardKey, error: error instanceof MissingPostingCardError
+        ? 'This linked job is no longer available.' : 'Could not open the linked job. Try again.' })
+    } finally {
+      if (pendingLinkedJob.current === request) {
+        pendingLinkedJob.current = null
+        if (!stillLinked()) setLinkedJobRead(null)
+      }
+    }
+  }
+  function renderLinkedJobAction(event: ScheduleEvent, missing: boolean) {
+    if (!event.card_key || missing) return null
+    const read = linkedJobRead?.eventId === event.event_id && linkedJobRead.cardKey === event.card_key ? linkedJobRead : null
+    const opening = read !== null && !read.error
+    return <>
+      <button type="button" className="home-page__record-action" aria-label={`View linked job: ${event.title}`}
+        aria-haspopup="dialog" aria-disabled={opening} value={event.card_key}
+        onClick={(e) => { if (!opening) void handleOpenLinkedJob(event, e.currentTarget) }}>
+        {opening ? 'Opening…' : 'View linked job'}
+      </button>
+      {read?.error && <span role="alert">{read.error}</span>}
+    </>
+  }
   const upcoming = [
-    ...data.upcoming.events.map(v => ({ key: v.event.event_id, date: v.event.starts_at, title: v.event.title, detail: `${v.event.kind}${v.card_missing ? ' · Job deleted' : ''}`, event: v.event })),
-    ...data.upcoming.tasks.map(t => ({ key: t.task_id, date: `${t.due_on}T00:00:00`, title: t.title, detail: 'Task due', event: null })),
+    ...data.upcoming.events.map(v => ({ key: v.event.event_id, date: v.event.starts_at, title: v.event.title, detail: `${v.event.kind}${v.card_missing ? ' · Job deleted' : ''}`, event: v.event, cardMissing: v.card_missing })),
+    ...data.upcoming.tasks.map(t => ({ key: t.task_id, date: `${t.due_on}T00:00:00`, title: t.title, detail: 'Task due', event: null, cardMissing: false })),
   ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   const nextEvent = data.today.events.find(v => new Date(v.event.ends_at ?? v.event.starts_at).getTime() >= Date.now())
   return <>
     <div className="home-page__schedule-columns">
       <section aria-labelledby="home-today-title">
         <div className="home-page__section-heading"><h2 className="home-page__section-title" id="home-today-title">Today</h2><span className="home-page__count">{data.today.tasks.length} tasks</span></div>
-        {nextEvent ? <article className="home-page__featured-event"><span className="home-page__eyebrow">Next up · {nextEvent.event.kind}</span><strong>{nextEvent.event.title}</strong><span>{dateTime(nextEvent.event.starts_at)}{nextEvent.card_missing ? ' · Job deleted' : ''}</span><button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor(nextEvent.event)}>Adjust event</button></article> : <p className="home-page__empty">No more events scheduled today. Add one in Upcoming.</p>}
+        {nextEvent ? <article className="home-page__featured-event">
+          <span className="home-page__eyebrow">Next up · {nextEvent.event.kind}</span><strong>{nextEvent.event.title}</strong>
+          <span>{dateTime(nextEvent.event.starts_at)}{nextEvent.card_missing ? ' · Job deleted' : ''}</span>
+          <button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor(nextEvent.event)}>Adjust event</button>
+          {renderLinkedJobAction(nextEvent.event, nextEvent.card_missing)}
+        </article> : <p className="home-page__empty">No more events scheduled today. Add one in Upcoming.</p>}
         <TaskForm today={today} refresh={refresh} />
         <ul className="home-page__task-list home-page__stable-list" aria-label="Today's tasks">{data.today.tasks.map(t => <TaskRow key={t.task_id} task={t} refresh={refresh} />)}</ul>
         {data.today.tasks.length === 0 && <p className="home-page__empty">No pending tasks for today. Add your next step above.</p>}
@@ -282,7 +342,13 @@ export function HomeRecords({ data, today, refresh }: { data: HomeOverview; toda
       <section className="home-page__upcoming" aria-labelledby="home-upcoming-title">
         <div className="home-page__section-heading"><h2 className="home-page__section-title" id="home-upcoming-title" ref={eventHeading} tabIndex={-1}>Upcoming</h2><span className="home-page__count">Next 14 days</span><button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor('new')}><IconPlus aria-hidden="true" />Add event</button></div>
         {eventEditor !== null && <EventForm key={eventEditor === 'new' ? 'new' : eventEditor.event_id} event={eventEditor === 'new' ? null : eventEditor} refresh={refresh} close={closeEvent} />}
-        {upcoming.length === 0 ? <p className="home-page__empty">No recorded deadlines or events in the next 14 days.</p> : <ul className="home-page__upcoming-list" aria-label="Upcoming records">{upcoming.map(item => <li className="home-page__upcoming-row home-page__record-upcoming" key={item.key}><div className="home-page__row-copy"><time dateTime={item.date}>{dateTime(item.date)}</time><strong>{item.title}</strong><span>{item.detail}</span></div>{item.event && <button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor(item.event)}>Adjust</button>}</li>)}</ul>}
+        {upcoming.length === 0 ? <p className="home-page__empty">No recorded deadlines or events in the next 14 days.</p> : <ul className="home-page__upcoming-list" aria-label="Upcoming records">{upcoming.map(item => <li className="home-page__upcoming-row home-page__record-upcoming" key={item.key}>
+          <div className="home-page__row-copy"><time dateTime={item.date}>{dateTime(item.date)}</time><strong>{item.title}</strong><span>{item.detail}</span></div>
+          {item.event && <div className="home-page__record-actions">
+            <button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor(item.event)}>Adjust</button>
+            {renderLinkedJobAction(item.event, item.cardMissing)}
+          </div>}
+        </li>)}</ul>}
       </section>
     </div>
     <section aria-labelledby="home-search-title">
@@ -299,7 +365,13 @@ export function HomeRecords({ data, today, refresh }: { data: HomeOverview; toda
       })}</ul></details>}
     </section>
     <section className="home-page__recent-jobs" aria-labelledby="home-recent-jobs-title"><div className="home-page__section-heading"><h2 className="home-page__section-title" id="home-recent-jobs-title">Recent jobs</h2><span className="home-page__count">Latest saved jobs</span></div>
-      {data.recent_jobs.length === 0 ? <p className="home-page__empty">No saved jobs yet. Use Import posting to review and save your first job.</p> : <ul className="home-page__recent-list" aria-label="Recent saved jobs">{data.recent_jobs.map(({ card, application }) => <li className="home-page__recent-row home-page__record-job" key={card.card_key}><span className="home-page__company-mark" aria-hidden="true"><IconBuilding /></span><div className="home-page__row-copy"><button type="button" className="home-page__job-title" onClick={() => { opener.current = document.activeElement as HTMLElement; setOpenedCard(card) }}>{jobTitle(card)}</button><span>{card.posting.identity.company_name?.value || 'Company not specified'}</span><span>{application ? `Application: ${application.status}` : 'Saved · No application recorded'}</span></div>{!application && <button className="home-page__record-action" type="button" disabled={applicationEditor !== null} onClick={() => void openApplication(card.card_key)}>Record application</button>}</li>)}</ul>}
+      {data.recent_jobs.length === 0 ? <p className="home-page__empty">No saved jobs yet. Use Import posting to review and save your first job.</p> : <ul className="home-page__recent-list" aria-label="Recent saved jobs">{data.recent_jobs.map(({ card, application }) => <li className="home-page__recent-row home-page__record-job" key={card.card_key}><span className="home-page__company-mark" aria-hidden="true"><IconBuilding /></span><div className="home-page__row-copy"><button type="button" className="home-page__job-title" onClick={(event) => {
+        pendingLinkedJob.current?.controller.abort()
+        pendingLinkedJob.current = null
+        setLinkedJobRead(null)
+        opener.current = event.currentTarget
+        setOpenedCard(card)
+      }}>{jobTitle(card)}</button><span>{card.posting.identity.company_name?.value || 'Company not specified'}</span><span>{application ? `Application: ${application.status}` : 'Saved · No application recorded'}</span></div>{!application && <button className="home-page__record-action" type="button" disabled={applicationEditor !== null} onClick={() => void openApplication(card.card_key)}>Record application</button>}</li>)}</ul>}
     </section>
     {openedCard && <PostingCardDetails card={openedCard} isReadOnly onUpdate={async () => { throw new Error('Edit this job in Card library.') }} onClose={() => { setOpenedCard(null); requestAnimationFrame(() => opener.current?.focus({ preventScroll: true })) }} />}
   </>

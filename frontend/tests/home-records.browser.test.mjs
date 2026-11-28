@@ -936,6 +936,151 @@ for (const viewport of VIEWPORTS) {
 
 // ---------------------------------------------------------------------- events
 
+for (const viewport of VIEWPORTS) {
+  test(`Home explicitly links a saved job to an event and opens its current Card at ${viewport.width}×${viewport.height}`, async ({ page, context, baseURL }, testInfo) => {
+    if (viewport.width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const unrelated = cardOf(1, SMALL_TITLE, 'Synthetische Stadtwerke (DEMO)')
+    const linked = cardOf(2, LONG_TITLE, LONG_COMPANY)
+    const freshTitle = `${LONG_TITLE} – aktualisiert`
+    const current = cardOf(2, freshTitle, LONG_COMPANY)
+    const listRead = 'GET /posting/card'
+    const detailRead = `${listRead}/${linked.card_key}`
+    const unlinkedTitle = 'Bewerbungsfrist für ein anderes Praktikum (DEMO)'
+    const state = makeState({ cards: [unrelated, linked], events: [event(1, unlinkedTitle, 'deadline', iso(3, 10))] })
+    const postingReads = () => state.calls.filter(call => call === listRead || call.startsWith(`${listRead}/`))
+    const browserErrors = []
+    page.on('pageerror', error => browserErrors.push(error.message))
+    page.on('console', message => { if (['error', 'warning'].includes(message.type())) browserErrors.push(message.text()) })
+    await installHome({ context, baseURL, state, routes: { [detailRead]: route => route.fulfill({ json: current }) } })
+    await openHome(page, viewport)
+
+    const upcoming = region(page, 'Upcoming')
+    await upcoming.getByRole('button', { name: 'Add event', exact: true }).press('Enter')
+    const form = page.getByRole('form', { name: 'Add event', exact: true })
+    await form.getByLabel('Event title').fill(LONG_EVENT)
+    await form.getByLabel('Starts (local time)').fill(localInput(2, 11, 30))
+    expect(postingReads()).toEqual([])
+    expect(state.writes).toEqual([])
+
+    await form.getByRole('button', { name: 'Link saved job', exact: true }).press('Enter')
+    const picker = form.getByRole('combobox', { name: 'Saved job', exact: true })
+    await expect(picker).toBeFocused()
+    await expect(picker).toHaveValue('')
+    await expect(picker.locator(`option[value="${linked.card_key}"]`)).toContainText(LONG_TITLE)
+    await expect(picker.locator(`option[value="${linked.card_key}"]`)).toContainText(LONG_COMPANY)
+    await picker.selectOption(linked.card_key)
+    await expect(picker).toHaveValue(linked.card_key)
+    await expect(picker).toHaveAccessibleDescription(`Selected job: ${LONG_TITLE} · ${LONG_COMPANY}`)
+    expect(postingReads()).toEqual([listRead])
+    expect(state.writes).toEqual([])
+    await picker.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath('choose-linked-job.png'), animations: 'disabled' })
+    await form.getByRole('button', { name: 'Add event', exact: true }).press('Enter')
+    await expect(form).toHaveCount(0)
+    const savedEvent = {
+      event_id: expect.stringMatching(UUID_PATTERN), title: LONG_EVENT, kind: 'interview',
+      starts_at: iso(2, 11, 30), ends_at: null, cancelled: false, card_key: linked.card_key,
+    }
+    expect(state.writes).toEqual([{ key: 'POST /home/events', path: '/home/events', body: savedEvent }])
+
+    const upcomingRows = upcoming.getByRole('list', { name: 'Upcoming records', exact: true }).getByRole('listitem')
+    const opener = upcomingRows.filter({ hasText: LONG_EVENT }).getByRole('button', { name: `View linked job: ${LONG_EVENT}`, exact: true })
+    await expect(opener).toBeVisible()
+    const reads = count(state, 'GET /home/overview')
+    await openHome(page)
+    await expect(opener).toBeVisible()
+    expect(count(state, 'GET /home/overview')).toBeGreaterThan(reads)
+    await expect(upcomingRows.filter({ hasText: unlinkedTitle }).getByRole('button', { name: /View linked job/ })).toHaveCount(0)
+    expect(postingReads()).toEqual([listRead])
+
+    await opener.press('Enter')
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('heading', { name: freshTitle, exact: true })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: 'Review match', exact: true })).toHaveCount(0)
+    expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('current-event-job.png'), animations: 'disabled' })
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(opener).toBeFocused()
+    expect(postingReads()).toEqual([listRead, detailRead])
+    expect(state.writes).toEqual([{ key: 'POST /home/events', path: '/home/events', body: savedEvent }])
+    if (viewport.width === 900) {
+      const eventPath = `/home/events/${state.writes[0].body.event_id}`
+      await upcomingRows.filter({ hasText: LONG_EVENT }).getByRole('button', { name: 'Adjust', exact: true }).press('Enter')
+      const adjust = page.getByRole('form', { name: 'Adjust event', exact: true })
+      await adjust.getByRole('button', { name: 'Change linked job', exact: true }).press('Enter')
+      const linkedPicker = adjust.getByRole('combobox', { name: 'Saved job', exact: true })
+      await expect(linkedPicker).toHaveValue(linked.card_key)
+      await linkedPicker.selectOption('')
+      await adjust.getByRole('button', { name: 'Save event', exact: true }).press('Enter')
+      await expect(adjust).toHaveCount(0)
+      await expect(opener).toHaveCount(0)
+      await expect(upcomingRows.filter({ hasText: LONG_EVENT })).toBeVisible()
+      expect(state.writes).toHaveLength(2)
+      expect(state.writes[1]).toEqual({ key: 'PATCH /home/events/:id', path: eventPath, body: {
+        title: LONG_EVENT, kind: 'interview', starts_at: iso(2, 11, 30), ends_at: null, cancelled: false, card_key: null,
+      } })
+      expect(postingReads()).toEqual([listRead, detailRead, listRead])
+    }
+    expect(state.calls.filter(call => call.includes('/home/applications'))).toEqual([])
+    expect(state.unexpected).toEqual([])
+    expect(browserErrors).toEqual([])
+  })
+}
+
+test('Home retries unreadable saved jobs while keeping the event draft', async ({ page, context, baseURL }) => {
+  const card = cardOf(1, LONG_TITLE, LONG_COMPANY)
+  const state = makeState({ cards: [card] })
+  let reads = 0
+  await installHome({ context, baseURL, state, routes: {
+    'GET /posting/card': route => route.fulfill({ json: ++reads === 1 ? { cards: [card] } : [card] }),
+  } })
+  await openHome(page)
+  await region(page, 'Upcoming').getByRole('button', { name: 'Add event', exact: true }).press('Enter')
+  const form = page.getByRole('form', { name: 'Add event', exact: true })
+  await form.getByLabel('Event title').fill(LONG_EVENT)
+  await form.getByLabel('Starts (local time)').fill(localInput(2, 11, 30))
+  await form.getByRole('button', { name: 'Link saved job', exact: true }).press('Enter')
+  await expect(form.getByRole('alert')).toHaveText('Saved jobs could not be loaded.')
+  const retry = form.getByRole('button', { name: 'Retry loading saved jobs', exact: true })
+  await expect(retry).toBeFocused()
+  await retry.press('Enter')
+  await expect(form.getByRole('combobox', { name: 'Saved job', exact: true })).toBeFocused()
+  await expect(form.getByLabel('Event title')).toHaveValue(LONG_EVENT)
+  await expect(form.getByLabel('Starts (local time)')).toHaveValue(localInput(2, 11, 30))
+  expect(reads).toBe(2)
+  expect(state.writes).toEqual([])
+  expect(state.unexpected).toEqual([])
+})
+
+test('Home confirms an event title save when another client changed its untouched link', async ({ page, context, baseURL }) => {
+  const original = cardOf(1, SMALL_TITLE, LONG_COMPANY)
+  const replacement = cardOf(2, LONG_TITLE, LONG_COMPANY)
+  const saved = event(1, LONG_EVENT, 'interview', iso(2, 11), { card_key: original.card_key })
+  const title = 'Aktualisierter Termin zur Vorbereitung (DEMO)'
+  const state = makeState({ cards: [original, replacement], events: [saved] })
+  await installHome({ context, baseURL, state, routes: {
+    'PATCH /home/events/:id': async (route, request) => {
+      state.events[0].card_key = replacement.card_key
+      state.patchEvent(saved.event_id, request.postDataJSON())
+      await route.abort('failed')
+    },
+  } })
+  await openHome(page)
+  const upcoming = region(page, 'Upcoming')
+  await upcoming.getByRole('button', { name: 'Adjust', exact: true }).press('Enter')
+  const form = page.getByRole('form', { name: 'Adjust event', exact: true })
+  await form.getByLabel('Event title').fill(title)
+  await form.getByRole('button', { name: 'Save event', exact: true }).press('Enter')
+  await form.getByRole('button', { name: 'Refresh to check', exact: true }).press('Enter')
+  await expect(form).toHaveCount(0)
+  await expect(upcoming.getByRole('button', { name: `View linked job: ${title}`, exact: true })).toHaveAttribute('value', replacement.card_key)
+  expect(state.writes).toHaveLength(1)
+  expect(state.writes[0].body).not.toHaveProperty('card_key')
+  expect(state.unexpected).toEqual([])
+})
+
 test('HF-EVENT-ADJ adjusting an event validates first, then moves Today, Upcoming, the interview count and activity together', async ({ page, context, baseURL }) => {
   const FAR = 'Spätere Frist (DEMO)'
   // The adjusted event is NOT seeded: it is first created through Upcoming > Add event, so the
