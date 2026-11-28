@@ -298,3 +298,67 @@ test('Card library keeps a rejected Card draft available for correction', async 
   expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`])
   expect(unexpected).toEqual([])
 })
+
+const LONG_DOMAIN = 'Barrierefreie Fahrgastinformation und regionale Verkehrsplanung für den öffentlichen Personennahverkehr mit digitaler Linienkommunikation (DEMO)'
+const COMPOUND_DOMAIN = 'Schienenpersonennahverkehrsinfrastrukturmodernisierungsbedarfsermittlungskoordination'
+  + 'verkehrsverbundübergreifenderfahrgastinformationsschnittstellenstandardisierung'
+const SHORT_DOMAIN = 'Mobilität'
+
+for (const width of [1440, 900]) {
+  test(`Card library wraps long role domains without clipping at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    const browserErrors = []
+    page.on('pageerror', error => browserErrors.push(error.message))
+    page.on('console', message => {
+      if (message.type() === 'error') browserErrors.push(message.text())
+    })
+    const card = savedCard(A_KEY, A_IMPORT, A_CURRENT)
+    const domains = [LONG_DOMAIN, COMPOUND_DOMAIN, SHORT_DOMAIN]
+    card.posting.role_content.domains = domains.map(value => ({ value, origin: 'source' }))
+    const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+      [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [card] }),
+    })
+    await page.getByRole('button', { name: `View details: ${A_CURRENT} at Unknown company`, exact: true }).press('Enter')
+    const dialog = page.getByRole('dialog')
+    const roleDomains = dialog.locator('.posting-card-role-domains')
+    for (const domain of domains) {
+      await expect(roleDomains.getByText(domain, { exact: true })).toBeVisible()
+    }
+    await page.evaluate(() => document.fonts.ready)
+    await roleDomains.scrollIntoViewIfNeeded()
+
+    const layout = await roleDomains.evaluate(root => {
+      const dialog = root.closest('dialog')
+      const field = root.closest('.posting-card-details__field').getBoundingClientRect()
+      return {
+        dialogOverflow: dialog.scrollWidth - dialog.clientWidth,
+        labels: [...root.querySelectorAll('.posting-card-role-domains__value')].map(label => {
+          const pill = label.closest('.posting-card-role-domains__pill').getBoundingClientRect()
+          const range = document.createRange()
+          range.selectNodeContents(label)
+          const lines = [...range.getClientRects()]
+          const overflow = Math.max(0, pill.right - field.right, field.left - pill.left,
+            ...lines.map(line => Math.max(line.right - pill.right, pill.left - line.left)))
+          return { overflow, lineCount: lines.length }
+        }),
+      }
+    })
+    await page.screenshot({ path: testInfo.outputPath('role-domains-read-view.png') })
+    expect(layout.dialogOverflow, JSON.stringify(layout)).toBeLessThanOrEqual(1)
+    expect(Math.max(...layout.labels.map(label => label.overflow))).toBeLessThanOrEqual(1)
+    expect(layout.labels.map(label => label.lineCount > 1)).toEqual([true, true, false])
+
+    await dialog.getByRole('button', { name: 'Edit card', exact: true }).press('Enter')
+    for (const [index, domain] of domains.entries()) {
+      await expect(dialog.getByRole('textbox', { name: `Role domain ${index + 1}`, exact: true })).toHaveValue(domain)
+    }
+    const shortInput = dialog.getByRole('textbox', { name: 'Role domain 3', exact: true })
+    const { width: initialWidth, height: initialHeight } = await shortInput.boundingBox()
+    await shortInput.fill('Interdisziplinäre regionale Verkehrsplanung')
+    await expect.poll(async () => (await shortInput.boundingBox()).width).toBeGreaterThan(initialWidth)
+    expect((await shortInput.boundingBox()).height).toBe(initialHeight)
+    expect(calls).toEqual([`GET ${LIST_PATH}`])
+    expect(unexpected).toEqual([])
+    expect(browserErrors).toEqual([])
+  })
+}

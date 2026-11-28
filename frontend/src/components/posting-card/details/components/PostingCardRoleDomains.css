@@ -44,13 +44,15 @@
   white-space: pre;
 }
 
-.posting-card-role-domains__value {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.posting-card-role-domains__value:not(.posting-card-role-domains__value--sizing) {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .posting-card-role-domains__value--sizing {
   visibility: hidden;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .posting-card-role-domains__input {
