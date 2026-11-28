@@ -13,6 +13,32 @@ export function savedJobCompany(card: PostingCard) {
   return card.posting.identity.company_name?.value ?? 'Unknown company'
 }
 
+export function savedJobDistinctions(cards: PostingCard[]) {
+  const jobCounts = new Map<string, number>()
+  const addressCounts = new Map<string, number>()
+  const entries = cards.map((card) => {
+    const title = savedJobTitle(card)
+    const company = savedJobCompany(card)
+    const address = visiblePostingText(card.posting.work_conditions.primary_address?.value)
+    const jobKey = JSON.stringify([title, company])
+    const addressKey = JSON.stringify([title, company, address])
+    jobCounts.set(jobKey, (jobCounts.get(jobKey) ?? 0) + 1)
+    if (address) addressCounts.set(addressKey, (addressCounts.get(addressKey) ?? 0) + 1)
+    return { card, address, jobKey, addressKey }
+  })
+
+  const distinctions = new Map<string, string>()
+  for (const { card, address, jobKey, addressKey } of entries) {
+    if (jobCounts.get(jobKey) === 1) continue
+    const jobId = visiblePostingText(card.posting.identity.external_job_id?.value)
+    const needsJobId = !address || (addressCounts.get(addressKey) ?? 0) > 1
+    const jobIdLabel = needsJobId && jobId ? `Job ID: ${jobId}` : null
+    const distinction = [address, jobIdLabel].filter(Boolean).join(' · ') || 'No distinguishing details recorded'
+    distinctions.set(card.card_key, distinction)
+  }
+  return distinctions
+}
+
 export type SavedCardRoleDomains = { card: PostingCard; domains: Map<string, string> }
 
 export function savedCardsWithRoleDomains(cards: PostingCard[]): SavedCardRoleDomains[] {

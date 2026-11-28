@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { PostingCardDetails } from '../components/posting-card/details/PostingCardDetails'
 import { getPostingCard, listPostingCards, MissingPostingCardError } from '../postings/api/postings'
 import type { PostingCard } from '../postings/types/postingCard'
-import { savedCardsWithRoleDomains, savedJobCompany, savedJobTitle } from './marketJobs'
+import { savedCardsWithRoleDomains, savedJobCompany, savedJobDistinctions, savedJobTitle } from './marketJobs'
 import type { MarketJobRead } from './marketJobs'
 import { MarketRoleDomains } from './MarketRoleDomains'
 import { MarketWatchlist } from './MarketWatchlist'
@@ -171,7 +171,11 @@ export function MarketPage() {
 
   const cards = savedJobs.status === 'ready' ? savedJobs.cards : emptyCards
   const domainCards = useMemo(() => savedCardsWithRoleDomains(cards), [cards])
+  const optionDistinctions = useMemo(() => savedJobDistinctions(cards), [cards])
   const reference = domainCards.find(({ card }) => card.card_key === referenceKey)
+  const referenceTitle = reference
+    ? [savedJobTitle(reference.card), optionDistinctions.get(referenceKey)].filter(Boolean).join(' · ')
+    : null
   const referenceDomains = reference?.domains
   const relatedJobs = referenceDomains?.size ? domainCards.flatMap(({ card, domains }) => {
     if (card.card_key === referenceKey) return []
@@ -180,6 +184,7 @@ export function MarketPage() {
       .map(([, label]) => label)
     return sharedDomains.length ? [{ card, sharedDomains }] : []
   }) : []
+  const resultDistinctions = savedJobDistinctions(relatedJobs.map(({ card }) => card))
   const missingNotice = detail?.status === 'failed' && detail.missing ? detail.message : null
 
   let resultStatus: string | undefined
@@ -213,11 +218,11 @@ export function MarketPage() {
           <select ref={referenceSelect} value={referenceKey} onChange={(event) => handleReferenceChange(event.target.value)}>
             <option value="">Choose a saved job</option>
             {cards.map((card) => <option key={card.card_key} value={card.card_key}>
-              {savedJobTitle(card)} · {savedJobCompany(card)}
+              {[optionDistinctions.get(card.card_key), savedJobTitle(card), savedJobCompany(card)].filter(Boolean).join(' · ')}
             </option>)}
           </select>
         </label>}
-        {reference && <p className="market-page__reference-title" aria-hidden="true">{savedJobTitle(reference.card)}</p>}
+        {referenceTitle && <p className="market-page__reference-title" aria-hidden="true">{referenceTitle}</p>}
         {resultStatus && <p className="market-page__result-status" role="status">{resultStatus}</p>}
         {detail?.scope === 'related' && missingNotice && <p className="market-page__error" role="alert">{missingNotice}</p>}
         {relatedJobs.length > 0 && <ul
@@ -226,12 +231,15 @@ export function MarketPage() {
           aria-labelledby="market-related-jobs-title"
         >
           {relatedJobs.map(({ card, sharedDomains }) => {
+            const title = savedJobTitle(card)
+            const distinction = resultDistinctions.get(card.card_key)
             const status = detail?.scope === 'related' && detail.status !== 'opened' && detail.cardKey === card.card_key ? detail : null
             const isOpening = status?.status === 'loading'
             return <li key={card.card_key} className="market-page__job">
               <div className="market-page__job-copy">
-                <h3>{savedJobTitle(card)}</h3>
+                <h3>{title}</h3>
                 <p className="market-page__company">{savedJobCompany(card)}</p>
+                {distinction && <p className="market-page__job-distinction">{distinction}</p>}
                 <dl className="market-page__reason">
                   <dt>Shared role domains</dt>
                   <dd>{sharedDomains.join(' · ')}</dd>
@@ -240,7 +248,7 @@ export function MarketPage() {
               <button
                 className="market-page__action"
                 type="button"
-                aria-label={`View saved job: ${savedJobTitle(card)}`}
+                aria-label={distinction ? `View saved job: ${title} · ${distinction}` : `View saved job: ${title}`}
                 aria-haspopup="dialog"
                 aria-disabled={isOpening}
                 onClick={(event) => void handleOpenJob(card.card_key, event.currentTarget, 'related')}

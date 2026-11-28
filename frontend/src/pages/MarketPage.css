@@ -110,6 +110,7 @@
   font-size: var(--font-size-body);
 }
 
+.market-page__job-distinction,
 .market-page__reason {
   margin-top: 4px;
   color: var(--color-text-secondary);

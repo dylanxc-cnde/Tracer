@@ -310,7 +310,9 @@ for (const width of [1440, 900]) {
       [cardPath(selected)]: route => route.fulfill({ json: current }),
     })
     const reference = main.getByRole('combobox', { name: 'Reference saved job', exact: true })
-    await expect(reference.getByRole('option', { name: `${title} · ${company}`, exact: true })).toHaveCount(5)
+    for (const { detail } of cases) {
+      if (detail) await expect(reference.getByRole('option', { name: `${detail} · ${title} · ${company}`, exact: true })).toHaveCount(1)
+    }
     await expect(reference.getByRole('option', { name: `${alias} · ${company}`, exact: true })).toHaveCount(1)
 
     await summary.press('Enter')

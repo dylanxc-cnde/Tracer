@@ -174,3 +174,100 @@ test('Market drops a pending job read when another related job is opened', async
   expect(calls).toEqual([LIST, nearPath, olderPath])
   expect(unexpected).toEqual([])
 })
+
+const MATCHING_TITLE = 'Werkstudentin für barrierefreie Fahrgastinformation und regionale Nahverkehrsentwicklung (DEMO)'
+const BERLIN_ADDRESS = 'Karl-Liebknecht-Straße 17, 10178 Berlin'
+const DRESDEN_ADDRESS = 'Wilsdruffer Straße 24, 01067 Dresden'
+const CORRECTED_DRESDEN_ADDRESS = 'Lingnerallee 3, 01069 Dresden'
+
+function savedLocationCard(id, address) {
+  const result = savedCard(id, MATCHING_TITLE, ['Datenanalyse'])
+  result.posting.work_conditions.primary_address = { origin: 'source', value: address }
+  return result
+}
+
+for (const width of [1440, 900]) {
+  test(`Market distinguishes same-name Related jobs by address at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const berlin = savedLocationCard(6, BERLIN_ADDRESS)
+    const dresden = savedLocationCard(7, DRESDEN_ADDRESS)
+    const corrected = savedLocationCard(7, CORRECTED_DRESDEN_ADDRESS)
+    const dresdenPath = `${LIST}/${dresden.card_key}`
+    const { main, reference, calls, unexpected } = await openMarket({ page, context, baseURL }, {
+      [LIST]: route => route.fulfill({ json: [cards.reference, berlin, dresden] }),
+      [dresdenPath]: route => route.fulfill({ json: corrected }),
+    })
+    const berlinOption = reference.locator(`option[value="${berlin.card_key}"]`)
+    const dresdenOption = reference.locator(`option[value="${dresden.card_key}"]`)
+    const related = main.getByRole('list', { name: 'Related saved jobs', exact: true })
+    await reference.press('Home')
+    await page.keyboard.press('ArrowDown')
+    await expect(reference).toHaveValue(cards.reference.card_key)
+    await expect(related.getByRole('listitem')).toHaveCount(2)
+    await page.screenshot({ path: testInfo.outputPath('same-company-related-results.png'), animations: 'disabled' })
+    const company = berlin.posting.identity.company_name.value
+    await expect(berlinOption).toHaveText(`${BERLIN_ADDRESS} · ${MATCHING_TITLE} · ${company}`)
+    await expect(dresdenOption).toHaveText(`${DRESDEN_ADDRESS} · ${MATCHING_TITLE} · ${company}`)
+
+    await page.keyboard.press('ArrowDown')
+    await expect(reference).toHaveValue(berlin.card_key)
+    const selected = main.locator('.market-page__reference-title')
+    await expect(selected).toHaveText(`${MATCHING_TITLE} · ${BERLIN_ADDRESS}`)
+    await expect(selected).toBeVisible()
+    await expect(reference).toBeFocused()
+    expect(await main.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('selected-same-company-reference.png'), animations: 'disabled' })
+
+    await page.keyboard.press('ArrowUp')
+    await expect(reference).toHaveValue(cards.reference.card_key)
+    const openBerlin = related.getByRole('button', { name: `View saved job: ${MATCHING_TITLE} · ${BERLIN_ADDRESS}`, exact: true })
+    const openDresden = related.getByRole('button', { name: `View saved job: ${MATCHING_TITLE} · ${DRESDEN_ADDRESS}`, exact: true })
+    await expect(related.getByText(BERLIN_ADDRESS, { exact: true })).toBeVisible()
+    await expect(related.getByText(DRESDEN_ADDRESS, { exact: true })).toBeVisible()
+    await openBerlin.press('Tab')
+    await expect(openDresden).toBeFocused()
+    expect(calls).toEqual([LIST])
+
+    await page.keyboard.press('Enter')
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('heading', { name: MATCHING_TITLE, exact: true })).toBeVisible()
+    await expect(dialog.getByText(CORRECTED_DRESDEN_ADDRESS, { exact: true }).first()).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(related.getByRole('button', { name: `View saved job: ${MATCHING_TITLE} · ${CORRECTED_DRESDEN_ADDRESS}`, exact: true })).toBeFocused()
+    await expect(dresdenOption).toHaveText(`${CORRECTED_DRESDEN_ADDRESS} · ${MATCHING_TITLE} · ${company}`)
+    await expect(openBerlin).toBeEnabled()
+    expect(calls).toEqual([LIST, dresdenPath])
+    expect(unexpected).toEqual([])
+    await page.screenshot({ path: testInfo.outputPath('related-current-address-focus.png'), animations: 'disabled' })
+  })
+}
+
+test('Market identifies same-address Related jobs by saved job ID and preserves missing details', async ({ page, context, baseURL }) => {
+  const first = savedLocationCard(6, BERLIN_ADDRESS)
+  const second = savedLocationCard(7, BERLIN_ADDRESS)
+  const unidentified = savedCard(8, MATCHING_TITLE, ['Datenanalyse'])
+  first.posting.identity.external_job_id = { origin: 'source', value: 'BE-DEMO-130' }
+  second.posting.identity.external_job_id = { origin: 'source', value: 'BE-DEMO-131' }
+
+  const { main, reference, calls, unexpected } = await openMarket({ page, context, baseURL }, {
+    [LIST]: route => route.fulfill({ json: [cards.reference, first, second, unidentified] }),
+  })
+  await reference.selectOption(cards.reference.card_key)
+  const related = main.getByRole('list', { name: 'Related saved jobs', exact: true })
+  await expect(related.getByRole('listitem')).toHaveCount(3)
+  const company = first.posting.identity.company_name.value
+  for (const [saved, detail] of [
+    [first, `${BERLIN_ADDRESS} · Job ID: BE-DEMO-130`],
+    [second, `${BERLIN_ADDRESS} · Job ID: BE-DEMO-131`],
+    [unidentified, 'No distinguishing details recorded'],
+  ]) {
+    await expect(reference.locator(`option[value="${saved.card_key}"]`)).toHaveText(`${detail} · ${MATCHING_TITLE} · ${company}`)
+    await expect(related.getByText(detail, { exact: true })).toBeVisible()
+    await expect(related.getByRole('button', { name: `View saved job: ${MATCHING_TITLE} · ${detail}`, exact: true })).toBeEnabled()
+  }
+  expect(calls).toEqual([LIST])
+  expect(unexpected).toEqual([])
+})

@@ -117,9 +117,3 @@
   border-inline-start: 2px solid var(--color-border-subtle);
   animation: none;
 }
-
-.market-role-domains__distinction {
-  margin: 4px 0 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-caption);
-}
