@@ -5,6 +5,7 @@ import type { HomeRecordsRefresh } from '../components/home/useRecordWrite'
 import { HomeActivity } from '../components/home/HomeActivity'
 import { getHomeActivity, getHomeOverview, HomeApiError, localDate, overviewWindow } from '../home/api/home'
 import type { HomeActivityData, HomeOverview } from '../home/types/home'
+import type { PostingCard } from '../postings/types/postingCard'
 import { getSettings } from '../settings/api/settings'
 import type { AppSettings } from '../settings/types/appSettings'
 import {
@@ -35,7 +36,7 @@ function homeSummary(data: HomeOverview): string {
   return `${tasks} pending ${tasks === 1 ? 'task' : 'tasks'} for today, ${events} scheduled ${events === 1 ? 'event' : 'events'} and ${data.your_search.active} active ${data.your_search.active === 1 ? 'application' : 'applications'}.`
 }
 
-export function HomePage() {
+export function HomePage({ followUpCard }: { followUpCard?: PostingCard }) {
   const [hasScrolledDiscover, setHasScrolledDiscover] = useState(false)
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [settingsError, setSettingsError] = useState<string | null>(null)
@@ -163,7 +164,8 @@ export function HomePage() {
               {overviewLoading && <p role="status">{overview ? 'Refreshing records…' : 'Loading Home…'}</p>}
               {overview && <button className="home-page__record-action" type="button" disabled={overviewLoading} onClick={handleRefreshHome}>Refresh Home</button>}
             </div>
-            {overview && <HomeRecords data={overview} today={date} refresh={{ generation: overviewGeneration, isCurrent: isCurrentOverview, start: refreshRecords }} />}
+            {overview && <HomeRecords data={overview} today={date} followUpCard={followUpCard}
+              refresh={{ generation: overviewGeneration, isCurrent: isCurrentOverview, start: refreshRecords }} />}
           </div>
           <HomeActivity overview={overviewError ? null : overview} activity={activity} error={activityError} loading={activityLoading} year={year} today={date} retry={() => void refreshActivity(new Date().getFullYear())} />
         </div>

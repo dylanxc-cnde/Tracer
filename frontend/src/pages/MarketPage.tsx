@@ -32,7 +32,7 @@ function restoreJobFocus(targets: FocusTargets) {
 
 const emptyCards: PostingCard[] = []
 
-export function MarketPage() {
+export function MarketPage({ onPlanFollowUp }: { onPlanFollowUp: (card: PostingCard) => void }) {
   const [savedJobs, setSavedJobs] = useState<SavedJobs>({ status: 'loading' })
   const [listAttempt, setListAttempt] = useState(0)
   const [referenceKey, setReferenceKey] = useState('')
@@ -268,6 +268,7 @@ export function MarketPage() {
       {detail?.status === 'opened' && <PostingCardDetails
         card={detail.card}
         isReadOnly
+        onPlanFollowUp={onPlanFollowUp}
         onSourceCheckObserved={detail.scope === 'watchlist'
           ? (observation) => watchlist.current?.observeSourceCheck(detail.card.card_key, observation)
           : undefined}

@@ -53,6 +53,7 @@ type PostingCardDetailsProps = {
   ) => Promise<PostingCard>
   onSavedVersion?: (card: PostingCard) => void
   onSourceCheckObserved?: (observation: PostingSourceObservation) => void
+  onPlanFollowUp?: (card: PostingCard) => void
 }
 
 type SourceInspection = { cardKey: string }
@@ -65,6 +66,7 @@ export function PostingCardDetails({
   onUpdate,
   onSavedVersion,
   onSourceCheckObserved,
+  onPlanFollowUp,
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const saveButton = useRef<HTMLButtonElement>(null)
@@ -135,6 +137,12 @@ export function PostingCardDetails({
     dialog.close()
     // Clear the owner's state before the browser's queued close event.
     onClose()
+  }
+
+  function handlePlanFollowUp() {
+    if (!dialogRef.current?.open) return
+    handleClose()
+    onPlanFollowUp?.(card)
   }
 
   function handleDiscardRecovery() {
@@ -248,6 +256,12 @@ export function PostingCardDetails({
             <span aria-hidden="true">▾</span>
           </button>
         </div>
+
+        {!isOriginalSnapshot && !editor.isEditing && onPlanFollowUp && (
+          <button className="posting-card-details__follow-up" type="button" onClick={handlePlanFollowUp}>
+            Plan follow-up
+          </button>
+        )}
 
         <div className={`posting-card-details__quick-facts${editor.isEditing ? ' posting-card-details__quick-facts--editing' : ''}`}>
           <PostingCardQuickFacts posting={posting} />

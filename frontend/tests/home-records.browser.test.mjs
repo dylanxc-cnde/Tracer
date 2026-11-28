@@ -936,6 +936,160 @@ for (const viewport of VIEWPORTS) {
 
 // ---------------------------------------------------------------------- events
 
+test('A delayed Home follow-up draft preserves workspace-search focus', async ({ page, context, baseURL }) => {
+  const card = cardOf(1, LONG_TITLE, LONG_COMPANY)
+  const state = makeState({ cards: [card] })
+  const releaseOverview = deferred()
+  const overviewStarted = deferred()
+  await installHome({ context, baseURL, state, routes: {
+    'GET /posting/watchlist': route => route.fulfill({ json: [{
+      card_key: card.card_key, watch_id: uuid(700), watched_at: iso(-1),
+      card_identity: { posting_alias: null, position_title: LONG_TITLE, company_name: LONG_COMPANY },
+    }] }),
+    [`GET /posting/card/${card.card_key}`]: route => route.fulfill({ json: card }),
+    'GET /home/overview': async (route, request, ok) => {
+      overviewStarted.resolve()
+      await releaseOverview.promise
+      return ok()
+    },
+  } })
+  await page.goto('/')
+  await mainNavigation(page).getByRole('button', { name: 'Market', exact: true }).press('Enter')
+  await page.getByText('Watchlist', { exact: true }).press('Enter')
+  const watched = page.getByRole('list', { name: 'Watched jobs', exact: true })
+  await watched.getByRole('button', { name: `View saved job: ${LONG_TITLE} at ${LONG_COMPANY}`, exact: true }).press('Enter')
+  const dialog = page.getByRole('dialog')
+  const search = page.getByRole('combobox', { name: 'Search your workspace', exact: true })
+  const draft = region(page, 'Upcoming').getByRole('form', { name: 'Add event', exact: true })
+  try {
+    await dialog.getByRole('button', { name: 'Plan follow-up', exact: true }).press('Enter')
+    await expect(dialog).toHaveCount(0)
+    await overviewStarted.promise
+    await expect(draft).toHaveCount(0)
+    await page.keyboard.press('Control+k')
+    await expect(search).toBeFocused()
+  } finally {
+    releaseOverview.resolve()
+  }
+  await expect(draft.getByLabel('Event title')).toHaveValue('Follow up')
+  await expect(search).toBeFocused()
+  expect(state.writes).toEqual([])
+  expect(state.unexpected).toEqual([])
+})
+
+for (const viewport of VIEWPORTS) {
+  test(`Market plans a follow-up in an unsaved linked Home event at ${viewport.width}×${viewport.height}`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize(viewport)
+    if (viewport.width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const reference = cardOf(1, SMALL_TITLE, 'Synthetische Stadtwerke (DEMO)')
+    const linked = cardOf(2, LONG_TITLE, LONG_COMPANY)
+    for (const card of [reference, linked]) {
+      card.posting.role_content = { ...card.posting.role_content, domains: [{ value: 'Datenanalyse', origin: 'source' }] }
+    }
+    const currentTitle = `${LONG_TITLE} – aktualisiert`
+    const current = cardOf(2, currentTitle, LONG_COMPANY)
+    current.posting.role_content = linked.posting.role_content
+    const listRead = 'GET /posting/card'
+    const detailRead = `${listRead}/${linked.card_key}`
+    const overviewRead = 'GET /home/overview'
+    const state = makeState({ cards: [reference, linked] })
+    const postingReads = () => state.calls.filter(call => call === listRead || call.startsWith(`${listRead}/`))
+    const diagnostics = []
+    page.on('pageerror', error => diagnostics.push({ type: 'pageerror', text: error.message }))
+    page.on('console', message => {
+      if (['error', 'warning'].includes(message.type())) {
+        diagnostics.push({ type: message.type(), url: message.location().url, text: message.text() })
+      }
+    })
+    let failOverview = viewport.width === 900
+    let failedOverviewReads = 0
+    await installHome({ context, baseURL, state, routes: {
+      [detailRead]: route => route.fulfill({ json: current }),
+      [overviewRead]: (route, request, ok) => {
+        if (!failOverview) return ok()
+        failedOverviewReads += 1
+        return route.fulfill({ status: 503, json: { detail: 'Synthetic Home overview failure' } })
+      },
+    } })
+    await page.goto('/')
+
+    const navigation = mainNavigation(page)
+    const upcoming = region(page, 'Upcoming')
+    const form = upcoming.getByRole('form', { name: 'Add event', exact: true })
+    const title = form.getByLabel('Event title')
+    async function planFollowUp({ retryOverview = false } = {}) {
+      const previousReads = postingReads()
+      await navigation.getByRole('button', { name: 'Market', exact: true }).press('Enter')
+      await page.getByRole('combobox', { name: 'Reference saved job', exact: true }).selectOption(reference.card_key)
+      const related = page.getByRole('list', { name: 'Related saved jobs', exact: true })
+      await related.getByRole('button', { name: `View saved job: ${LONG_TITLE}`, exact: true }).press('Enter')
+      const dialog = page.getByRole('dialog')
+      await expect(dialog.getByRole('heading', { name: currentTitle, exact: true })).toBeVisible()
+      await dialog.getByRole('button', { name: 'Plan follow-up', exact: true }).press('Enter')
+      await expect(dialog).toHaveCount(0)
+      if (retryOverview) {
+        const retry = page.getByRole('button', { name: 'Retry Home', exact: true })
+        await expect(retry).toBeVisible()
+        await expect(form).toHaveCount(0)
+        expect(state.writes).toEqual([])
+        const readsBeforeRetry = count(state, overviewRead)
+        expect(readsBeforeRetry).toBeGreaterThan(0)
+        expect(readsBeforeRetry).toBe(failedOverviewReads)
+        failOverview = false
+        await retry.press('Enter')
+        await expect.poll(() => count(state, overviewRead)).toBe(readsBeforeRetry + 1)
+      }
+      await expect(title).toBeFocused()
+      await expect(title).toHaveValue('Follow up')
+      await expect(form.getByLabel('Event type')).toHaveValue('other')
+      await expect(form.getByLabel('Starts (local time)')).toHaveValue('')
+      await expect(form.getByLabel('Ends (optional)')).toHaveValue('')
+      await expect(form.getByRole('button', { name: 'Change linked job', exact: true })).toBeVisible()
+      await expect(form.getByText(`${currentTitle} · ${LONG_COMPANY}`, { exact: true })).toBeVisible()
+      expect(postingReads()).toEqual([...previousReads, listRead, detailRead])
+      expect(state.writes).toEqual([])
+    }
+
+    await planFollowUp({ retryOverview: viewport.width === 900 })
+    if (viewport.width === 900) {
+      await form.getByRole('button', { name: 'Cancel editing', exact: true }).press('Enter')
+      await expect(form).toHaveCount(0)
+      await expect(heading(page, 'Upcoming')).toBeFocused()
+      expect(state.writes).toEqual([])
+      await planFollowUp()
+      const readsBeforeLeaving = postingReads()
+      await navigation.getByRole('button', { name: 'Import posting', exact: true }).press('Enter')
+      await navigation.getByRole('button', { name: 'Home', exact: true }).press('Enter')
+      await expect(upcoming.getByRole('button', { name: 'Add event', exact: true })).toBeVisible()
+      await expect(form).toHaveCount(0)
+      expect(postingReads()).toEqual(readsBeforeLeaving)
+      expect(state.writes).toEqual([])
+      await planFollowUp()
+    }
+    await form.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath('follow-up-event-draft.png'), animations: 'disabled' })
+
+    const readsBeforeSave = postingReads()
+    await form.getByLabel('Starts (local time)').fill(localInput(2, 11, 30))
+    await form.getByRole('button', { name: 'Add event', exact: true }).press('Enter')
+    await expect(form).toHaveCount(0)
+    await expect(upcoming.getByRole('button', { name: 'View linked job: Follow up', exact: true })).toBeVisible()
+    expect(state.writes).toEqual([{ key: 'POST /home/events', path: '/home/events', body: {
+      event_id: expect.stringMatching(UUID_PATTERN), title: 'Follow up', kind: 'other',
+      starts_at: iso(2, 11, 30), ends_at: null, cancelled: false, card_key: linked.card_key,
+    } }])
+    expect(postingReads()).toEqual(readsBeforeSave)
+    expect(state.calls.filter(call => call.includes('/home/applications'))).toEqual([])
+    expect(state.unexpected).toEqual([])
+    if (viewport.width === 900) {
+      expect(diagnostics.length).toBeLessThanOrEqual(failedOverviewReads)
+      for (const diagnostic of diagnostics) {
+        expect(diagnostic).toEqual({ type: 'error', url: expect.stringContaining(`${API}/home/overview?`), text: expect.stringContaining('503') })
+      }
+    } else expect(diagnostics).toEqual([])
+  })
+}
+
 for (const viewport of VIEWPORTS) {
   test(`Home explicitly links a saved job to an event and opens its current Card at ${viewport.width}×${viewport.height}`, async ({ page, context, baseURL }, testInfo) => {
     if (viewport.width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })

@@ -9,6 +9,7 @@ import { MarketPage } from './pages/MarketPage'
 import { PostingImportPage } from './pages/PostingImportPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { GlobalSearch } from './components/search/GlobalSearch'
+import type { PostingCard } from './postings/types/postingCard'
 
 type AppPage =
   | 'home'
@@ -19,15 +20,26 @@ type AppPage =
   | 'import-history'
   | 'settings'
 
+type AppLocation = { page: AppPage; followUpCard?: PostingCard }
+
 function App() {
-  const [currentPage, setCurrentPage] = useState<AppPage>('posting-import')
+  const [location, setLocation] = useState<AppLocation>({ page: 'posting-import' })
+  const currentPage = location.page
+
+  function navigate(page: AppPage) {
+    setLocation((current) => current.page === page ? current : { page })
+  }
+
+  function handlePlanFollowUp(followUpCard: PostingCard) {
+    setLocation({ page: 'home', followUpCard })
+  }
 
   return (
     <div className="app-shell">
       <header className="app-shell__topbar">
         <p className="app-shell__brand">Tracer</p>
 
-        <GlobalSearch onGoHome={() => setCurrentPage('home')} />
+        <GlobalSearch onGoHome={() => navigate('home')} />
 
         <div className="app-shell__topbar-meta">
           <span className="app-shell__preview-badge">UI preview</span>
@@ -39,7 +51,7 @@ function App() {
         <button
           className="app-shell__navigation-button"
           type="button"
-          onClick={() => setCurrentPage('home')}
+          onClick={() => navigate('home')}
           aria-current={currentPage === 'home' ? 'page' : undefined}
         >
           <IconHome aria-hidden="true" focusable="false" />
@@ -49,7 +61,7 @@ function App() {
         <button
           className="app-shell__navigation-button"
           type="button"
-          onClick={() => setCurrentPage('market')}
+          onClick={() => navigate('market')}
           aria-current={currentPage === 'market' ? 'page' : undefined}
         >
           <IconCompass aria-hidden="true" focusable="false" />
@@ -59,7 +71,7 @@ function App() {
         <button
           className="app-shell__navigation-button"
           type="button"
-          onClick={() => setCurrentPage('card-library')}
+          onClick={() => navigate('card-library')}
           aria-current={currentPage === 'card-library' ? 'page' : undefined}
         >
           <IconCopy aria-hidden="true" focusable="false" />
@@ -69,7 +81,7 @@ function App() {
         <button
           className="app-shell__navigation-button"
           type="button"
-          onClick={() => setCurrentPage('posting-import')}
+          onClick={() => navigate('posting-import')}
           aria-current={currentPage === 'posting-import' ? 'page' : undefined}
         >
           <IconDownload aria-hidden="true" focusable="false" />
@@ -79,7 +91,7 @@ function App() {
         <button
           className="app-shell__navigation-button"
           type="button"
-          onClick={() => setCurrentPage('activity')}
+          onClick={() => navigate('activity')}
           aria-current={currentPage === 'activity' ? 'page' : undefined}
         >
           <IconClock aria-hidden="true" focusable="false" />
@@ -89,7 +101,7 @@ function App() {
         <button
           className="app-shell__navigation-button"
           type="button"
-          onClick={() => setCurrentPage('import-history')}
+          onClick={() => navigate('import-history')}
           aria-current={currentPage === 'import-history' ? 'page' : undefined}
         >
           <IconHistory aria-hidden="true" focusable="false" />
@@ -99,7 +111,7 @@ function App() {
         <button
           className="app-shell__navigation-button app-shell__navigation-button--settings"
           type="button"
-          onClick={() => setCurrentPage('settings')}
+          onClick={() => navigate('settings')}
           aria-current={currentPage === 'settings' ? 'page' : undefined}
         >
           <IconSettings aria-hidden="true" focusable="false" />
@@ -109,8 +121,8 @@ function App() {
 
       {/* Recreate only the page container so its scroll position starts at the top. */}
       <main key={currentPage} className={`app-shell__content app-shell__content--${currentPage}`}>
-        {currentPage === 'home' && <HomePage />}
-        {currentPage === 'market' && <MarketPage />}
+        {currentPage === 'home' && <HomePage followUpCard={location.followUpCard} />}
+        {currentPage === 'market' && <MarketPage onPlanFollowUp={handlePlanFollowUp} />}
         {currentPage === 'posting-import' && <PostingImportPage />}
         {currentPage === 'card-library' && <CardLibraryPage />}
         {currentPage === 'activity' && <ActivityPage />}

@@ -57,6 +57,10 @@
   background-color: var(--color-surface);
 }
 
+.posting-card-details__follow-up {
+  margin-top: 12px;
+}
+
 /* Only the saved Quick Facts projection is shaded, not the editable posting info. */
 .posting-card-details__quick-facts {
   margin: 0 -12px -12px;

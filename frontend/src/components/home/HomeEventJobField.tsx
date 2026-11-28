@@ -6,6 +6,7 @@ import { visiblePostingText } from '../posting-card/details/PostingCardFormatter
 
 type HomeEventJobFieldProps = {
   cardKey: string | null
+  initialJob?: PostingCard | null
   onChange: (cardKey: string | null) => void
   disabled: boolean
 }
@@ -19,10 +20,10 @@ function savedJobLabel(card: PostingCard) {
   return company ? `${title} · ${company}` : title
 }
 
-export function HomeEventJobField({ cardKey, onChange, disabled }: HomeEventJobFieldProps) {
+export function HomeEventJobField({ cardKey, initialJob, onChange, disabled }: HomeEventJobFieldProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [read, setRead] = useState<JobRead | null>(null)
-  const [jobs, setJobs] = useState<PostingCard[] | null>(null)
+  const [jobs, setJobs] = useState<PostingCard[] | null>(() => initialJob ? [initialJob] : null)
   const pendingRead = useRef<object | null>(null)
   const focusFrom = useRef<HTMLButtonElement | null>(null)
   const select = useRef<HTMLSelectElement>(null)

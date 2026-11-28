@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { IconBuilding, IconCalendarEvent, IconFileText, IconMail, IconPlus } from '@tabler/icons-react'
 import { PostingCardDetails } from '../posting-card/details/PostingCardDetails'
@@ -82,16 +82,24 @@ function TaskRow({ task, refresh }: { task: Task; refresh: HomeRecordsRefresh })
   </li>
 }
 
-function EventForm({ event, refresh, close }: { event: ScheduleEvent | null; refresh: HomeRecordsRefresh; close: () => void }) {
-  const [title, setTitle] = useState(event?.title ?? '')
-  const [kind, setKind] = useState<ScheduleEvent['kind']>(event?.kind ?? 'interview')
+type EventEditor = { kind: 'create'; initialJob: PostingCard | null } | { kind: 'adjust'; event: ScheduleEvent }
+
+function EventForm({ editor, refresh, close }: { editor: EventEditor; refresh: HomeRecordsRefresh; close: () => void }) {
+  const event = editor.kind === 'adjust' ? editor.event : null
+  const initialJob = editor.kind === 'create' ? editor.initialJob : null
+  const [title, setTitle] = useState(event?.title ?? (initialJob ? 'Follow up' : ''))
+  const [kind, setKind] = useState<ScheduleEvent['kind']>(event?.kind ?? (initialJob ? 'other' : 'interview'))
   const [start, setStart] = useState(event ? localDateTime(event.starts_at) : '')
   const [end, setEnd] = useState(event?.ends_at ? localDateTime(event.ends_at) : '')
   const [cancelled, setCancelled] = useState(event?.cancelled ?? false)
-  const [cardKey, setCardKey] = useState(event?.card_key ?? null)
+  const [cardKey, setCardKey] = useState(event?.card_key ?? initialJob?.card_key ?? null)
   const [validation, setValidation] = useState<string | null>(null)
+  const titleInput = useRef<HTMLInputElement>(null)
   const id = useRef<{ key: string; id: string } | null>(null)
   const write = useRecordWrite(refresh)
+  useLayoutEffect(() => {
+    if (initialJob && document.activeElement === document.body) titleInput.current?.focus()
+  }, [initialJob])
   function submit() {
     if (end && new Date(end) < new Date(start)) { setValidation('End time must not precede start time.'); return }
     setValidation(null)
@@ -112,13 +120,14 @@ function EventForm({ event, refresh, close }: { event: ScheduleEvent | null; ref
   }
   return <form className="home-page__record-form" aria-label={event ? 'Adjust event' : 'Add event'} onSubmit={e => { e.preventDefault(); submit() }}>
     <fieldset disabled={write.locked}>
-      <label>Event title<input value={title} maxLength={200} required onChange={e => setTitle(e.target.value)} autoFocus /></label>
+      <label>Event title<input ref={titleInput} value={title} maxLength={200} required
+        onChange={e => setTitle(e.target.value)} autoFocus={!initialJob} /></label>
       <label>Event type<select value={kind} onChange={e => setKind(e.target.value as ScheduleEvent['kind'])}><option value="interview">Interview</option><option value="deadline">Deadline</option><option value="other">Other</option></select></label>
       <label>Starts (local time)<input type="datetime-local" value={start} required onChange={e => setStart(e.target.value)} /></label>
       <label>Ends (optional)<input type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} /></label>
       {event && <label className="home-page__check-label"><input type="checkbox" checked={cancelled} onChange={e => setCancelled(e.target.checked)} />Cancel this event</label>}
     </fieldset>
-    <HomeEventJobField cardKey={cardKey} onChange={setCardKey} disabled={write.locked} />
+    <HomeEventJobField cardKey={cardKey} initialJob={initialJob} onChange={setCardKey} disabled={write.locked} />
     {validation && <p role="alert">{validation}</p>}
     <div className="home-page__record-actions"><button className="home-page__record-primary" disabled={write.pending || (write.uncertain && !write.checked)}>{write.pending ? 'Saving…' : write.uncertain ? 'Retry same request' : event ? 'Save event' : 'Add event'}</button><button type="button" className="home-page__record-action" onClick={close} disabled={write.locked}>Cancel editing</button></div>
     <WriteFeedback write={write} />
@@ -244,8 +253,11 @@ function ApplicationRow({ record, title, refresh }: { record: ApplicationRecord;
   </li>
 }
 
-export function HomeRecords({ data, today, refresh }: { data: HomeOverview; today: string; refresh: HomeRecordsRefresh }) {
-  const [eventEditor, setEventEditor] = useState<ScheduleEvent | 'new' | null>(null)
+export function HomeRecords({ data, today, refresh, followUpCard }: {
+  data: HomeOverview; today: string; refresh: HomeRecordsRefresh; followUpCard?: PostingCard
+}) {
+  const [eventEditor, setEventEditor] = useState<EventEditor | null>(() =>
+    followUpCard ? { kind: 'create', initialJob: followUpCard } : null)
   const [applicationEditor, setApplicationEditor] = useState<string | null>(null)
   const [jobs, setJobs] = useState<PostingCard[] | null>(null)
   const [jobsError, setJobsError] = useState<string | null>(null)
@@ -331,7 +343,7 @@ export function HomeRecords({ data, today, refresh }: { data: HomeOverview; toda
         {nextEvent ? <article className="home-page__featured-event">
           <span className="home-page__eyebrow">Next up · {nextEvent.event.kind}</span><strong>{nextEvent.event.title}</strong>
           <span>{dateTime(nextEvent.event.starts_at)}{nextEvent.card_missing ? ' · Job deleted' : ''}</span>
-          <button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor(nextEvent.event)}>Adjust event</button>
+          <button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor({ kind: 'adjust', event: nextEvent.event })}>Adjust event</button>
           {renderLinkedJobAction(nextEvent.event, nextEvent.card_missing)}
         </article> : <p className="home-page__empty">No more events scheduled today. Add one in Upcoming.</p>}
         <TaskForm today={today} refresh={refresh} />
@@ -340,12 +352,14 @@ export function HomeRecords({ data, today, refresh }: { data: HomeOverview; toda
         <details className="home-page__completed"><summary>{data.today.completed_count} completed today</summary><ul>{data.today.completed_tasks.map(t => <li key={t.task_id}>{t.title}</li>)}</ul></details>
       </section>
       <section className="home-page__upcoming" aria-labelledby="home-upcoming-title">
-        <div className="home-page__section-heading"><h2 className="home-page__section-title" id="home-upcoming-title" ref={eventHeading} tabIndex={-1}>Upcoming</h2><span className="home-page__count">Next 14 days</span><button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor('new')}><IconPlus aria-hidden="true" />Add event</button></div>
-        {eventEditor !== null && <EventForm key={eventEditor === 'new' ? 'new' : eventEditor.event_id} event={eventEditor === 'new' ? null : eventEditor} refresh={refresh} close={closeEvent} />}
+        <div className="home-page__section-heading"><h2 className="home-page__section-title" id="home-upcoming-title" ref={eventHeading} tabIndex={-1}>Upcoming</h2><span className="home-page__count">Next 14 days</span><button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor({ kind: 'create', initialJob: null })}><IconPlus aria-hidden="true" />Add event</button></div>
+        {eventEditor && <EventForm key={eventEditor.kind === 'create' ? 'new' : eventEditor.event.event_id}
+          editor={eventEditor} refresh={refresh} close={closeEvent} />}
         {upcoming.length === 0 ? <p className="home-page__empty">No recorded deadlines or events in the next 14 days.</p> : <ul className="home-page__upcoming-list" aria-label="Upcoming records">{upcoming.map(item => <li className="home-page__upcoming-row home-page__record-upcoming" key={item.key}>
           <div className="home-page__row-copy"><time dateTime={item.date}>{dateTime(item.date)}</time><strong>{item.title}</strong><span>{item.detail}</span></div>
           {item.event && <div className="home-page__record-actions">
-            <button className="home-page__record-action" type="button" disabled={eventEditor !== null} onClick={() => setEventEditor(item.event)}>Adjust</button>
+            <button className="home-page__record-action" type="button" disabled={eventEditor !== null}
+              onClick={() => { if (item.event) setEventEditor({ kind: 'adjust', event: item.event }) }}>Adjust</button>
             {renderLinkedJobAction(item.event, item.cardMissing)}
           </div>}
         </li>)}</ul>}
