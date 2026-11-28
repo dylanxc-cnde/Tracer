@@ -377,3 +377,65 @@ def test_watchlist_projects_latest_manual_observation_without_copying_source(
     assert source_url not in history.text
     assert source_text not in history.text
     assert client.put(watch_path).json() == expected
+
+
+@pytest.mark.parametrize(
+    ("damaged_time", "damaged_result"),
+    [
+        ("2099-01-01T12:00:00.000000+00:00", "unknown-result"),
+        ("z-malformed-timestamp", "listed"),
+        ("2099-01-01T12:00:00.000000", "not_listed"),
+        ("9999999999999", "listed"),
+        (b"2099-01-01T12:00:00.000000+00:00", "listed"),
+    ],
+)
+def test_corrupt_latest_check_keeps_watch_membership_readable(
+    client, database_path, damaged_time, damaged_result
+):
+    cards = PostingCardStore(database_path)
+    affected_key = add_saved_card(cards, posting_alias="Affected neighbour")
+    healthy_key = add_saved_card(cards, posting_alias="Healthy neighbour")
+    unchecked_key = add_saved_card(cards, posting_alias="No check yet")
+    affected_path = f"{WATCHLIST_PATH}/{affected_key}"
+    affected = client.put(affected_path)
+    healthy = client.put(f"{WATCHLIST_PATH}/{healthy_key}")
+    unchecked = client.put(f"{WATCHLIST_PATH}/{unchecked_key}")
+    assert affected.status_code == healthy.status_code == unchecked.status_code == 200
+
+    earlier_time = "2026-01-01T12:00:00.000000+00:00"
+    observations = [
+        (str(uuid4()), affected_key, earlier_time, "listed"),
+        (str(uuid4()), affected_key, damaged_time, damaged_result),
+        (str(uuid4()), healthy_key, earlier_time, "not_listed"),
+    ]
+    with closing(sqlite3.connect(database_path)) as database, database:
+        database.executemany(
+            "INSERT INTO posting_source_checks (check_id, card_key, recorded_at, result) "
+            "VALUES (?, ?, ?, ?)",
+            observations,
+        )
+
+    expected_affected = {**affected.json(), "last_source_check_unavailable": True}
+    expected_healthy = {
+        **healthy.json(),
+        "last_source_check": {
+            "result": "not_listed",
+            "recorded_at": "2026-01-01T12:00:00Z",
+        },
+    }
+    response = client.get(WATCHLIST_PATH)
+    assert response.status_code == 200
+    assert response.json() == [unchecked.json(), expected_healthy, expected_affected]
+    assert expected_affected["last_source_check"] is None
+    assert unchecked.json()["last_source_check"] is None
+    assert "last_source_check_unavailable" not in unchecked.json()
+    assert "last_source_check_unavailable" not in expected_healthy
+
+    replay = client.put(affected_path)
+    assert replay.status_code == 200
+    assert replay.json() == expected_affected
+    with closing(sqlite3.connect(database_path)) as database:
+        assert database.execute(
+            "SELECT check_id, card_key, recorded_at, result "
+            "FROM posting_source_checks ORDER BY check_id"
+        ).fetchall() == sorted(observations)

@@ -46,7 +46,7 @@ function newestSourceCheck(previous: WatchedPostingCard['last_source_check'], re
 
 function keepLatestProjection(row: WatchedPostingCard, previous: WatchedPostingCard['last_source_check']) {
   const latest = newestSourceCheck(previous, row.last_source_check)
-  return latest === row.last_source_check ? row : { ...row, last_source_check: latest }
+  return latest === row.last_source_check ? row : { ...row, last_source_check: latest, last_source_check_unavailable: false }
 }
 
 function cardIdentity(card: PostingCard): WatchedPostingCardIdentity {
@@ -80,6 +80,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
   const readRequest = useRef<{
     controller: AbortController
     observedIdentities: Map<string, WatchedPostingCardIdentity | null>
+    observedSourceChecks: Map<string, PostingSourceObservation>
   }>(null)
   const writing = useRef(false)
   const summary = useRef<HTMLElement>(null)
@@ -95,12 +96,18 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
     },
     observeSourceCheck(cardKey, observation) {
       if (!summary.current?.closest('details')?.open) return
+      const observations = readRequest.current?.observedSourceChecks
+      if (observations) {
+        observations.set(cardKey, newestSourceCheck(observations.get(cardKey), observation) ?? observation)
+      }
       setWatched((current) => {
         const row = current?.find((entry) => entry.card_key === cardKey)
         if (!current || !row) return current
         const latest = newestSourceCheck(row.last_source_check, observation)
         if (latest === row.last_source_check) return current
-        return current.map((entry) => entry === row ? { ...entry, last_source_check: latest } : entry)
+        return current.map((entry) => entry === row
+          ? { ...entry, last_source_check: latest, last_source_check_unavailable: false }
+          : entry)
       })
     },
   }), [])
@@ -143,7 +150,8 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
     readRequest.current?.controller.abort()
     const controller = new AbortController()
     const observedIdentities = new Map<string, WatchedPostingCardIdentity | null>()
-    readRequest.current = { controller, observedIdentities }
+    const observedSourceChecks = new Map<string, PostingSourceObservation>()
+    readRequest.current = { controller, observedIdentities, observedSourceChecks }
     setIsReading(true)
     setRecovery((current) => current?.status === 'retry' ? { ...current, status: 'check' } : current)
 
@@ -155,7 +163,11 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
         return rows.map((row) => {
           const observed = observedIdentities.get(row.card_key)
           const accepted = observed === undefined ? row : { ...row, card_identity: observed }
-          return keepLatestProjection(accepted, previous.get(row.card_key))
+          // A cached earlier check cannot stand in for an unreadable latest check.
+          const knownCheck = row.last_source_check_unavailable
+            ? observedSourceChecks.get(row.card_key)
+            : previous.get(row.card_key)
+          return keepLatestProjection(accepted, knownCheck)
         })
       })
       setReadError(false)
@@ -237,7 +249,9 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
       setWatched((current) => {
         const others = (current ?? []).filter((row) =>
           row.card_key !== change.cardKey || (!change.watching && row.watch_id !== change.watchId))
-        const previous = current?.find((row) => row.card_key === change.cardKey)?.last_source_check
+        const previous = saved && !saved.last_source_check_unavailable
+          ? current?.find((row) => row.card_key === change.cardKey)?.last_source_check
+          : undefined
         return saved ? [keepLatestProjection(saved, previous), ...others].sort((left, right) =>
           Date.parse(right.watched_at) - Date.parse(left.watched_at)) : others
       })
@@ -330,7 +344,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
                 })}</time>
                 {row.last_source_check !== undefined && <dl className="market-page__reason">
                   <dt>Last source check</dt>
-                  <dd>{row.last_source_check === null ? 'No source check recorded.' : <>
+                  <dd>{row.last_source_check ? <>
                     <span>{postingSourceCheckLabels[row.last_source_check.result]}</span>
                     {' · '}
                     <time dateTime={row.last_source_check.recorded_at}>
@@ -338,7 +352,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
                         dateStyle: 'medium', timeStyle: 'medium',
                       })}
                     </time>
-                  </>}</dd>
+                  </> : row.last_source_check_unavailable ? 'Source check unavailable.' : 'No source check recorded.'}</dd>
                 </dl>}
               </div>
               <div className="market-watchlist__row-actions">

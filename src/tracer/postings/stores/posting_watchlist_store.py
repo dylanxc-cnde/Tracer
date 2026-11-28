@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from pydantic import ValidationError
+
 from ..models.posting_watchlist import (
     LatestSourceCheck,
     WatchedCardIdentity,
@@ -15,6 +17,7 @@ from ..models.posting_watchlist import (
 _SELECT_WATCHED_CARDS = """
     SELECT watch.card_key, watch.watch_id, watch.watched_at,
            latest.result, latest.recorded_at,
+           latest.check_id IS NOT NULL AS source_check_exists,
            card.card_key IS NOT NULL AS card_exists,
            CASE WHEN typeof(card.position_title) = 'text' THEN card.position_title END
                AS position_title,
@@ -104,11 +107,10 @@ class PostingWatchlistStore:
 
     @staticmethod
     def _to_card(row: sqlite3.Row) -> WatchedPostingCard:
-        observation = None
-        if row["result"] is not None:
-            observation = LatestSourceCheck.model_validate(
-                {"result": row["result"], "recorded_at": row["recorded_at"]}
-            )
+        has_source_check = bool(row["source_check_exists"])
+        observation = (
+            PostingWatchlistStore._to_source_check(row) if has_source_check else None
+        )
         identity = None
         if row["card_exists"]:
             identity = WatchedCardIdentity(
@@ -122,7 +124,23 @@ class PostingWatchlistStore:
             watched_at=datetime.fromisoformat(row["watched_at"]),
             last_source_check=observation,
             card_identity=identity,
+            last_source_check_unavailable=has_source_check and observation is None,
         )
+
+    @staticmethod
+    def _to_source_check(row: sqlite3.Row) -> LatestSourceCheck | None:
+        stored_time = row["recorded_at"]
+        if not isinstance(stored_time, str):
+            return None
+        # Stored checks use ISO timestamps. Pydantic also accepts numeric epoch values.
+        try:
+            recorded_at = datetime.fromisoformat(stored_time)
+        except ValueError:
+            return None
+        try:
+            return LatestSourceCheck(result=row["result"], recorded_at=recorded_at)
+        except ValidationError:
+            return None
 
     def unwatch(self, card_key: UUID, expected_watch_id: UUID | None = None) -> bool:
         """Remove a membership or return false if its identity changed."""

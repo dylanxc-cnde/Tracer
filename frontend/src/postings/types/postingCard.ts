@@ -125,6 +125,7 @@ export type WatchedPostingCard = {
   watched_at: string
   card_identity?: WatchedPostingCardIdentity | null
   last_source_check?: PostingSourceObservation | null
+  last_source_check_unavailable?: boolean
 }
 
 export type PostingWatchChange =

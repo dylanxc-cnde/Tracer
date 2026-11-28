@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from .posting_source_check import PostingSourceCheckResult
 
@@ -34,3 +34,6 @@ class WatchedPostingCard(BaseModel):
     watched_at: AwareDatetime
     last_source_check: LatestSourceCheck | None
     card_identity: WatchedCardIdentity | None
+    last_source_check_unavailable: bool = Field(
+        default=False, exclude_if=lambda unavailable: not unavailable
+    )

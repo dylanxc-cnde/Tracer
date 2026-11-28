@@ -196,6 +196,8 @@ function isWatchedPostingCard(value: unknown): value is WatchedPostingCard {
     'watched_at' in value && typeof value.watched_at === 'string' &&
     Number.isFinite(Date.parse(value.watched_at)) &&
     (!('card_identity' in value) || value.card_identity === null || isWatchedPostingCardIdentity(value.card_identity)) &&
+    (!('last_source_check_unavailable' in value) || (typeof value.last_source_check_unavailable === 'boolean' &&
+      (!value.last_source_check_unavailable || ('last_source_check' in value && value.last_source_check === null)))) &&
     (!('last_source_check' in value) || value.last_source_check === null || isPostingSourceObservation(value.last_source_check))
 }
 

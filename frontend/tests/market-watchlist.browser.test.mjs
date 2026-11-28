@@ -782,3 +782,98 @@ test('Market requires a fresh verification before dismissing a failed guarded re
   expect(unexpected).toEqual([])
   await page.screenshot({ path: testInfo.outputPath('dismissed-guarded-removal.png'), animations: 'disabled' })
 })
+
+const unavailableCheck = { ...membership, last_source_check: null, last_source_check_unavailable: true }
+const checkedWatch = {
+  ...alternateWatch,
+  last_source_check: { result: newerCheck.result, recorded_at: newerCheck.recorded_at },
+}
+const uncheckedWatch = { ...retainedWatch, last_source_check: null }
+
+for (const width of [1440, 900]) {
+  test(`Market keeps watch actions available when one source check is unavailable at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const { section, summary, calls, unexpected } = await openWatchlist({ page, context, baseURL }, async (route, request) => {
+      if (request.method() === 'GET') {
+        await route.fulfill({ json: [unavailableCheck, checkedWatch, uncheckedWatch] })
+        return
+      }
+      expect(request.method()).toBe('DELETE')
+      expect(new URL(request.url()).search).toBe(`?expected_watch_id=${WATCH_ID}`)
+      expect(request.postData()).toBeNull()
+      await route.fulfill({ status: 204 })
+    }, { savedCards: [card, alternateCard, retainedCard] })
+
+    const rows = section.getByRole('list', { name: 'Watched jobs', exact: true }).getByRole('listitem')
+    const affected = rows.filter({ has: page.getByRole('heading', { name: TITLE, exact: true }) })
+    const healthy = rows.filter({ has: page.getByRole('heading', { name: ALTERNATE_TITLE, exact: true }) })
+    const unchecked = rows.filter({ has: page.getByRole('heading', { name: RETAINED_TITLE, exact: true }) })
+    const unavailable = section.getByText('Source check unavailable.', { exact: true })
+    await expect(rows).toHaveCount(3)
+    await expect(affected.getByText('Source check unavailable.', { exact: true })).toBeVisible()
+    await expect(unavailable).toHaveCount(1)
+    await expect(affected.getByText('No source check recorded.', { exact: true })).toHaveCount(0)
+    await expect(healthy.getByText('No longer listed', { exact: true })).toBeVisible()
+    await expect(healthy.locator(`time[datetime="${newerCheck.recorded_at}"]`)).toBeVisible()
+    await expect(unchecked.getByText('No source check recorded.', { exact: true })).toBeVisible()
+    await expect(affected.locator(`time[datetime="${WATCHED_AT}"]`)).toBeVisible()
+    await expect(affected.locator('time')).toHaveCount(1)
+
+    const view = affected.getByRole('button', { name: `View saved job: ${TITLE}`, exact: true })
+    const stop = affected.getByRole('button', { name: `Stop watching: ${TITLE}`, exact: true })
+    await expect(view).toBeEnabled()
+    await expect(stop).toBeEnabled()
+    await view.press('Tab')
+    await expect(stop).toBeFocused()
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`])
+    expect(await section.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('unavailable-source-check-row.png'), animations: 'disabled' })
+
+    await page.keyboard.press('Enter')
+    await expect(affected).toHaveCount(0)
+    await expect(unavailable).toHaveCount(0)
+    await expect(healthy.getByText('No longer listed', { exact: true })).toBeVisible()
+    await expect(unchecked.getByText('No source check recorded.', { exact: true })).toBeVisible()
+    await expect(rows).toHaveCount(2)
+    await expect(summary).toBeFocused()
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${stopTarget(WATCH_ID)}`])
+    expect(unexpected).toEqual([])
+  })
+}
+
+test('Market replaces the unavailable watchlist source check after an explicit fresh source read', async ({ page, context, baseURL }) => {
+  let watchReads = 0
+  const { section, summary, calls, unexpected } = await openWatchlist({ page, context, baseURL }, (route, request) => {
+    expect(request.method()).toBe('GET')
+    watchReads += 1
+    return watchReads === 1 ? previouslyWatched(route) : route.fulfill({ json: [unavailableCheck] })
+  }, {
+    ...watchedCardOptions,
+    onSourceChecks: route => route.fulfill({ json: [newerCheck, earlierCheck] }),
+  })
+  const row = section.getByRole('list', { name: 'Watched jobs', exact: true }).getByRole('listitem')
+  const unavailable = row.getByText('Source check unavailable.', { exact: true })
+  await expect(row.getByText('Still listed', { exact: true })).toBeVisible()
+
+  await summary.press('Enter')
+  await expect(row).toBeHidden()
+  await summary.press('Enter')
+  await expect(unavailable).toBeVisible()
+  await expect(row.getByText('Still listed', { exact: true })).toHaveCount(0)
+  await expect(row.locator(`time[datetime="${earlierCheck.recorded_at}"]`)).toHaveCount(0)
+  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `GET ${WATCHLIST}`])
+
+  const opener = row.getByRole('button', { name: `View saved job: ${TITLE}`, exact: true })
+  const dialog = await openSourceChecks(page, opener)
+  await expect(dialog.getByRole('list', { name: 'Recorded source checks', exact: true }).getByRole('listitem').first())
+    .toContainText('No longer listed')
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(opener).toBeFocused()
+  await expect(unavailable).toHaveCount(0)
+  await expect(row.getByText('No longer listed', { exact: true })).toBeVisible()
+  await expect(row.locator(`time[datetime="${newerCheck.recorded_at}"]`)).toBeVisible()
+  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `GET ${WATCHLIST}`, `GET ${CARD}`, `GET ${SOURCE_RECEIPT}`, `GET ${SOURCE_CHECKS}`])
+  expect(unexpected).toEqual([])
+})
