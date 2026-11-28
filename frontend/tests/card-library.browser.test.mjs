@@ -56,6 +56,140 @@ async function openCardLibrary({ page, context, baseURL }, routes) {
   return { calls, unexpected }
 }
 
+for (const { width, action, regionName, formName, field, cancel } of [
+  { width: 1440, action: 'Plan follow-up', regionName: 'Upcoming', formName: 'Add event', field: 'Event title', cancel: 'Cancel editing' },
+  { width: 900, action: 'Record application', regionName: 'Your search', formName: 'Record application', field: 'Application date', cancel: 'Cancel' },
+]) {
+  test(`Card library opens a linked Home draft through ${action} at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.clock.setFixedTime(new Date('2026-11-27T12:00:00Z'))
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const currentTitle = 'Aktualisiertes Praktikum für barrierefreie Verkehrsplanung im regionalen Schienenverkehr (DEMO)'
+    const editedTitle = `${currentTitle} – überarbeitet`
+    const savedTitle = `${editedTitle} und bestätigt`
+    const savedCompany = 'Verkehrsforschungsgesellschaft für nachhaltige Mobilität im Rheinland (DEMO)'
+    const listed = savedCard(A_KEY, A_IMPORT, A_CURRENT)
+    const current = savedCard(A_KEY, A_IMPORT, currentTitle)
+    const original = savedCard(A_KEY, A_IMPORT, A_ORIGINAL)
+    const updated = savedCard(A_KEY, A_IMPORT, savedTitle)
+    updated.posting.identity.company_name = { value: savedCompany, origin: 'source' }
+    const patches = []
+    const diagnostics = []
+    page.on('pageerror', error => diagnostics.push(error.message))
+    page.on('console', message => { if (['error', 'warning'].includes(message.type())) diagnostics.push(message.text()) })
+    const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+      [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [listed] }),
+      [`GET ${A_PATH}`]: route => route.fulfill({ json: current }),
+      [`GET ${ORIGINAL_PATH}`]: route => route.fulfill({ json: original }),
+      [`PATCH ${A_PATH}`]: (route, request) => {
+        patches.push(request.postDataJSON())
+        return route.fulfill({ json: updated })
+      },
+      'GET /settings': route => route.fulfill({ json: { user: { display_name: 'Demo Student' }, ai: { providers: [], tasks: [] } } }),
+      'GET /home/overview': route => route.fulfill({ json: {
+        today: { tasks: [], completed_count: 0, completed_tasks: [], events: [] },
+        upcoming: { tasks: [], events: [] }, your_search: { active: 0, awaiting_reply: 0, interviews: 0 },
+        applications: [], recent_jobs: [], recent_activity: [],
+        ai_usage: { status: 'not_recorded', tokens: null, estimated_cost_usd: null, providers: [] },
+      } }),
+      'GET /home/activity': route => route.fulfill({ json: { events: [], recording_started_at: null } }),
+    })
+
+    const dialog = page.getByRole('dialog')
+    const followUp = dialog.getByRole('button', { name: 'Plan follow-up', exact: true })
+    const recordApplication = dialog.getByRole('button', { name: 'Record application', exact: true })
+    await page.getByRole('button', { name: `Show original: ${A_CURRENT}`, exact: true }).press('Enter')
+    await expect(dialog.getByRole('heading', { name: A_ORIGINAL, exact: true })).toBeVisible()
+    await expect(followUp).toHaveCount(0)
+    await expect(recordApplication).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+
+    await page.getByRole('button', { name: `View details: ${A_CURRENT} at Unknown company`, exact: true }).press('Enter')
+    await expect(dialog.getByRole('heading', { name: currentTitle, exact: true })).toBeVisible()
+    await expect(followUp).toBeVisible()
+    await expect(recordApplication).toBeVisible()
+    await dialog.getByRole('button', { name: 'Edit card', exact: true }).press('Enter')
+    await expect(followUp).toHaveCount(0)
+    await expect(recordApplication).toHaveCount(0)
+    await dialog.getByRole('textbox', { name: 'Position title', exact: true }).fill(editedTitle)
+    await dialog.getByRole('button', { name: 'Save', exact: true }).press('Enter')
+    await expect(dialog.getByRole('heading', { name: savedTitle, exact: true })).toBeVisible()
+    await expect(followUp).toBeVisible()
+    await expect(recordApplication).toBeVisible()
+    expect(patches).toEqual([expect.objectContaining({ position_title: editedTitle })])
+    await page.screenshot({ path: testInfo.outputPath('current-card-actions.png'), animations: 'disabled' })
+
+    await dialog.getByRole('button', { name: action, exact: true }).press('Enter')
+    await expect(dialog).toHaveCount(0)
+    const section = page.getByRole('region', { name: regionName, exact: true })
+    const draft = section.getByRole('form', { name: formName, exact: true })
+    await expect(draft.getByLabel(field, { exact: true })).toBeFocused()
+    const selectedJob = draft.getByText(/Selected job:/)
+    await expect(selectedJob).toContainText(savedTitle)
+    await expect(selectedJob).toContainText(savedCompany)
+    if (action === 'Plan follow-up') {
+      await expect(draft.getByLabel('Event title', { exact: true })).toHaveValue('Follow up')
+      await expect(draft.getByRole('combobox', { name: 'Event type', exact: true })).toHaveValue('other')
+      await expect(draft.getByLabel('Starts (local time)', { exact: true })).toHaveValue('')
+    } else {
+      await expect(draft.getByLabel('Application date', { exact: true })).toHaveValue('')
+      await expect(draft.getByRole('combobox', { name: 'Job', exact: true })).toHaveCount(0)
+    }
+    await draft.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath('linked-home-draft.png'), animations: 'disabled' })
+    await draft.getByRole('button', { name: cancel, exact: true }).press('Enter')
+    await expect(draft).toHaveCount(0)
+    await expect(section.getByRole('heading', { name: regionName, exact: true })).toBeFocused()
+    expect(calls.filter(call => call.includes('/posting/'))).toEqual([
+      `GET ${LIST_PATH}`, `GET ${ORIGINAL_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`,
+    ])
+    expect(calls.filter(call => !call.startsWith('GET '))).toEqual([`PATCH ${A_PATH}`])
+    expect(unexpected).toEqual([])
+    expect(diagnostics).toEqual([])
+  })
+}
+
+test('Card library keeps Home handoffs unavailable after a Card save returns 404', async ({ page, context, baseURL }) => {
+  const card = savedCard(A_KEY, A_IMPORT, A_CURRENT)
+  const survivor = savedCard(B_KEY, B_IMPORT, B_CURRENT)
+  const draftTitle = `${A_CURRENT} – Entwurf`
+  const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+    [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [card, survivor] }),
+    [`GET ${A_PATH}`]: route => route.fulfill({ json: card }),
+    [`PATCH ${A_PATH}`]: route => route.fulfill({ status: 404, json: { detail: 'Posting card not found' } }),
+  })
+
+  const opener = page.getByRole('button', { name: `View details: ${A_CURRENT} at Unknown company`, exact: true })
+  const dialog = page.getByRole('dialog')
+  const followUp = dialog.getByRole('button', { name: 'Plan follow-up', exact: true })
+  const recordApplication = dialog.getByRole('button', { name: 'Record application', exact: true })
+  await opener.press('Enter')
+  await expect(followUp).toBeVisible()
+  await expect(recordApplication).toBeVisible()
+  await dialog.getByRole('button', { name: 'Edit card', exact: true }).press('Enter')
+  const title = dialog.getByRole('textbox', { name: 'Position title', exact: true })
+  await title.fill(draftTitle)
+  await dialog.getByRole('button', { name: 'Save', exact: true }).press('Enter')
+  await expect(dialog.getByRole('alert')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Dismiss save error', exact: true }).press('Enter')
+  await expect(title).toHaveValue(draftTitle)
+  await expect(title).toBeEditable()
+  await dialog.getByRole('button', { name: 'Cancel editing', exact: true }).press('Enter')
+  await expect(dialog).toBeVisible()
+  await expect(title).toHaveCount(0)
+  await expect(followUp).toHaveCount(0)
+  await expect(recordApplication).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Saved jobs', exact: true })).toBeFocused()
+  await expect(opener).toHaveCount(0)
+  await expect(page.getByRole('button', { name: `Show original: ${A_CURRENT}`, exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: `View details: ${B_CURRENT} at Unknown company`, exact: true })).toBeVisible()
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`])
+  expect(unexpected).toEqual([])
+})
+
 for (const width of [1440, 900]) {
   test(`Card library preserves the freshly saved title in a notes-only edit at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 })

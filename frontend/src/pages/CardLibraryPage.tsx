@@ -19,7 +19,12 @@ import './CardLibraryPage.css'
 
 type DetailRequest = { cardKey: string; controller?: AbortController }
 
-export function CardLibraryPage() {
+type CardLibraryPageProps = {
+  onPlanFollowUp: (card: PostingCard) => void
+  onRecordApplication: (card: PostingCard) => void
+}
+
+export function CardLibraryPage({ onPlanFollowUp, onRecordApplication }: CardLibraryPageProps) {
   const { syncPostingCardDeletion, syncPostingCardUpdate } =
     usePostingImportSession()
   const [cards, setCards] = useState<PostingCard[]>([])
@@ -196,9 +201,18 @@ export function CardLibraryPage() {
     cardKey: string,
     request: UpdatePostingCardRequest,
   ) {
-    const updatedCard = await updatePostingCard(cardKey, request)
-    handleSavedVersion(updatedCard)
-    return updatedCard
+    try {
+      const updatedCard = await updatePostingCard(cardKey, request)
+      handleSavedVersion(updatedCard)
+      return updatedCard
+    } catch (caughtError) {
+      if (caughtError instanceof MissingPostingCardError) {
+        replaceSavedCard(cardKey, null)
+        syncPostingCardDeletion(cardKey)
+        setError(caughtError.message)
+      }
+      throw caughtError
+    }
   }
 
   function handleSavedVersion(updatedCard: PostingCard) {
@@ -232,6 +246,7 @@ export function CardLibraryPage() {
     }
   }
 
+  const hasOpenedSavedCard = openedCard !== null && cards.some((card) => card.card_key === openedCard.card_key)
   let libraryStatus = 'Saved jobs in your workspace'
   if (isLoadingCards) {
     libraryStatus = 'Refreshing…'
@@ -306,6 +321,8 @@ export function CardLibraryPage() {
           onClose={handleCloseCard}
           onUpdate={handleUpdateCard}
           onSavedVersion={handleSavedVersion}
+          onPlanFollowUp={hasOpenedSavedCard ? onPlanFollowUp : undefined}
+          onRecordApplication={hasOpenedSavedCard ? onRecordApplication : undefined}
         />
       )}
     </>

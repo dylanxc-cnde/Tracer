@@ -368,6 +368,7 @@ export async function updatePostingCard(
     throw new PostingCardUpdateUncertainError()
   }
   if (response.status >= 500) throw new PostingCardUpdateUncertainError()
+  if (response.status === 404) throw new MissingPostingCardError()
 
   if (response.status === 422) {
     throw new Error('Some card fields are invalid. Please check or reset your entries.')

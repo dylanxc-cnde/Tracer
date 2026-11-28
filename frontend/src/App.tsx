@@ -129,7 +129,12 @@ function App() {
         {currentPage === 'home' && <HomePage homeIntent={location.homeIntent} />}
         {currentPage === 'market' && <MarketPage onPlanFollowUp={handlePlanFollowUp} onRecordApplication={handleRecordApplication} />}
         {currentPage === 'posting-import' && <PostingImportPage />}
-        {currentPage === 'card-library' && <CardLibraryPage />}
+        {currentPage === 'card-library' && (
+          <CardLibraryPage
+            onPlanFollowUp={handlePlanFollowUp}
+            onRecordApplication={handleRecordApplication}
+          />
+        )}
         {currentPage === 'activity' && <ActivityPage />}
         {currentPage === 'import-history' && <ImportHistoryPage />}
         {currentPage === 'settings' && <SettingsPage />}
