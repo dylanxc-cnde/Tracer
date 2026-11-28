@@ -44,6 +44,7 @@ import { PostingCardMatch } from './components/PostingCardMatch'
 type PostingCardDetailsProps = {
   card: PostingCard
   isReadOnly?: boolean
+  isOriginalSnapshot?: boolean
   onClose: () => void
   onUpdate: (
     cardKey: string,
@@ -52,21 +53,30 @@ type PostingCardDetailsProps = {
   onSavedVersion?: (card: PostingCard) => void
 }
 
+type SourceInspection = { cardKey: string }
+
 export function PostingCardDetails({
   card,
-  isReadOnly = false,
+  isReadOnly: readOnly = false,
+  isOriginalSnapshot = false,
   onClose,
   onUpdate,
   onSavedVersion,
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const saveButton = useRef<HTMLButtonElement>(null)
-  const [areSourcesVisible, setAreSourcesVisible] = useState(false)
+  const [sourceInspection, setSourceInspection] = useState<SourceInspection | null>(null)
   const [isPostingInfoOpen, setIsPostingInfoOpen] = useState(false)
   const [sourceComparison, setSourceComparison] = useState<{
-    cardKey: string
-    originalCard: PostingCard | null
+    inspection: SourceInspection
+    originalPosting: PostingDetails | null
   } | null>(null)
+  const areSourcesVisible = sourceInspection?.cardKey === card.card_key
+  const comparison = !isOriginalSnapshot && sourceComparison?.inspection === sourceInspection
+    ? sourceComparison
+    : null
+  const originalPosting = comparison?.originalPosting ?? null
+  const isReadOnly = readOnly || isOriginalSnapshot
   const editor = usePostingCardEditor(card, onUpdate, isReadOnly, onSavedVersion)
   const posting = card.posting
   // Job details draws facts from Identity, Classification and Work Conditions.
@@ -90,30 +100,26 @@ export function PostingCardDetails({
   }, [])
 
   useEffect(() => {
-    if (!areSourcesVisible || isReadOnly) {
+    if (sourceInspection?.cardKey !== card.card_key || isOriginalSnapshot) {
       return
     }
 
     // Read the saved baseline only for source inspection; never replace the card or draft.
-    let isCurrentRequest = true
+    const inspection = sourceInspection
+    const controller = new AbortController()
+    function finishComparison(originalCard: PostingCard | null) {
+      if (!controller.signal.aborted) {
+        setSourceComparison({ inspection, originalPosting: originalCard?.posting ?? null })
+      }
+    }
 
-    getOriginalPostingCard(card.card_key).then(
-      (originalCard) => {
-        if (isCurrentRequest) {
-          setSourceComparison({ cardKey: card.card_key, originalCard })
-        }
-      },
-      () => {
-        if (isCurrentRequest) {
-          setSourceComparison({ cardKey: card.card_key, originalCard: null })
-        }
-      },
+    getOriginalPostingCard(inspection.cardKey, controller.signal).then(
+      finishComparison,
+      () => finishComparison(null),
     )
 
-    return () => {
-      isCurrentRequest = false
-    }
-  }, [areSourcesVisible, card.card_key, isReadOnly])
+    return () => controller.abort()
+  }, [card.card_key, isOriginalSnapshot, sourceInspection])
 
   function handleDismissSaveError() {
     editor.dismissSaveError()
@@ -135,29 +141,16 @@ export function PostingCardDetails({
   }
 
   function isSectionModified(section: keyof PostingDetails): boolean {
-    if (
-      isReadOnly ||
-      sourceComparison?.cardKey !== card.card_key ||
-      sourceComparison.originalCard === null
-    ) {
-      return false
-    }
+    if (originalPosting === null) return false
 
     // Compare whole saved sections so removal and empty values count as changes too.
     return JSON.stringify(posting[section]) !==
-      JSON.stringify(sourceComparison.originalCard.posting[section])
+      JSON.stringify(originalPosting[section])
   }
 
   function isJobDetailsModified(): boolean {
-    if (
-      isReadOnly ||
-      sourceComparison?.cardKey !== card.card_key ||
-      sourceComparison.originalCard === null
-    ) {
-      return false
-    }
+    if (originalPosting === null) return false
 
-    const originalPosting = sourceComparison.originalCard.posting
     // Compare only the Identity fields shown here, not the separate Posting info fields.
     return (
       JSON.stringify(posting.identity.position_title) !==
@@ -279,17 +272,17 @@ export function PostingCardDetails({
           <input
             type="checkbox"
             checked={areSourcesVisible}
-            onChange={(event) => setAreSourcesVisible(event.target.checked)}
+            onChange={(event) => setSourceInspection(event.target.checked ? { cardKey: card.card_key } : null)}
           />
           <span>Show sources</span>
         </label>
 
-        {areSourcesVisible && !isReadOnly && (
-          sourceComparison?.cardKey !== card.card_key ? (
+        {areSourcesVisible && !isOriginalSnapshot && (
+          comparison === null ? (
             <p className="posting-card-details__source-comparison-notice" role="status">
               Checking changes against the original…
             </p>
-          ) : sourceComparison.originalCard === null ? (
+          ) : originalPosting === null ? (
             <p className="posting-card-details__source-comparison-notice" role="status">
               Could not compare with the original. Hide and show sources to retry.
             </p>

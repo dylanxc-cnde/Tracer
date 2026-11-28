@@ -290,11 +290,13 @@ export async function recordPostingSourceCheck(
 
 export async function getOriginalPostingCard(
     cardKey: string,
+    signal?: AbortSignal,
 ): Promise<PostingCard> {
     const response = await fetch(
-        `${API_BASE_URL}/posting/card/${cardKey}/original`,
+        `${API_BASE_URL}/posting/card/${encodeURIComponent(cardKey)}/original`,
         {
             method: 'GET',
+            signal,
         }
     )
 
@@ -306,7 +308,9 @@ export async function getOriginalPostingCard(
         )
     }
 
-    return (await response.json()) as PostingCard
+    const card: unknown = await response.json()
+    if (!isPostingCardResponse(card, cardKey)) throw new Error('The original Card response could not be read.')
+    return card
 }
 
 export async function deletePostingCard(

@@ -236,7 +236,7 @@ export function CardLibraryPage() {
       {openedCard !== null && (
         <PostingCardDetails
           card={openedCard}
-          isReadOnly={isShowingOriginal}
+          isOriginalSnapshot={isShowingOriginal}
           onClose={handleCloseCard}
           onUpdate={handleUpdateCard}
           onSavedVersion={handleSavedVersion}
