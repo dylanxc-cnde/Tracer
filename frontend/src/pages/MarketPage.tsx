@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { PostingCardDetails } from '../components/posting-card/details/PostingCardDetails'
 import { getPostingCard, listPostingCards, MissingPostingCardError } from '../postings/api/postings'
 import type { PostingCard } from '../postings/types/postingCard'
-import { savedJobCompany, savedJobTitle, savedRoleDomains } from './marketJobs'
+import { savedCardsWithRoleDomains, savedJobCompany, savedJobTitle } from './marketJobs'
 import type { MarketJobRead } from './marketJobs'
 import { MarketRoleDomains } from './MarketRoleDomains'
 import { MarketWatchlist } from './MarketWatchlist'
@@ -28,6 +28,8 @@ function restoreJobFocus(targets: FocusTargets) {
     return
   }
 }
+
+const emptyCards: PostingCard[] = []
 
 export function MarketPage() {
   const [savedJobs, setSavedJobs] = useState<SavedJobs>({ status: 'loading' })
@@ -163,12 +165,13 @@ export function MarketPage() {
     restoreJobFocus(detail.focusTargets)
   }
 
-  const cards = savedJobs.status === 'ready' ? savedJobs.cards : []
-  const reference = cards.find((card) => card.card_key === referenceKey)
-  const referenceDomains = reference ? savedRoleDomains(reference) : null
-  const relatedJobs = referenceDomains?.size ? cards.flatMap((card) => {
+  const cards = savedJobs.status === 'ready' ? savedJobs.cards : emptyCards
+  const domainCards = useMemo(() => savedCardsWithRoleDomains(cards), [cards])
+  const reference = domainCards.find(({ card }) => card.card_key === referenceKey)
+  const referenceDomains = reference?.domains
+  const relatedJobs = referenceDomains?.size ? domainCards.flatMap(({ card, domains }) => {
     if (card.card_key === referenceKey) return []
-    const sharedDomains = [...savedRoleDomains(card)]
+    const sharedDomains = [...domains]
       .filter(([key]) => referenceDomains.has(key))
       .map(([, label]) => label)
     return sharedDomains.length ? [{ card, sharedDomains }] : []
@@ -209,7 +212,7 @@ export function MarketPage() {
             </option>)}
           </select>
         </label>}
-        {reference && <p className="market-page__reference-title" aria-hidden="true">{savedJobTitle(reference)}</p>}
+        {reference && <p className="market-page__reference-title" aria-hidden="true">{savedJobTitle(reference.card)}</p>}
         {resultStatus && <p className="market-page__result-status" role="status">{resultStatus}</p>}
         {detail?.scope === 'related' && missingNotice && <p className="market-page__error" role="alert">{missingNotice}</p>}
         {relatedJobs.length > 0 && <ul
@@ -243,7 +246,7 @@ export function MarketPage() {
         </ul>}
       </section>
       {savedJobs.status === 'ready' && <MarketRoleDomains
-        cards={savedJobs.cards}
+        cards={domainCards}
         detailRead={detail?.scope === 'role-domains' && detail.status !== 'opened' ? detail : null}
         missingJobNotice={detail?.scope === 'role-domains' ? missingNotice : null}
         onOpenJob={(cardKey, opener, groupTrigger) => void handleOpenJob(cardKey, opener, 'role-domains', groupTrigger)}

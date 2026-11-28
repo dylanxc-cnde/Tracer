@@ -2,8 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { IconChevronRight } from '@tabler/icons-react'
 import { visiblePostingText } from '../components/posting-card/details/PostingCardFormatters'
 import type { PostingCard } from '../postings/types/postingCard'
-import { savedJobCompany, savedJobTitle, savedRoleDomains } from './marketJobs'
-import type { MarketJobRead } from './marketJobs'
+import { savedJobCompany, savedJobTitle } from './marketJobs'
+import type { MarketJobRead, SavedCardRoleDomains } from './marketJobs'
 import './MarketRoleDomains.css'
 
 const missingLabel = 'Saved Cards without recorded domains'
@@ -12,11 +12,10 @@ const missingGroup = Symbol('missing role domains')
 type GroupKey = string | typeof missingGroup
 type DomainGroup = { label: string; cards: PostingCard[] }
 
-function summarizeRoleDomains(cards: PostingCard[]) {
+function summarizeRoleDomains(cards: SavedCardRoleDomains[]) {
   const groups = new Map<string, DomainGroup>()
   const withoutDomains: PostingCard[] = []
-  for (const card of cards) {
-    const domains = savedRoleDomains(card)
+  for (const { card, domains } of cards) {
     if (!domains.size) withoutDomains.push(card)
     for (const [key, label] of domains) {
       const recorded = groups.get(key)
@@ -56,7 +55,7 @@ function describeContributors(cards: PostingCard[]) {
 }
 
 type RoleDomainsProps = {
-  cards: PostingCard[]
+  cards: SavedCardRoleDomains[]
   detailRead: MarketJobRead | null
   missingJobNotice: string | null
   onOpenJob: (cardKey: string, opener: HTMLButtonElement, groupTrigger: HTMLButtonElement | null) => void

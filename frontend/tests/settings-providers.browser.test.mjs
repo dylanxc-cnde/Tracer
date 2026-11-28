@@ -16,6 +16,7 @@ import './card-source-comparison.browser.test.mjs'
 import './market-related.browser.test.mjs'
 import './market-watchlist.browser.test.mjs'
 import './market-saved-domains.browser.test.mjs'
+import './market-domain-normalization.browser.test.mjs'
 
 // These provider scenarios enter the app on Home. Home reads are answered with an empty,
 // valid projection while every other request still reaches the closed mock.
