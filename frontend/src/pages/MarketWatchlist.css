@@ -33,6 +33,7 @@
 }
 
 .market-watchlist__controls,
+.market-watchlist__recovery-actions,
 .market-watchlist__row-actions {
   display: flex;
   flex-wrap: wrap;

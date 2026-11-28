@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
 import type { Ref, SyntheticEvent } from 'react'
 import { visiblePostingText } from '../components/posting-card/details/PostingCardFormatters'
 import { changePostingWatch, getPostingWatchlist, MissingPostingCardError, PostingWatchlistChangedError, PostingWatchlistUncertainError } from '../postings/api/postings'
@@ -83,6 +83,8 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
   }>(null)
   const writing = useRef(false)
   const summary = useRef<HTMLElement>(null)
+  const selectionControl = useRef<HTMLSelectElement>(null)
+  const focusAfterDismiss = useRef<PostingWatchChange>(null)
 
   useImperativeHandle(ref, () => ({
     observeCardIdentity(cardKey, card) {
@@ -111,6 +113,18 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
     }
   }, [])
 
+  useLayoutEffect(() => {
+    const change = focusAfterDismiss.current
+    if (!change || recovery) return
+    focusAfterDismiss.current = null
+    const heading = summary.current
+    if (document.activeElement !== heading || !heading?.closest('details')?.open) return
+    const target = change.watching
+      ? selectionControl.current
+      : document.getElementById(`market-watch-stop-${change.watchId}`)
+    if (target?.matches(':enabled:not([aria-disabled="true"])')) target.focus()
+  }, [recovery])
+
   function finishChange(change: PostingWatchChange) {
     if (change.watching) setSelection('')
     setRecovery(null)
@@ -131,7 +145,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
     const observedIdentities = new Map<string, WatchedPostingCardIdentity | null>()
     readRequest.current = { controller, observedIdentities }
     setIsReading(true)
-    if (recovery?.status === 'retry') setRecovery({ change: recovery.change, status: 'check' })
+    setRecovery((current) => current?.status === 'retry' ? { ...current, status: 'check' } : current)
 
     try {
       const rows = await getPostingWatchlist(controller.signal)
@@ -196,6 +210,19 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
   const pendingRow = recovery ? watched?.find((row) => row.card_key === recovery.change.cardKey) : undefined
   const pendingLabel = pendingRow || pendingCard ? watchJobPresentation(pendingRow, pendingCard).actionName : 'saved job'
 
+  function handleDismissChange(trigger: HTMLButtonElement) {
+    if (recovery?.status !== 'retry' || !canChange || readRequest.current || writing.current ||
+      !summary.current?.closest('details')?.open) return
+    const { change } = recovery
+    if (change.watching) setSelection('')
+    if (document.activeElement === trigger) {
+      focusAfterDismiss.current = change
+      returnFocus(trigger)
+    }
+    setRecovery(null)
+    setFeedback({ error: false, message: 'Pending watchlist change dismissed.' })
+  }
+
   async function writeChange(change: PostingWatchChange, trigger: HTMLButtonElement) {
     if (!canChange || readRequest.current || writing.current) return
     if (recovery && (recovery.status !== 'retry' || recovery.change !== change)) return
@@ -256,8 +283,12 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
           <p>{recovery.change.watching ? 'Watch' : 'Stop watching'} <strong>{pendingLabel}</strong></p>
           {recovery.status === 'retry' ? <>
             <p role="status">The watchlist does not reflect this change.</p>
-            <button className="market-page__action" type="button" aria-disabled={!canChange}
-              onClick={(event) => void writeChange(recovery.change, event.currentTarget)}>Retry same change</button>
+            <div className="market-watchlist__recovery-actions">
+              <button className="market-page__action" type="button" aria-disabled={!canChange}
+                onClick={(event) => void writeChange(recovery.change, event.currentTarget)}>Retry same change</button>
+              <button className="market-page__action" type="button" aria-disabled={!canChange}
+                onClick={(event) => handleDismissChange(event.currentTarget)}>Dismiss change</button>
+            </div>
           </> : <>
             <p className="market-page__error" role="alert">
               {recovery.status === 'changed'
@@ -271,7 +302,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
         {availableJobs.length > 0 && <div className="market-watchlist__controls" role="group" aria-label="Add to watchlist">
           <div className="market-page__reference">
             <label htmlFor="market-watchlist-selection">Saved job to watch</label>
-            <select id="market-watchlist-selection" value={selection} disabled={editLocked}
+            <select ref={selectionControl} id="market-watchlist-selection" value={selection} disabled={editLocked}
               onChange={(event) => setSelection(event.target.value)}>
               <option value="">Choose a saved job</option>
               {availableJobs.map((card) => <option key={card.card_key} value={card.card_key} disabled={watchedKeys.has(card.card_key)}>
@@ -316,7 +347,8 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
                   onClick={(event) => onOpenJob(row.card_key, event.currentTarget)}>
                   {isOpening ? 'Opening…' : 'View saved job'}
                 </button>
-                <button className="market-page__action" type="button" aria-label={`Stop watching: ${actionName}`}
+                <button id={`market-watch-stop-${row.watch_id}`} className="market-page__action" type="button"
+                  aria-label={`Stop watching: ${actionName}`}
                   aria-disabled={!canStop} onClick={(event) => {
                     if (canStop) void writeChange({ cardKey: row.card_key, watching: false, watchId: row.watch_id }, event.currentTarget)
                   }}>Stop watching</button>
