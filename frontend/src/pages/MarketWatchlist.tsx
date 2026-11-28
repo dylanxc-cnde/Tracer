@@ -1,14 +1,13 @@
 import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Ref, SyntheticEvent } from 'react'
-import { changePostingWatch, getPostingWatchlist, MissingPostingCardError, PostingWatchlistUncertainError } from '../postings/api/postings'
+import { changePostingWatch, getPostingWatchlist, MissingPostingCardError, PostingWatchlistChangedError, PostingWatchlistUncertainError } from '../postings/api/postings'
 import { postingSourceCheckLabels } from '../postings/sourceCheckLabels'
-import type { PostingCard, PostingSourceObservation, WatchedPostingCard } from '../postings/types/postingCard'
+import type { PostingCard, PostingSourceObservation, PostingWatchChange, WatchedPostingCard } from '../postings/types/postingCard'
 import { savedJobCompany, savedJobTitle } from './marketJobs'
 import type { MarketJobRead } from './marketJobs'
 import './MarketWatchlist.css'
 
-type WatchChange = { cardKey: string; watching: boolean }
-type Recovery = { change: WatchChange; retryAllowed: boolean }
+type Recovery = { change: PostingWatchChange; status: 'check' | 'retry' | 'changed' }
 type Feedback = { error: boolean; message: string }
 
 export type MarketWatchlistHandle = {
@@ -24,7 +23,7 @@ type WatchlistProps = {
 }
 
 type ReadOptions = {
-  verify?: WatchChange
+  verify?: Recovery
   trigger?: HTMLButtonElement
   replace?: boolean
 }
@@ -83,7 +82,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
     }
   }, [])
 
-  function finishChange(change: WatchChange) {
+  function finishChange(change: PostingWatchChange) {
     if (change.watching) setSelection('')
     setRecovery(null)
     setFeedback({ error: false, message: 'Watchlist updated.' })
@@ -102,7 +101,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
     const request = new AbortController()
     readRequest.current = request
     setIsReading(true)
-    if (recovery?.retryAllowed) setRecovery({ change: recovery.change, retryAllowed: false })
+    if (recovery?.status === 'retry') setRecovery({ change: recovery.change, status: 'check' })
 
     try {
       const rows = await getPostingWatchlist(request.signal)
@@ -113,9 +112,19 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
       })
       setReadError(false)
       if (verify) {
-        const isWatched = rows.some((row) => row.card_key === verify.cardKey)
-        if (isWatched === verify.watching) finishChange(verify)
-        else setRecovery({ change: verify, retryAllowed: true })
+        const { change, status } = verify
+        const current = rows.find((row) => row.card_key === change.cardKey)
+        if (!change.watching && current && current.watch_id !== change.watchId) {
+          setRecovery(null)
+          setFeedback({ error: false, message: 'The newer watch is still active.' })
+        } else if (Boolean(current) === change.watching) {
+          finishChange(change)
+        } else if (status === 'changed') {
+          setRecovery(null)
+          setFeedback({ error: false, message: 'Watchlist refreshed.' })
+        } else {
+          setRecovery({ change, status: 'retry' })
+        }
       }
       returnFocus(trigger)
     } catch {
@@ -151,19 +160,20 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
   const canWatch = !editLocked && selectedCard !== undefined && !watchedKeys.has(selection)
   const pendingCard = recovery ? cardsByKey.get(recovery.change.cardKey) : undefined
 
-  async function writeChange(change: WatchChange, trigger: HTMLButtonElement) {
+  async function writeChange(change: PostingWatchChange, trigger: HTMLButtonElement) {
     if (!canChange || readRequest.current || writing.current) return
-    if (recovery && (!recovery.retryAllowed || recovery.change !== change)) return
+    if (recovery && (recovery.status !== 'retry' || recovery.change !== change)) return
     writing.current = true
     setIsWriting(true)
     setRecovery(null)
     setFeedback(null)
 
     try {
-      const saved = await changePostingWatch(change.cardKey, change.watching)
+      const saved = await changePostingWatch(change)
       if (!active.current) return
       setWatched((current) => {
-        const others = (current ?? []).filter((row) => row.card_key !== change.cardKey)
+        const others = (current ?? []).filter((row) =>
+          row.card_key !== change.cardKey || (!change.watching && row.watch_id !== change.watchId))
         const previous = current?.find((row) => row.card_key === change.cardKey)?.last_source_check
         return saved ? [keepLatestProjection(saved, previous), ...others].sort((left, right) =>
           Date.parse(right.watched_at) - Date.parse(left.watched_at)) : others
@@ -172,8 +182,10 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
       returnFocus(trigger)
     } catch (error) {
       if (!active.current) return
-      if (error instanceof PostingWatchlistUncertainError) {
-        setRecovery({ change, retryAllowed: false })
+      if (error instanceof PostingWatchlistChangedError) {
+        setRecovery({ change, status: 'changed' })
+      } else if (error instanceof PostingWatchlistUncertainError) {
+        setRecovery({ change, status: 'check' })
       } else {
         setFeedback({
           error: true,
@@ -206,14 +218,18 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
         </p>}
         {recovery && <div className="market-watchlist__recovery">
           <p>{recovery.change.watching ? 'Watch' : 'Stop watching'} <strong>{pendingCard ? savedJobTitle(pendingCard) : 'saved job'}</strong></p>
-          {recovery.retryAllowed ? <>
+          {recovery.status === 'retry' ? <>
             <p role="status">The watchlist does not reflect this change.</p>
             <button className="market-page__action" type="button" aria-disabled={!canChange}
               onClick={(event) => void writeChange(recovery.change, event.currentTarget)}>Retry same change</button>
           </> : <>
-            <p className="market-page__error" role="alert">Change outcome unknown. Check the watchlist before trying again.</p>
+            <p className="market-page__error" role="alert">
+              {recovery.status === 'changed'
+                ? 'This saved job was watched again. Check the watchlist to refresh it.'
+                : 'Change outcome unknown. Check the watchlist before trying again.'}
+            </p>
             <button className="market-page__action" type="button" aria-disabled={isReading}
-              onClick={(event) => void readWatchlist({ verify: recovery.change, trigger: event.currentTarget })}>Check watchlist</button>
+              onClick={(event) => void readWatchlist({ verify: recovery, trigger: event.currentTarget })}>Check watchlist</button>
           </>}
         </div>}
         {availableJobs.length > 0 && <div className="market-watchlist__controls" role="group" aria-label="Add to watchlist">
@@ -238,7 +254,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
             const title = card ? savedJobTitle(card) : 'Saved job details unavailable'
             const detail = detailRead?.cardKey === row.card_key ? detailRead : null
             const isOpening = detail?.status === 'loading'
-            return <li key={row.card_key} className="market-page__job">
+            return <li key={row.watch_id} className="market-page__job">
               <div className="market-page__job-copy">
                 <h3>{title}</h3>
                 {card && <p className="market-page__company">{savedJobCompany(card)}</p>}
@@ -266,7 +282,7 @@ export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }
                 </button>
                 <button className="market-page__action" type="button" aria-label={`Stop watching: ${title}`}
                   aria-disabled={editLocked} onClick={(event) => {
-                    if (!editLocked) void writeChange({ cardKey: row.card_key, watching: false }, event.currentTarget)
+                    if (!editLocked) void writeChange({ cardKey: row.card_key, watching: false, watchId: row.watch_id }, event.currentTarget)
                   }}>Stop watching</button>
               </div>
               {detail?.status === 'failed' && <p className="market-page__error" role="alert">{detail.message}</p>}

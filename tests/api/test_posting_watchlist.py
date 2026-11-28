@@ -1,8 +1,10 @@
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
+from datetime import UTC, datetime
 from threading import Barrier
-from uuid import uuid4
+from unittest.mock import Mock
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +12,7 @@ from fastapi.testclient import TestClient
 from tests.api.factories import make_posting_details
 from tracer.api.app import create_app
 from tracer.postings.models.posting_card import PostingCard
+from tracer.postings.stores import posting_watchlist_store
 from tracer.postings.stores.posting_card_store import PostingCardStore
 
 
@@ -35,6 +38,28 @@ def add_saved_card(store):
     return str(card.card_key)
 
 
+@pytest.fixture
+def legacy_memberships(database_path):
+    cards = PostingCardStore(database_path)
+    memberships = [
+        (add_saved_card(cards), "2026-11-28T12:00:00.000000+00:00"),
+        (add_saved_card(cards), "2026-11-27T12:00:00.000000+00:00"),
+    ]
+    with closing(sqlite3.connect(database_path)) as database, database:
+        database.execute("""
+            CREATE TABLE posting_watchlist (
+                card_key TEXT PRIMARY KEY NOT NULL
+                    REFERENCES posting_cards(card_key) ON DELETE CASCADE,
+                watched_at TEXT NOT NULL
+            )
+        """)
+        database.executemany(
+            "INSERT INTO posting_watchlist (card_key, watched_at) VALUES (?, ?)",
+            memberships,
+        )
+    return memberships
+
+
 def test_watchlist_retains_first_membership_time_and_survives_app_reopen(database_path):
     cards = PostingCardStore(database_path)
     first_key = add_saved_card(cards)
@@ -52,8 +77,11 @@ def test_watchlist_retains_first_membership_time_and_survives_app_reopen(databas
         assert first.status_code == second.status_code == repeated.status_code == 200
         watched_at = first.json()["watched_at"]
         assert watched_at.endswith("Z")
+        watch_id = first.json()["watch_id"]
+        assert str(UUID(watch_id)) == watch_id
         assert first.json() == {
             "card_key": first_key,
+            "watch_id": watch_id,
             "watched_at": watched_at,
             "last_source_check": None,
         }
@@ -73,6 +101,93 @@ def test_watchlist_retains_first_membership_time_and_survives_app_reopen(databas
             assert removed.content == b""
         assert client.get(WATCHLIST_PATH).json() == [second.json()]
         assert client.get(f"/posting/card/{first_key}").json() == before
+
+
+def test_stale_unwatch_preserves_recreated_membership_at_the_same_time(
+    client, database_path, monkeypatch
+):
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            assert tz is UTC
+            return cls(2026, 11, 28, 12, tzinfo=UTC)
+
+    monkeypatch.setattr(posting_watchlist_store, "datetime", FrozenDatetime)
+    key = add_saved_card(PostingCardStore(database_path))
+    path = f"{WATCHLIST_PATH}/{key}"
+    first = client.put(path).json()
+    expected_first = {"expected_watch_id": first["watch_id"]}
+
+    assert client.delete(path, params=expected_first).status_code == 204
+    assert client.delete(path, params=expected_first).status_code == 204
+    current = client.put(path).json()
+    assert current["watched_at"] == first["watched_at"]
+    assert current["watch_id"] != first["watch_id"]
+    assert client.put(path).json() == current
+
+    assert client.delete(path, params=expected_first).status_code == 412
+    assert (
+        client.delete(path, params={"expected_watch_id": "not-a-uuid"}).status_code
+        == 422
+    )
+    assert client.get(WATCHLIST_PATH).json() == [current]
+    expected_current = {"expected_watch_id": current["watch_id"]}
+    assert client.delete(path, params=expected_current).status_code == 204
+    assert client.delete(path, params=expected_current).status_code == 204
+    assert client.get(WATCHLIST_PATH).json() == []
+
+
+def test_watch_ids_are_backfilled_once_for_concurrent_app_startup(
+    database_path, legacy_memberships
+):
+    start = Barrier(2)
+
+    def read_watchlist():
+        start.wait(timeout=5)
+        with TestClient(create_app(database_path=database_path)) as client:
+            response = client.get(WATCHLIST_PATH)
+            assert response.status_code == 200
+            return response.json()
+
+    with ThreadPoolExecutor(2) as workers:
+        first = workers.submit(read_watchlist)
+        second = workers.submit(read_watchlist)
+        rows = first.result(timeout=10)
+        assert second.result(timeout=10) == rows
+
+    assert [(row["card_key"], row["watched_at"]) for row in rows] == [
+        (key, watched_at.replace(".000000+00:00", "Z"))
+        for key, watched_at in legacy_memberships
+    ]
+    assert len({UUID(row["watch_id"]) for row in rows}) == len(legacy_memberships)
+    with TestClient(create_app(database_path=database_path)) as client:
+        key = rows[0]["card_key"]
+        assert client.get(WATCHLIST_PATH).json() == rows
+        assert client.put(f"{WATCHLIST_PATH}/{key}").json() == rows[0]
+        assert client.delete(f"/posting/card/{key}").status_code == 204
+        assert client.get(WATCHLIST_PATH).json() == rows[1:]
+
+
+def test_failed_watch_id_backfill_rolls_back_schema_and_old_rows(
+    database_path, legacy_memberships, monkeypatch
+):
+    generate_id = Mock(
+        side_effect=[uuid4(), RuntimeError("Synthetic backfill interruption")]
+    )
+    monkeypatch.setattr(posting_watchlist_store, "uuid4", generate_id)
+    with pytest.raises(RuntimeError, match="Synthetic backfill interruption"):
+        posting_watchlist_store.PostingWatchlistStore(database_path)
+
+    with closing(sqlite3.connect(database_path)) as database:
+        assert [
+            row[1] for row in database.execute("PRAGMA table_info(posting_watchlist)")
+        ] == ["card_key", "watched_at"]
+        assert (
+            database.execute(
+                "SELECT card_key, watched_at FROM posting_watchlist ORDER BY watched_at DESC"
+            ).fetchall()
+            == legacy_memberships
+        )
 
 
 def test_unknown_card_cannot_be_watched_but_removal_is_idempotent(client):

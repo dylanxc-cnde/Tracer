@@ -115,6 +115,11 @@ export type PostingSourceObservation = Pick<PostingSourceCheck, 'result' | 'reco
 
 export type WatchedPostingCard = {
   card_key: string
+  watch_id: string
   watched_at: string
   last_source_check?: PostingSourceObservation | null
 }
+
+export type PostingWatchChange =
+  | { cardKey: string; watching: true }
+  | { cardKey: string; watching: false; watchId: string }

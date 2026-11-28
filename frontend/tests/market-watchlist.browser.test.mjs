@@ -12,7 +12,11 @@ const SOURCE_RECEIPT = `${CARD}/source-receipt`
 const SOURCE_CHECKS = `${CARD}/source-checks`
 const TITLE = 'Werkstudent für datenbasierte Fahrgastinformation und barrierefreie Verkehrsplanung im Rheinland (DEMO)'
 const WATCHED_AT = '2026-11-27T12:34:56Z'
-const membership = { card_key: KEY, watched_at: WATCHED_AT }
+const WATCH_ID = 'a0000000-0000-4000-8000-000000000071'
+const NEW_WATCH_ID = 'a0000000-0000-4000-8000-000000000072'
+const membership = { card_key: KEY, watch_id: WATCH_ID, watched_at: WATCHED_AT }
+const replacement = { ...membership, watch_id: NEW_WATCH_ID }
+const stopTarget = watchId => `${TARGET}?expected_watch_id=${watchId}`
 const { details } = postingFixture(IMPORT_KEY, TITLE, { kind: 'text', text: TITLE, source_url: null })
 const card = { card_key: KEY, import_key: IMPORT_KEY, created_at: WATCHED_AT, schema_version: 1,
   posting: details, posting_alias: null, user_notes: null, tags: [] }
@@ -41,7 +45,7 @@ async function openWatchlist(
       return
     }
     if (url.origin === API && (url.pathname === WATCHLIST || url.pathname === TARGET)) {
-      calls.push(`${method} ${url.pathname}`)
+      calls.push(`${method} ${url.pathname}${url.search}`)
       await onWatchRequest(route, request)
       return
     }
@@ -218,7 +222,7 @@ for (const width of [1440, 900]) {
 
     await stop.press('Enter')
     await expect(empty).toBeVisible()
-    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `PUT ${TARGET}`, `DELETE ${TARGET}`])
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `PUT ${TARGET}`, `DELETE ${stopTarget(WATCH_ID)}`])
     expect(bodies).toEqual([null, null])
     expect(unexpected).toEqual([])
   })
@@ -282,10 +286,10 @@ test('Market keeps the watched row until a missing stop-watching receipt is chec
   const verify = section.getByRole('button', { name: 'Check watchlist', exact: true })
   await expect(verify).toBeEnabled()
   await expect(section.getByRole('list', { name: 'Watched jobs', exact: true })).toContainText(TITLE)
-  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${TARGET}`])
+  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${stopTarget(WATCH_ID)}`])
   await verify.press('Enter')
   await expect(section.getByText('No watched jobs yet.', { exact: true })).toBeVisible()
-  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${TARGET}`, `GET ${WATCHLIST}`])
+  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${stopTarget(WATCH_ID)}`, `GET ${WATCHLIST}`])
   expect(unexpected).toEqual([])
 })
 
@@ -349,8 +353,8 @@ for (const width of [1440, 900]) {
     const recordedAt = '2026-11-26T08:20:00Z'
     const { section, calls, unexpected } = await openWatchlist({ page, context, baseURL }, route => route.fulfill({ json: [
       { ...membership, last_source_check: { result: 'not_listed', recorded_at: recordedAt } },
-      { ...membership, card_key: unchecked.card_key, last_source_check: null },
-      { ...membership, card_key: legacy.card_key },
+      { ...membership, card_key: unchecked.card_key, watch_id: 'a0000000-0000-4000-8000-000000000073', last_source_check: null },
+      { ...membership, card_key: legacy.card_key, watch_id: 'a0000000-0000-4000-8000-000000000074' },
     ] }), { savedCards: [card, unchecked, legacy] })
     const rows = section.getByRole('list', { name: 'Watched jobs', exact: true }).getByRole('listitem')
     await expect(rows).toHaveCount(3)
@@ -369,3 +373,127 @@ for (const width of [1440, 900]) {
     await page.screenshot({ path: testInfo.outputPath('last-recorded-source-check.png') })
   })
 }
+
+function safeToStop(request, current) {
+  const expected = new URL(request.url()).searchParams.get('expected_watch_id')
+  return current === null || expected === null || expected === current.watch_id
+}
+
+for (const width of [1440, 900]) {
+  test(`Market preserves a newer watch when an earlier removal reaches it at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const held = Promise.withResolvers()
+    let current = membership
+    let removals = 0
+    const { section, summary, calls, unexpected } = await openWatchlist({ page, context, baseURL }, async (route, request) => {
+      if (request.method() === 'GET') {
+        await route.fulfill({ json: current ? [current] : [] })
+        return
+      }
+      expect(request.method()).toBe('DELETE')
+      expect(request.postData()).toBeNull()
+      removals += 1
+      if (removals === 1) await held.promise
+      if (!safeToStop(request, current)) {
+        await route.fulfill({ status: 412, json: { detail: 'posting.watchlist_changed' } })
+        return
+      }
+      current = null
+      await route.fulfill({ status: 204 })
+    })
+    const stop = section.getByRole('button', { name: `Stop watching: ${TITLE}`, exact: true })
+    try {
+      await stop.press('Enter')
+      await expect.poll(() => removals).toBe(1)
+      await expect(stop).toBeDisabled()
+      current = replacement
+    } finally {
+      held.resolve()
+    }
+
+    const readback = section.getByRole('button', { name: 'Check watchlist', exact: true })
+    await expect(section.getByRole('alert')).toHaveText('This saved job was watched again. Check the watchlist to refresh it.')
+    await expect(readback).toBeEnabled()
+    await expect(section.getByRole('button', { name: 'Retry same change', exact: true })).toHaveCount(0)
+    await expect(stop).toBeDisabled()
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${stopTarget(WATCH_ID)}`])
+    await readback.press('Enter')
+    await expect(section.getByText('The newer watch is still active.', { exact: true })).toBeVisible()
+    await expect(summary).toBeFocused()
+    await expect(stop).toBeEnabled()
+    expect(current).toEqual(replacement)
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${stopTarget(WATCH_ID)}`, `GET ${WATCHLIST}`])
+    expect(await section.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('newer-watch-preserved.png'), animations: 'disabled' })
+
+    await stop.press('Enter')
+    await expect(section.getByText('No watched jobs yet.', { exact: true })).toBeVisible()
+    expect(calls).toEqual([
+      `GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${stopTarget(WATCH_ID)}`, `GET ${WATCHLIST}`, `DELETE ${stopTarget(NEW_WATCH_ID)}`,
+    ])
+    expect(unexpected).toEqual([])
+  })
+}
+
+for (const replacedBeforeRead of [true, false]) {
+  test(`Market preserves the original watch identity ${replacedBeforeRead ? 'when checking an unknown removal' : 'when retrying an unknown removal'}`, async ({ page, context, baseURL }) => {
+    let current = membership
+    let attempts = 0
+    const { section, calls, unexpected } = await openWatchlist({ page, context, baseURL }, async (route, request) => {
+      if (request.method() === 'GET') {
+        await route.fulfill({ json: current ? [current] : [] })
+        return
+      }
+      expect(request.method()).toBe('DELETE')
+      attempts += 1
+      if (attempts === 1) {
+        await route.abort('failed')
+        return
+      }
+      if (!safeToStop(request, current)) {
+        await route.fulfill({ status: 412, json: { detail: 'posting.watchlist_changed' } })
+        return
+      }
+      current = null
+      await route.fulfill({ status: 204 })
+    })
+    await section.getByRole('button', { name: `Stop watching: ${TITLE}`, exact: true }).press('Enter')
+    const readback = section.getByRole('button', { name: 'Check watchlist', exact: true })
+    const retry = section.getByRole('button', { name: 'Retry same change', exact: true })
+    await expect(readback).toBeEnabled()
+    expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${stopTarget(WATCH_ID)}`])
+    if (replacedBeforeRead) current = replacement
+    await readback.press('Enter')
+    const expected = [`GET ${CARDS}`, `GET ${WATCHLIST}`, `DELETE ${stopTarget(WATCH_ID)}`, `GET ${WATCHLIST}`]
+
+    if (!replacedBeforeRead) {
+      await expect(retry).toBeEnabled()
+      expect(calls).toEqual(expected)
+      current = replacement
+      await retry.press('Enter')
+      await expect(readback).toBeEnabled()
+      await expect(section.getByRole('alert')).toHaveText('This saved job was watched again. Check the watchlist to refresh it.')
+      expected.push(`DELETE ${stopTarget(WATCH_ID)}`)
+      expect(calls).toEqual(expected)
+      await readback.press('Enter')
+      expected.push(`GET ${WATCHLIST}`)
+    }
+
+    await expect(section.getByText('The newer watch is still active.', { exact: true })).toBeVisible()
+    await expect(retry).toHaveCount(0)
+    await expect(section.getByRole('button', { name: `Stop watching: ${TITLE}`, exact: true })).toBeEnabled()
+    expect(current).toEqual(replacement)
+    expect(calls).toEqual(expected)
+    expect(unexpected).toEqual([])
+  })
+}
+
+test('Market requires a valid membership identifier before offering Stop watching', async ({ page, context, baseURL }) => {
+  const { section, calls, unexpected } = await openWatchlist({ page, context, baseURL }, route =>
+    route.fulfill({ json: [{ ...membership, watch_id: 'invalid' }] }))
+  await expect(section.getByRole('alert')).toHaveText('Could not load watchlist.')
+  await expect(section.getByRole('button', { name: `Stop watching: ${TITLE}`, exact: true })).toHaveCount(0)
+  expect(calls).toEqual([`GET ${CARDS}`, `GET ${WATCHLIST}`])
+  expect(unexpected).toEqual([])
+})

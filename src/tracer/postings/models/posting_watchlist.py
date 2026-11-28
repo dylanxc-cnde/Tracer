@@ -15,10 +15,11 @@ class LatestSourceCheck(BaseModel):
 
 
 class WatchedPostingCard(BaseModel):
-    """A locally watched Card and the time this membership began."""
+    """An explicit watch membership for a saved Card."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     card_key: UUID
+    watch_id: UUID
     watched_at: AwareDatetime
     last_source_check: LatestSourceCheck | None

@@ -275,8 +275,14 @@ def create_postings_router(
         return watched
 
     @router.delete("/watchlist/{card_key}", status_code=status.HTTP_204_NO_CONTENT)
-    def unwatch_posting_card(card_key: UUID) -> None:
-        watchlist.unwatch(card_key)
+    def unwatch_posting_card(
+        card_key: UUID, expected_watch_id: UUID | None = None
+    ) -> None:
+        if not watchlist.unwatch(card_key, expected_watch_id):
+            raise HTTPException(
+                status.HTTP_412_PRECONDITION_FAILED,
+                detail="Watch membership has changed",
+            )
 
     @router.patch("/card/{card_key}")
     def update_posting_card(

@@ -3,6 +3,7 @@ import type {
   PostingCard,
   PostingSourceCheck,
   PostingSourceObservation,
+  PostingWatchChange,
   RecordPostingSourceCheckRequest,
   UpdatePostingCardRequest,
   WatchedPostingCard,
@@ -41,6 +42,10 @@ export class PostingSourceCheckUnavailableError extends Error {
 
 export class PostingWatchlistUncertainError extends Error {
   constructor() { super('Change outcome unknown. Check the watchlist before trying again.') }
+}
+
+export class PostingWatchlistChangedError extends Error {
+  constructor() { super('This saved job was watched again. Check the watchlist to refresh it.') }
 }
 
 export async function createPostingImport(
@@ -174,9 +179,12 @@ export async function getPostingCard(cardKey: string, signal: AbortSignal): Prom
   return card
 }
 
+const watchIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 function isWatchedPostingCard(value: unknown): value is WatchedPostingCard {
   return typeof value === 'object' && value !== null &&
     'card_key' in value && typeof value.card_key === 'string' && value.card_key !== '' &&
+    'watch_id' in value && typeof value.watch_id === 'string' && watchIdPattern.test(value.watch_id) &&
     'watched_at' in value && typeof value.watched_at === 'string' &&
     Number.isFinite(Date.parse(value.watched_at)) &&
     (!('last_source_check' in value) || value.last_source_check === null || isPostingSourceObservation(value.last_source_check))
@@ -193,10 +201,12 @@ export async function getPostingWatchlist(signal: AbortSignal): Promise<WatchedP
   return watched
 }
 
-export async function changePostingWatch(cardKey: string, watching: boolean): Promise<WatchedPostingCard | null> {
+export async function changePostingWatch(change: PostingWatchChange): Promise<WatchedPostingCard | null> {
+  const { cardKey, watching } = change
+  const condition = change.watching ? '' : `?expected_watch_id=${encodeURIComponent(change.watchId)}`
   let response: Response
   try {
-    response = await fetch(`${API_BASE_URL}/posting/watchlist/${encodeURIComponent(cardKey)}`, {
+    response = await fetch(`${API_BASE_URL}/posting/watchlist/${encodeURIComponent(cardKey)}${condition}`, {
       method: watching ? 'PUT' : 'DELETE',
     })
   } catch {
@@ -204,6 +214,7 @@ export async function changePostingWatch(cardKey: string, watching: boolean): Pr
   }
   if (response.status >= 500) throw new PostingWatchlistUncertainError()
   if (response.status === 404) throw new MissingPostingCardError()
+  if (!watching && response.status === 412) throw new PostingWatchlistChangedError()
   if (!response.ok) throw new Error('Could not update watchlist.')
 
   if (!watching) {
