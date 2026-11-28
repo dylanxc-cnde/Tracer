@@ -156,6 +156,7 @@ async function installBackend({ context, baseURL, routes = {}, settings = SETTIN
   const defaults = {
     'GET /settings': (route) => route.fulfill({ json: settings }),
     'GET /posting/card': (route) => route.fulfill({ json: [CARD] }),
+    [`GET /posting/card/${CARD_KEY}`]: (route) => route.fulfill({ json: CARD }),
     [`GET /posting/card/${CARD_KEY}/original`]: (route) => route.fulfill({ json: CARD }),
     // Home is only entered here as the display-name page or the unchanged visual reference, so it
     // gets an empty, valid projection. Home record behavior is covered by home-records.browser.test.mjs.
@@ -1015,7 +1016,11 @@ test('a failed match review never blocks the Card: close, edit, save and Show or
   await expect(original.getByRole('button', { name: 'Review match', exact: true })).toHaveCount(0)
   await expect(original.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
   await settle(page)
-  expect(count(calls, `GET /posting/card/${CARD_KEY}/original`)).toBe(1)
+  expect(calls.filter((call) => call.startsWith('GET /posting/card'))).toEqual([
+    'GET /posting/card',
+    `GET /posting/card/${CARD_KEY}`,
+    `GET /posting/card/${CARD_KEY}/original`,
+  ])
   expect(count(calls, `GET ${matchPath()}`)).toBe(1)
   expect(calls.filter((call) => call.includes('/matching/') && call.split(' ')[0] !== 'GET')).toEqual([])
   expect(unexpected, 'All non-Vite requests must be explicitly mocked').toEqual([])

@@ -11,6 +11,7 @@ const A_CURRENT = 'Korrigiertes Praktikum in der barrierefreien Fahrgastinformat
 const B_CURRENT = 'Werkstudent (m/w/d) für Marktkommunikation und Netzentgeltabrechnung in der Energiewirtschaft (DEMO)'
 const A_ORIGINAL = 'Ursprüngliches Praktikum für Fahrgastzählungen und regionale Nahverkehrsplanung (DEMO)'
 const A_PATH = `${LIST_PATH}/${A_KEY}`
+const B_PATH = `${LIST_PATH}/${B_KEY}`
 const ORIGINAL_PATH = `${A_PATH}/original`
 
 function savedCard(cardKey, importKey, title) {
@@ -55,6 +56,166 @@ async function openCardLibrary({ page, context, baseURL }, routes) {
   return { calls, unexpected }
 }
 
+for (const width of [1440, 900]) {
+  test(`Card library preserves the freshly saved title in a notes-only edit at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const freshTitle = 'Aktualisiertes Praktikum für barrierefreie Umsteigeinformationen im regionalen Schienenverkehr (DEMO)'
+    const note = 'Bewerbungsunterlagen für das aktualisierte Praktikum zusammenstellen. (DEMO)'
+    const staleCard = savedCard(A_KEY, A_IMPORT, A_CURRENT)
+    const freshCard = savedCard(A_KEY, A_IMPORT, freshTitle)
+    const patches = []
+    const browserErrors = []
+    page.on('pageerror', error => browserErrors.push(error.message))
+    page.on('console', message => {
+      if (message.type() === 'error') browserErrors.push(message.text())
+    })
+    const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+      [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [staleCard] }),
+      [`GET ${A_PATH}`]: route => route.fulfill({ json: freshCard }),
+      [`PATCH ${A_PATH}`]: (route, request) => {
+        const patch = request.postDataJSON()
+        patches.push(patch)
+        const saved = savedCard(A_KEY, A_IMPORT, patch.position_title)
+        saved.user_notes = patch.user_notes
+        return route.fulfill({ json: saved })
+      },
+    })
+
+    await page.getByRole('button', { name: `View details: ${A_CURRENT} at Unknown company`, exact: true }).press('Enter')
+    const dialog = page.getByRole('dialog')
+    const edit = dialog.getByRole('button', { name: 'Edit card', exact: true })
+    await edit.press('Enter')
+    const editorTitle = await dialog.getByRole('textbox', { name: 'Position title', exact: true }).inputValue()
+    await dialog.getByRole('textbox', { name: 'Notes', exact: true }).fill(note)
+    await page.screenshot({ path: testInfo.outputPath('fresh-title-notes-editor.png') })
+    await dialog.getByRole('button', { name: 'Save', exact: true }).press('Enter')
+    await expect(edit).toBeVisible()
+    expect(patches).toEqual([expect.objectContaining({ position_title: freshTitle, user_notes: note })])
+    expect(editorTitle).toBe(freshTitle)
+    await expect(dialog.getByRole('heading', { name: freshTitle, exact: true })).toBeVisible()
+    await expect(dialog.getByText(note, { exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(page.getByRole('button', { name: `View details: ${freshTitle} at Unknown company`, exact: true })).toBeVisible()
+    expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`])
+    expect(unexpected).toEqual([])
+    expect(browserErrors).toEqual([])
+  })
+}
+
+test('Card library opens only the latest requested current Card', async ({ page, context, baseURL }) => {
+  const gate = Promise.withResolvers()
+  const lateResponseSent = Promise.withResolvers()
+  const cardA = savedCard(A_KEY, A_IMPORT, A_CURRENT)
+  const cardB = savedCard(B_KEY, B_IMPORT, B_CURRENT)
+  const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+    [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [cardA, cardB] }),
+    [`GET ${A_PATH}`]: async (route) => {
+      try {
+        await gate.promise
+        await route.fulfill({ json: cardA })
+      } finally {
+        lateResponseSent.resolve()
+      }
+    },
+    [`GET ${B_PATH}`]: route => route.fulfill({ json: cardB }),
+  })
+
+  const openA = page.getByRole('button', { name: `View details: ${A_CURRENT} at Unknown company`, exact: true })
+  const openB = page.getByRole('button', { name: `View details: ${B_CURRENT} at Unknown company`, exact: true })
+  const dialog = page.getByRole('dialog')
+  try {
+    await openA.press('Enter')
+    await expect(page.getByText('Opening saved card…', { exact: true })).toBeVisible()
+    await expect(openA).toBeFocused()
+    await expect(openA).toBeDisabled()
+    await expect(dialog).toHaveCount(0)
+    await page.keyboard.press('Enter')
+    await expect.poll(() => calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`])
+    await openB.press('Enter')
+    await expect(dialog.getByRole('heading', { name: B_CURRENT, exact: true })).toBeVisible()
+  } finally {
+    gate.resolve()
+  }
+  await lateResponseSent.promise
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  await expect(dialog.getByRole('heading', { name: B_CURRENT, exact: true })).toBeVisible()
+  await expect(dialog.getByRole('heading', { name: A_CURRENT, exact: true })).toHaveCount(0)
+  await expect(page.getByRole('alert', { includeHidden: true })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(openB).toBeFocused()
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `GET ${B_PATH}`])
+  expect(unexpected).toEqual([])
+})
+
+test('Card library retries a transient current read failure without opening the cached row', async ({ page, context, baseURL }, testInfo) => {
+  const card = savedCard(A_KEY, A_IMPORT, A_CURRENT)
+  const freshTitle = 'Überarbeitetes Praktikum für Fahrgastinformation und regionale Nahverkehrsplanung (DEMO)'
+  const freshCard = savedCard(A_KEY, A_IMPORT, freshTitle)
+  let reads = 0
+  const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+    [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [card] }),
+    [`GET ${A_PATH}`]: route => ++reads === 1
+      ? route.fulfill({ status: 503, json: { detail: 'Synthetic unavailable Card detail' } })
+      : route.fulfill({ json: freshCard }),
+  })
+
+  const open = page.getByRole('button', { name: `View details: ${A_CURRENT} at Unknown company`, exact: true })
+  const dialog = page.getByRole('dialog')
+  await open.press('Enter')
+  await expect(page.getByRole('alert')).toHaveText('Could not open the saved card. Try again.')
+  await expect(open).toBeFocused()
+  await expect(dialog).toHaveCount(0)
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`])
+  await page.screenshot({ path: testInfo.outputPath('current-read-failed.png') })
+  await page.keyboard.press('Enter')
+  await expect(dialog.getByRole('heading', { name: freshTitle, exact: true })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toBeEnabled()
+  await expect(page.getByRole('alert', { includeHidden: true })).toHaveCount(0)
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `GET ${A_PATH}`])
+  expect(unexpected).toEqual([])
+})
+
+test('Card library removes a missing current Card even if a stale refresh returns later', async ({ page, context, baseURL }) => {
+  const cardA = savedCard(A_KEY, A_IMPORT, A_CURRENT)
+  const cardB = savedCard(B_KEY, B_IMPORT, B_CURRENT)
+  const refreshGate = Promise.withResolvers()
+  let listReads = 0
+  const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
+    [`GET ${LIST_PATH}`]: async (route) => {
+      listReads += 1
+      if (listReads === 2) await refreshGate.promise
+      await route.fulfill({ json: [cardA, cardB] })
+    },
+    [`GET ${A_PATH}`]: route => route.fulfill({ status: 404, json: { detail: 'Synthetic missing Card' } }),
+  })
+
+  const openA = page.getByRole('button', { name: `View details: ${A_CURRENT} at Unknown company`, exact: true })
+  const openB = page.getByRole('button', { name: `View details: ${B_CURRENT} at Unknown company`, exact: true })
+  try {
+    await expect(openA).toBeVisible()
+    await page.getByRole('button', { name: 'Refresh card library', exact: true }).press('Enter')
+    await expect.poll(() => listReads).toBe(2)
+    await openA.press('Enter')
+    await expect(page.getByRole('alert')).toHaveText('This card is no longer available.')
+    await expect(openA).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Saved jobs', exact: true })).toBeFocused()
+  } finally {
+    refreshGate.resolve()
+  }
+  await expect(page.getByRole('status')).toHaveText('1 saved job')
+  await expect(openA).toHaveCount(0)
+  await expect(openB).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Saved jobs', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(openB).toBeFocused()
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${LIST_PATH}`, `GET ${A_PATH}`])
+  expect(unexpected).toEqual([])
+})
+
 for (const { outcome, status } of [{ outcome: 'success', status: 200 }, { outcome: 'failure', status: 503 }]) {
   test(`Card library ignores late original Card ${outcome} after opening a current Card`, async ({ page, context, baseURL }) => {
     const gate = Promise.withResolvers()
@@ -65,6 +226,7 @@ for (const { outcome, status } of [{ outcome: 'success', status: 200 }, { outcom
 
     const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
       [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [currentA, currentB] }),
+      [`GET ${B_PATH}`]: route => route.fulfill({ json: currentB }),
       [`GET ${ORIGINAL_PATH}`]: async (route) => {
         originalReads += 1
         if (originalReads === 1) {
@@ -112,7 +274,7 @@ for (const { outcome, status } of [{ outcome: 'success', status: 200 }, { outcom
     await expect(dialog.getByRole('heading', { name: A_ORIGINAL, exact: true })).toBeVisible()
     await expect(edit).toHaveCount(0)
     await expect(dialog.getByRole('button', { name: 'Review match', exact: true })).toHaveCount(0)
-    expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${ORIGINAL_PATH}`, `GET ${ORIGINAL_PATH}`])
+    expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${ORIGINAL_PATH}`, `GET ${B_PATH}`, `GET ${ORIGINAL_PATH}`])
     expect(unexpected).toEqual([])
   })
 }
@@ -224,7 +386,7 @@ for (const outcome of ['committed', 'uncommitted']) {
     await expect(save).toBeDisabled()
     await expect(useSaved).toHaveCount(0)
     await page.clock.fastForward(10_000)
-    expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`])
+    expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`])
     expect(patches).toHaveLength(1)
     expect(patches[0].position_title).toBe(DRAFT_TITLE)
 
@@ -234,7 +396,7 @@ for (const outcome of ['committed', 'uncommitted']) {
       await expect(useSaved).toBeVisible()
       await expect(title).toHaveValue(DRAFT_TITLE)
       await expect(save).toBeDisabled()
-      expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
+      expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
       await useSaved.focus()
       await page.keyboard.press('Enter')
     } else {
@@ -242,7 +404,7 @@ for (const outcome of ['committed', 'uncommitted']) {
       await expect(save).toBeFocused()
       await expect(title).toHaveValue(DRAFT_TITLE)
       await page.clock.fastForward(10_000)
-      expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
+      expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
       await page.keyboard.press('Enter')
       await expect.poll(() => patches).toEqual([patches[0], patches[0]])
     }
@@ -255,7 +417,7 @@ for (const outcome of ['committed', 'uncommitted']) {
     await page.getByRole('button', { name: `Show original: ${DRAFT_TITLE}`, exact: true }).click()
     await expect(dialog.getByRole('heading', { name: A_ORIGINAL, exact: true })).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
-    const expectedCalls = [`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`]
+    const expectedCalls = [`GET ${LIST_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`]
     if (outcome === 'uncommitted') expectedCalls.push(`PATCH ${A_PATH}`)
     expect(calls).toEqual([...expectedCalls, `GET ${ORIGINAL_PATH}`])
     expect(unexpected).toEqual([])
@@ -272,7 +434,7 @@ test('Discarding recovery keeps the verified Card for the next edit', async ({ p
   })
   await dialog.getByRole('button', { name: 'Discard draft and close', exact: true }).press('Enter')
   await expect(dialog).toHaveCount(0)
-  expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`])
 
   await page.getByRole('button', { name: `View details: ${DRAFT_TITLE} at Unknown company`, exact: true }).press('Enter')
   await expect(dialog.getByRole('heading', { name: DRAFT_TITLE, exact: true })).toBeVisible()
@@ -283,7 +445,7 @@ test('Discarding recovery keeps the verified Card for the next edit', async ({ p
   await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toBeVisible()
   expect(patches).toHaveLength(2)
   expect(patches[1]).toMatchObject({ position_title: DRAFT_TITLE, user_notes: note })
-  expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`])
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`, `GET ${A_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`])
   expect(unexpected).toEqual([])
 })
 
@@ -295,7 +457,7 @@ test('Card library keeps a rejected Card draft available for correction', async 
   await expect(title).toHaveValue(DRAFT_TITLE)
   await title.fill(`${DRAFT_TITLE} – präzisiert`)
   await expect(save).toBeEnabled()
-  expect(calls).toEqual([`GET ${LIST_PATH}`, `PATCH ${A_PATH}`])
+  expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`, `PATCH ${A_PATH}`])
   expect(unexpected).toEqual([])
 })
 
@@ -317,6 +479,7 @@ for (const width of [1440, 900]) {
     card.posting.role_content.domains = domains.map(value => ({ value, origin: 'source' }))
     const { calls, unexpected } = await openCardLibrary({ page, context, baseURL }, {
       [`GET ${LIST_PATH}`]: route => route.fulfill({ json: [card] }),
+      [`GET ${A_PATH}`]: route => route.fulfill({ json: card }),
     })
     await page.getByRole('button', { name: `View details: ${A_CURRENT} at Unknown company`, exact: true }).press('Enter')
     const dialog = page.getByRole('dialog')
@@ -357,7 +520,7 @@ for (const width of [1440, 900]) {
     await shortInput.fill('Interdisziplinäre regionale Verkehrsplanung')
     await expect.poll(async () => (await shortInput.boundingBox()).width).toBeGreaterThan(initialWidth)
     expect((await shortInput.boundingBox()).height).toBe(initialHeight)
-    expect(calls).toEqual([`GET ${LIST_PATH}`])
+    expect(calls).toEqual([`GET ${LIST_PATH}`, `GET ${A_PATH}`])
     expect(unexpected).toEqual([])
     expect(browserErrors).toEqual([])
   })

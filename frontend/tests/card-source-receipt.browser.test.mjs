@@ -5,9 +5,10 @@ const API = 'http://127.0.0.1:8000'
 const LIST_PATH = '/posting/card'
 const CARD_KEY = 'a0000000-0000-4000-8000-000000000071'
 const IMPORT_KEY = 'a0000000-0000-4000-8000-000000000072'
-const ORIGINAL_PATH = `${LIST_PATH}/${CARD_KEY}/original`
-const RECEIPT_PATH = `${LIST_PATH}/${CARD_KEY}/source-receipt`
-const CHECKS_PATH = `${LIST_PATH}/${CARD_KEY}/source-checks`
+const CURRENT_PATH = `${LIST_PATH}/${CARD_KEY}`
+const ORIGINAL_PATH = `${CURRENT_PATH}/original`
+const RECEIPT_PATH = `${CURRENT_PATH}/source-receipt`
+const CHECKS_PATH = `${CURRENT_PATH}/source-checks`
 const TITLE = 'Werkstudent (m/w/d) für barrierefreie Fahrgastinformation und regionale Nahverkehrsplanung (DEMO)'
 const SUBMITTED_AT = '2026-11-24T09:10:00.000Z'
 const SOURCE_URL = 'https://stellenbeispiel.invalid/jobs/werkstudent-fahrgastinformationssysteme-und-nahverkehrsplanung?quelle=campus&sprache=de'
@@ -39,7 +40,7 @@ async function openCard({ page, context, baseURL }, { receipt, failFirst = false
         await route.fulfill({ json: [card] })
         return
       }
-      if (original && url.pathname === ORIGINAL_PATH) {
+      if (url.pathname === (original ? ORIGINAL_PATH : CURRENT_PATH)) {
         await route.fulfill({ json: card })
         return
       }
@@ -81,7 +82,7 @@ async function openCard({ page, context, baseURL }, { receipt, failFirst = false
   const disclosure = summary.locator('..')
   await expect(summary).toBeVisible()
   await expect(disclosure).not.toHaveAttribute('open', '')
-  expect(calls).toEqual(original ? [LIST_PATH, ORIGINAL_PATH] : [LIST_PATH])
+  expect(calls).toEqual([LIST_PATH, original ? ORIGINAL_PATH : CURRENT_PATH])
   return { dialog, summary, disclosure, calls, checkCalls, unexpected }
 }
 
@@ -113,7 +114,7 @@ for (const { source, label, url, original } of CASES) {
       await expect(dialog.getByRole('button', { name: 'Edit card' })).toHaveCount(0)
     }
     await expect(dialog.getByRole('checkbox', { name: 'Show sources' })).not.toBeChecked()
-    expect(calls).toEqual(original ? [LIST_PATH, ORIGINAL_PATH, RECEIPT_PATH] : [LIST_PATH, RECEIPT_PATH])
+    expect(calls).toEqual([LIST_PATH, original ? ORIGINAL_PATH : CURRENT_PATH, RECEIPT_PATH])
     expect(unexpected).toEqual([])
   })
 }
@@ -129,7 +130,7 @@ test('Card import source retries a failed read and reports an unavailable receip
   await page.keyboard.press('Enter')
   await expect(error).toBeVisible()
   await expect(unavailable).toBeHidden()
-  expect(calls).toEqual([LIST_PATH, RECEIPT_PATH])
+  expect(calls).toEqual([LIST_PATH, CURRENT_PATH, RECEIPT_PATH])
 
   await retry.focus()
   await page.keyboard.press('Enter')
@@ -139,7 +140,7 @@ test('Card import source retries a failed read and reports an unavailable receip
   await expect(retry).toHaveCount(0)
   await expect(disclosure.getByRole('link')).toHaveCount(0)
   await expect(disclosure.getByText('Submitted', { exact: true })).toHaveCount(0)
-  expect(calls).toEqual([LIST_PATH, RECEIPT_PATH, RECEIPT_PATH])
+  expect(calls).toEqual([LIST_PATH, CURRENT_PATH, RECEIPT_PATH, RECEIPT_PATH])
   expect(unexpected).toEqual([])
 })
 
@@ -154,7 +155,7 @@ test('Card rechecks the import receipt when a quick close and reopen share one b
   await summary.press('Enter')
   const sourceLink = disclosure.getByRole('link', { name: SOURCE_URL, exact: true })
   await expect(sourceLink).toBeVisible()
-  expect(calls).toEqual([LIST_PATH, RECEIPT_PATH])
+  expect(calls).toEqual([LIST_PATH, CURRENT_PATH, RECEIPT_PATH])
 
   let refreshed = 0
   await context.route(`${API}${RECEIPT_PATH}`, async route => {
@@ -213,7 +214,7 @@ for (const width of [1440, 900]) {
     await expect(checks.getByRole('listitem')).toContainText('Still listed')
     expect(drafts).toEqual([{ check_id: expect.stringMatching(/^[0-9a-f-]{36}$/), result: 'listed' }])
     expect(checkCalls).toEqual(['GET', 'POST'])
-    expect(calls).toEqual([LIST_PATH, RECEIPT_PATH])
+    expect(calls).toEqual([LIST_PATH, CURRENT_PATH, RECEIPT_PATH])
     expect(unexpected).toEqual([])
     await checks.scrollIntoViewIfNeeded()
     await page.screenshot({ path: testInfo.outputPath('user-recorded-source-check.png') })

@@ -5,14 +5,16 @@ import { formatAddressPreview, formatEnumValue } from '../posting-card/details/P
 type CardLibraryProps = {
   cards: PostingCard[]
   deletingCardKeys: ReadonlySet<string>
+  openingCardKey: string | null
   onDelete: (cardKey: string) => void
-  onOpen: (card: PostingCard) => void
+  onOpen: (cardKey: string, opener: HTMLButtonElement) => void
   onShowOriginal: (cardKey: string) => void
 }
 
 export function CardLibrary({
   cards,
   deletingCardKeys,
+  openingCardKey,
   onDelete,
   onOpen,
   onShowOriginal,
@@ -29,6 +31,7 @@ export function CardLibrary({
           ? workModes.map(formatEnumValue).join(' · ')
           : 'Work mode not specified'
         const isDeleting = deletingCardKeys.has(card.card_key)
+        const isOpening = openingCardKey === card.card_key
 
         return (
           <li key={card.card_key} className="card-library__row">
@@ -36,8 +39,11 @@ export function CardLibrary({
             <button
               className="card-library__open"
               type="button"
-              onClick={() => onOpen(card)}
+              onClick={(event) => {
+                if (!isOpening) onOpen(card.card_key, event.currentTarget)
+              }}
               disabled={isDeleting}
+              aria-disabled={isOpening}
               aria-label={`View details: ${title} at ${company}`}
               aria-haspopup="dialog"
             >
