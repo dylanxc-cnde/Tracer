@@ -109,7 +109,7 @@ for (const width of [1440, 900]) {
     await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
-    await expect(open).toBeFocused()
+    await expect(results.getByRole('button', { name: `View saved job: ${freshTitle}`, exact: true })).toBeFocused()
     expect(calls).toEqual([LIST, nearPath])
     expect(unexpected).toEqual([])
   })

@@ -152,7 +152,7 @@ for (const { label, savedCards } of [
   })
 }
 
-const domainControl = (chart, domain, count) => chart.getByRole('button', { name: `${domain} ${count} of 5`, exact: true })
+const domainControl = (chart, domain, count, total = 5) => chart.getByRole('button', { name: `${domain} ${count} of ${total}`, exact: true })
 const savedJobControl = (group, card) => group.getByRole('button', { name: `View saved job: ${positionTitle(card)}`, exact: true })
 
 async function expectContributors(chart, name, contributors) {
@@ -200,13 +200,13 @@ for (const width of [1440, 900]) {
     await expect(dialog.getByRole('button', { name: 'Review match', exact: true })).toHaveCount(0)
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
-    await expect(opener).toBeFocused()
+    await expect(savedJobControl(dataList, fresh)).toBeFocused()
 
     await mobility.press('Enter')
     await expect(data).toHaveAttribute('aria-expanded', 'false')
     await expect(dataList).toHaveCount(0)
     await expect(mobility).toBeFocused()
-    await expectContributors(chart, `Saved Cards in ${LONG_DOMAIN}`, cards.slice(0, 2))
+    await expectContributors(chart, `Saved Cards in ${LONG_DOMAIN}`, [fresh, cards[1]])
 
     await missing.press('Enter')
     await expect(mobility).toHaveAttribute('aria-expanded', 'false')
@@ -305,8 +305,137 @@ test('Market role-domain drilldown retries a failed Card read from the same keyb
   await expect(opener).toBeFocused()
   expect(calls).toEqual([CARDS, path, path])
   expect(unexpected).toEqual([])
+  expectOnlyDetailDiagnostic(diagnostics, path, 503)
+})
+
+function expectOnlyDetailDiagnostic(diagnostics, path, status) {
   expect(diagnostics.length).toBeLessThanOrEqual(1)
   for (const diagnostic of diagnostics) {
-    expect(diagnostic).toEqual({ type: 'error', url: API + path, text: expect.stringContaining('503') })
+    expect(diagnostic).toEqual({ type: 'error', url: API + path, text: expect.stringContaining(String(status)) })
   }
-})
+}
+
+const sixCards = [
+  ...cards,
+  savedCard(6, 'Werkstudentin für Arbeitsrecht und Personalberatung (DEMO)', ['Arbeitsrecht']),
+]
+const updatedCard = savedCard(4, 'Aktualisiertes Praktikum für regionale Fahrgastdatenanalyse im Rheinland (DEMO)', ['Datenanalyse'])
+const updatedPath = cardPath(updatedCard)
+const deletedPath = cardPath(cards[4])
+
+for (const width of [1440, 900]) {
+  test(`Market reconciles updated and deleted Cards from current detail reads at ${width}×1000`, async ({ page, context, baseURL }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const { main, summary, chart, calls, unexpected, diagnostics } = await enterMarket({ page, context, baseURL }, sixCards, {
+      [updatedPath]: route => route.fulfill({ json: updatedCard }),
+      [deletedPath]: route => route.fulfill({ status: 404, json: { detail: 'Posting card not found' } }),
+    })
+    const reference = main.getByRole('combobox', { name: 'Reference saved job', exact: true })
+    await reference.press('Home')
+    await page.keyboard.press('ArrowDown')
+    await expect(reference).toHaveValue(cards[0].card_key)
+    const relatedName = 'Related saved jobs'
+    await expectContributors(main, relatedName, cards.slice(1, 3))
+
+    await summary.press('Enter')
+    await expect(chart.getByText('Based on 6 saved Cards.', { exact: true })).toBeVisible()
+    await expect(domainControl(chart, 'Datenanalyse', 3, 6)).toBeVisible()
+    await domainControl(chart, MISSING, 2, 6).press('Enter')
+    const missingList = await expectContributors(chart, MISSING, cards.slice(3))
+    expect(calls).toEqual([CARDS])
+
+    await savedJobControl(missingList, cards[3]).press('Enter')
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('heading', { name: positionTitle(updatedCard), exact: true })).toBeVisible()
+    await expect(dialog.getByText('Datenanalyse', { exact: true })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Edit card', exact: true })).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    const survivingGroup = domainControl(chart, MISSING, 1, 6)
+    await expect(survivingGroup).toBeFocused()
+    await expect(survivingGroup).toHaveAttribute('aria-expanded', 'true')
+    await expect(domainControl(chart, 'Datenanalyse', 4, 6)).toBeVisible()
+    await expectContributors(chart, MISSING, [cards[4]])
+    await expectContributors(main, relatedName, [cards[1], cards[2], updatedCard])
+    await expect(reference.locator(`option[value="${updatedCard.card_key}"]`)).toContainText(positionTitle(updatedCard))
+    expect(calls).toEqual([CARDS, updatedPath])
+
+    await page.keyboard.press('Tab')
+    await expect(savedJobControl(missingList, cards[4])).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(dialog).toHaveCount(0)
+    await expect(chart.getByText('Based on 5 saved Cards.', { exact: true })).toBeVisible()
+    await expect(chart.getByRole('alert')).toHaveText('This saved job is no longer available.')
+    await expect(chart.getByText(MISSING, { exact: true }).locator('..')
+      .getByText('0 of 5', { exact: true })).toBeVisible()
+    await expect(chart.getByRole('button', { name: new RegExp(`^${MISSING}`) })).toHaveCount(0)
+    await expect(missingList).toHaveCount(0)
+    await expect(summary).toBeFocused()
+    await expect(domainControl(chart, 'Datenanalyse', 4, 5)).toBeVisible()
+    await expect(reference.locator(`option[value="${cards[4].card_key}"]`)).toHaveCount(0)
+    await expectContributors(main, relatedName, [cards[1], cards[2], updatedCard])
+    expect(await chart.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await chart.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath('role-domain-current-counts.png'), animations: 'disabled' })
+    await domainControl(chart, 'Datenanalyse', 4, 5).press('Enter')
+    await expectContributors(chart, 'Saved Cards in Datenanalyse', [...cards.slice(0, 3), updatedCard])
+    expect(calls).toEqual([CARDS, updatedPath, deletedPath])
+    expect(unexpected).toEqual([])
+    expectOnlyDetailDiagnostic(diagnostics, deletedPath, 404)
+  })
+}
+
+for (const { status, width } of [{ status: 200, width: 1440 }, { status: 404, width: 900 }]) {
+  test(`Market keeps saved data after an aborted ${status} and a transient Card read failure at ${width}×1000`, async ({ page, context, baseURL }) => {
+    await page.setViewportSize({ width, height: 1000 })
+    if (width === 900) await page.emulateMedia({ reducedMotion: 'reduce' })
+    const held = Promise.withResolvers()
+    const replied = Promise.withResolvers()
+    const { summary, chart, calls, unexpected, diagnostics } = await enterMarket({ page, context, baseURL }, sixCards, {
+      [updatedPath]: async route => {
+        try {
+          await held.promise
+          await route.fulfill({ status, json: status === 200 ? updatedCard : { detail: 'Posting card not found' } })
+        } finally {
+          replied.resolve()
+        }
+      },
+      [deletedPath]: route => route.fulfill({ status: 503, json: { detail: 'Synthetic temporary failure' } }),
+    })
+    const missing = domainControl(chart, MISSING, 2, 6)
+    const data = domainControl(chart, 'Datenanalyse', 3, 6)
+    try {
+      await summary.press('Enter')
+      await missing.press('Enter')
+      const list = await expectContributors(chart, MISSING, cards.slice(3))
+      await savedJobControl(list, cards[3]).press('Enter')
+      await expect.poll(() => calls).toEqual([CARDS, updatedPath])
+      await data.press('Enter')
+      await expect(list).toHaveCount(0)
+    } finally {
+      held.resolve()
+    }
+    await replied.promise
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toHaveCount(0)
+    await expect(data).toBeFocused()
+    await expect(chart.getByText('Based on 6 saved Cards.', { exact: true })).toBeVisible()
+    await expect(chart.getByRole('alert')).toHaveCount(0)
+
+    await missing.press('Enter')
+    const list = await expectContributors(chart, MISSING, cards.slice(3))
+    const opener = savedJobControl(list, cards[4])
+    await opener.press('Enter')
+    await expect(list.getByRole('alert')).toHaveText('Could not open the saved job. Try again.')
+    await expect(opener).toBeFocused()
+    await expect(dialog).toHaveCount(0)
+    await expectContributors(chart, MISSING, cards.slice(3))
+    await expect(data).toBeVisible()
+    await expect(chart.getByText('Based on 6 saved Cards.', { exact: true })).toBeVisible()
+    expect(calls).toEqual([CARDS, updatedPath, deletedPath])
+    expect(unexpected).toEqual([])
+    expectOnlyDetailDiagnostic(diagnostics, deletedPath, 503)
+  })
+}

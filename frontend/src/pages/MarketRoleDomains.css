@@ -28,6 +28,11 @@
   color: var(--color-text-secondary);
 }
 
+.market-role-domains__body > .market-page__error {
+  margin-bottom: 10px;
+  color: var(--color-attention);
+}
+
 .market-role-domains__rows {
   display: grid;
   gap: 10px;

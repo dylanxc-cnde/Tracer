@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PostingCardDetails } from '../components/posting-card/details/PostingCardDetails'
 import { getPostingCard, listPostingCards, MissingPostingCardError } from '../postings/api/postings'
 import type { PostingCard } from '../postings/types/postingCard'
@@ -13,7 +13,21 @@ type SavedJobs =
   | { status: 'ready'; cards: PostingCard[] }
 
 type DetailScope = 'related' | 'watchlist' | 'role-domains'
-type Detail = (MarketJobRead | { status: 'opened'; card: PostingCard; opener: HTMLButtonElement }) & { scope: DetailScope }
+type FocusTargets = (HTMLElement | null)[]
+type Detail = (
+  | (MarketJobRead & { missing?: boolean; focusTargets?: FocusTargets })
+  | { status: 'opened'; card: PostingCard; focusTargets: FocusTargets }
+) & { scope: DetailScope }
+
+function restoreJobFocus(targets: FocusTargets) {
+  for (const target of targets) {
+    if (!target?.isConnected || target.matches(':disabled, [aria-disabled="true"]')) continue
+    const disclosure = target.closest('details')
+    if (disclosure && !disclosure.open && disclosure.firstElementChild !== target) continue
+    target.focus({ preventScroll: true })
+    return
+  }
+}
 
 export function MarketPage() {
   const [savedJobs, setSavedJobs] = useState<SavedJobs>({ status: 'loading' })
@@ -21,6 +35,7 @@ export function MarketPage() {
   const [referenceKey, setReferenceKey] = useState('')
   const [detail, setDetail] = useState<Detail | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
+  const referenceSelect = useRef<HTMLSelectElement>(null)
   const detailRequest = useRef<{ cardKey: string; scope: DetailScope; controller: AbortController }>(null)
 
   useEffect(() => {
@@ -45,6 +60,14 @@ export function MarketPage() {
 
   useEffect(() => () => detailRequest.current?.controller.abort(), [])
 
+  useLayoutEffect(() => {
+    if (detail?.status !== 'failed' || !detail.focusTargets) return
+    const active = document.activeElement
+    if (active === document.body || active === detail.focusTargets[0]) {
+      restoreJobFocus(detail.focusTargets)
+    }
+  }, [detail])
+
   function handleRetryList() {
     if (savedJobs.status !== 'failed') return
     heading.current?.focus({ preventScroll: true })
@@ -65,12 +88,37 @@ export function MarketPage() {
     setReferenceKey(cardKey)
   }
 
-  async function handleOpenJob(cardKey: string, opener: HTMLButtonElement, scope: DetailScope) {
+  function reconcileSavedJob(cardKey: string, updated?: PostingCard) {
+    setSavedJobs((current) => {
+      if (current.status !== 'ready') return current
+      const index = current.cards.findIndex((card) => card.card_key === cardKey)
+      if (index === -1) return current
+      const cards = current.cards.slice()
+      if (updated) cards[index] = updated
+      else cards.splice(index, 1)
+      return { status: 'ready', cards }
+    })
+  }
+
+  async function handleOpenJob(
+    cardKey: string,
+    opener: HTMLButtonElement,
+    scope: DetailScope,
+    groupTrigger: HTMLButtonElement | null = null,
+  ) {
     if (detailRequest.current?.cardKey === cardKey && detailRequest.current.scope === scope) return
     detailRequest.current?.controller.abort()
     const request = { cardKey, scope, controller: new AbortController() }
     detailRequest.current = request
     setDetail({ status: 'loading', cardKey, scope })
+    const disclosure = opener.closest('details')
+    const focusTargets = [
+      opener,
+      groupTrigger,
+      disclosure?.querySelector<HTMLElement>(':scope > summary') ?? null,
+      referenceSelect.current,
+      heading.current,
+    ]
 
     function isCurrent() {
       return detailRequest.current === request && !request.controller.signal.aborted && opener.isConnected &&
@@ -80,15 +128,23 @@ export function MarketPage() {
     try {
       const card = await getPostingCard(cardKey, request.controller.signal)
       if (isCurrent()) {
-        setDetail({ status: 'opened', card, opener, scope })
+        reconcileSavedJob(cardKey, card)
+        setDetail({ status: 'opened', card, focusTargets, scope })
       }
     } catch (error) {
       if (isCurrent()) {
+        const missing = error instanceof MissingPostingCardError
+        if (missing) {
+          reconcileSavedJob(cardKey)
+          setReferenceKey((current) => current === cardKey ? '' : current)
+        }
         setDetail({
           status: 'failed',
           cardKey,
           scope,
-          message: error instanceof MissingPostingCardError
+          missing,
+          focusTargets: missing && document.activeElement === opener ? focusTargets : undefined,
+          message: missing
             ? 'This saved job is no longer available.'
             : 'Could not open the saved job. Try again.',
         })
@@ -103,12 +159,8 @@ export function MarketPage() {
 
   function handleCloseJob() {
     if (detail?.status !== 'opened') return
-    const { opener, scope } = detail
     setDetail(null)
-    if (opener.isConnected && !opener.disabled && opener.getAttribute('aria-disabled') !== 'true' &&
-      (scope === 'related' || opener.closest('details')?.open)) {
-      opener.focus({ preventScroll: true })
-    }
+    restoreJobFocus(detail.focusTargets)
   }
 
   const cards = savedJobs.status === 'ready' ? savedJobs.cards : []
@@ -121,6 +173,7 @@ export function MarketPage() {
       .map(([, label]) => label)
     return sharedDomains.length ? [{ card, sharedDomains }] : []
   }) : []
+  const missingNotice = detail?.status === 'failed' && detail.missing ? detail.message : null
 
   let resultStatus: string | undefined
   if (savedJobs.status === 'ready') {
@@ -149,7 +202,7 @@ export function MarketPage() {
         </>}
         {cards.length > 0 && <label className="market-page__reference">
           Reference saved job
-          <select value={referenceKey} onChange={(event) => handleReferenceChange(event.target.value)}>
+          <select ref={referenceSelect} value={referenceKey} onChange={(event) => handleReferenceChange(event.target.value)}>
             <option value="">Choose a saved job</option>
             {cards.map((card) => <option key={card.card_key} value={card.card_key}>
               {savedJobTitle(card)} · {savedJobCompany(card)}
@@ -158,6 +211,7 @@ export function MarketPage() {
         </label>}
         {reference && <p className="market-page__reference-title" aria-hidden="true">{savedJobTitle(reference)}</p>}
         {resultStatus && <p className="market-page__result-status" role="status">{resultStatus}</p>}
+        {detail?.scope === 'related' && missingNotice && <p className="market-page__error" role="alert">{missingNotice}</p>}
         {relatedJobs.length > 0 && <ul
           key={referenceKey}
           className="market-page__jobs"
@@ -191,7 +245,8 @@ export function MarketPage() {
       {savedJobs.status === 'ready' && <MarketRoleDomains
         cards={savedJobs.cards}
         detailRead={detail?.scope === 'role-domains' && detail.status !== 'opened' ? detail : null}
-        onOpenJob={(cardKey, opener) => void handleOpenJob(cardKey, opener, 'role-domains')}
+        missingJobNotice={detail?.scope === 'role-domains' ? missingNotice : null}
+        onOpenJob={(cardKey, opener, groupTrigger) => void handleOpenJob(cardKey, opener, 'role-domains', groupTrigger)}
         onDismiss={() => dismissDetails('role-domains')}
       />}
       {detail?.status === 'opened' && <PostingCardDetails
