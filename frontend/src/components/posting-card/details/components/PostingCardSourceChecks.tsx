@@ -7,7 +7,7 @@ import {
   recordPostingSourceCheck,
 } from '../../../../postings/api/postings'
 import { postingSourceCheckLabels } from '../../../../postings/sourceCheckLabels'
-import type { PostingSourceCheck, PostingSourceCheckResult, RecordPostingSourceCheckRequest } from '../../../../postings/types/postingCard'
+import type { PostingSourceCheck, PostingSourceCheckResult, PostingSourceObservation, RecordPostingSourceCheckRequest } from '../../../../postings/types/postingCard'
 
 type Recovery = { request: RecordPostingSourceCheckRequest; retryAllowed: boolean }
 type Feedback = { kind: 'success' | 'error'; message: string }
@@ -17,11 +17,13 @@ export function PostingCardSourceChecks({
   isSourceOpen,
   canRecord,
   onSourceUnavailable,
+  onSourceCheckObserved,
 }: {
   cardKey: string
   isSourceOpen: boolean
   canRecord: boolean
   onSourceUnavailable: () => void
+  onSourceCheckObserved?: (observation: PostingSourceObservation) => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [history, setHistory] = useState<PostingSourceCheck[] | null>(null)
@@ -34,6 +36,7 @@ export function PostingCardSourceChecks({
   const readRequest = useRef<AbortController>(null)
   const saving = useRef(false)
   const active = useRef(false)
+  const disclosure = useRef<HTMLDetailsElement>(null)
   const summary = useRef<HTMLElement>(null)
   const recordButton = useRef<HTMLButtonElement>(null)
 
@@ -60,9 +63,13 @@ export function PostingCardSourceChecks({
 
     try {
       const checks = await getPostingSourceChecks(cardKey, controller.signal)
-      if (controller.signal.aborted) return
+      if (controller.signal.aborted || readRequest.current !== controller) return
       setHistory(checks)
       setReadError(false)
+      const latest = checks[0]
+      if (latest && disclosure.current?.open) {
+        onSourceCheckObserved?.({ result: latest.result, recorded_at: latest.recorded_at })
+      }
       if (verify) {
         const existing = checks.find((check) => check.check_id === verify.check_id)
         if (existing?.result === verify.result) {
@@ -139,7 +146,7 @@ export function PostingCardSourceChecks({
   }
 
   return (
-    <details className="posting-card-import-source__checks" open={isSourceOpen && isOpen} onToggle={handleToggle}>
+    <details className="posting-card-import-source__checks" ref={disclosure} open={isSourceOpen && isOpen} onToggle={handleToggle}>
       <summary ref={summary}>Source checks</summary>
       {isSourceOpen && isOpen && <div className="posting-card-import-source__check-history">
         <div role="status">

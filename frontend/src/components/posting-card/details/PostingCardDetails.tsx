@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import './PostingCardDetails.css'
 import type {
   PostingCard,
+  PostingSourceObservation,
   UpdatePostingCardRequest,
 } from '../../../postings/types/postingCard'
 import type { PostingDetails } from '../../../postings/types/postingDetails'
@@ -51,6 +52,7 @@ type PostingCardDetailsProps = {
     request: UpdatePostingCardRequest,
   ) => Promise<PostingCard>
   onSavedVersion?: (card: PostingCard) => void
+  onSourceCheckObserved?: (observation: PostingSourceObservation) => void
 }
 
 type SourceInspection = { cardKey: string }
@@ -62,6 +64,7 @@ export function PostingCardDetails({
   onClose,
   onUpdate,
   onSavedVersion,
+  onSourceCheckObserved,
 }: PostingCardDetailsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const saveButton = useRef<HTMLButtonElement>(null)
@@ -260,7 +263,11 @@ export function PostingCardDetails({
           />
         )}
 
-        <PostingCardImportSource key={card.card_key} cardKey={card.card_key} isReadOnly={isReadOnly} />
+        <PostingCardImportSource key={card.card_key} cardKey={card.card_key} isReadOnly={isReadOnly}
+          onSourceCheckObserved={onSourceCheckObserved && ((observation) => {
+            if (dialogRef.current?.open) onSourceCheckObserved(observation)
+          })}
+        />
 
         <PostingCardSourceEvidence
           source={posting.identity.source}

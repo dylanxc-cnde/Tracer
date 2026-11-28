@@ -6,6 +6,7 @@ import { savedCardsWithRoleDomains, savedJobCompany, savedJobTitle } from './mar
 import type { MarketJobRead } from './marketJobs'
 import { MarketRoleDomains } from './MarketRoleDomains'
 import { MarketWatchlist } from './MarketWatchlist'
+import type { MarketWatchlistHandle } from './MarketWatchlist'
 import './MarketPage.css'
 
 type SavedJobs =
@@ -38,6 +39,7 @@ export function MarketPage() {
   const [detail, setDetail] = useState<Detail | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   const referenceSelect = useRef<HTMLSelectElement>(null)
+  const watchlist = useRef<MarketWatchlistHandle>(null)
   const detailRequest = useRef<{ cardKey: string; scope: DetailScope; controller: AbortController }>(null)
 
   useEffect(() => {
@@ -190,6 +192,7 @@ export function MarketPage() {
     <div className="market-page">
       <h1 className="page-title">Market</h1>
       <MarketWatchlist
+        ref={watchlist}
         cards={cards}
         detailRead={detail?.scope === 'watchlist' && detail.status !== 'opened' ? detail : null}
         onOpenJob={(cardKey, opener) => void handleOpenJob(cardKey, opener, 'watchlist')}
@@ -255,6 +258,9 @@ export function MarketPage() {
       {detail?.status === 'opened' && <PostingCardDetails
         card={detail.card}
         isReadOnly
+        onSourceCheckObserved={detail.scope === 'watchlist'
+          ? (observation) => watchlist.current?.observeSourceCheck(detail.card.card_key, observation)
+          : undefined}
         onClose={handleCloseJob}
         onUpdate={async () => { throw new Error('Edit this job in Card library.') }}
       />}

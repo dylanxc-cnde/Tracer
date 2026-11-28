@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { SyntheticEvent } from 'react'
 import { getPostingCardSourceReceipt } from '../../../../postings/api/postings'
+import type { PostingSourceObservation } from '../../../../postings/types/postingCard'
 import type { PostingImportReceipt } from '../../../../postings/types/postingImport'
 import { getSafeHttpUrl } from '../PostingCardSanitizers'
 import { PostingCardSourceChecks } from './PostingCardSourceChecks'
@@ -9,8 +10,13 @@ import './PostingCardImportSource.css'
 type ReceiptRead = { status: 'loading' | 'retrying' | 'failed' }
   | { status: 'ready'; receipt: PostingImportReceipt | null }
 
-export function PostingCardImportSource({ cardKey, isReadOnly }: { cardKey: string; isReadOnly: boolean }) {
+export function PostingCardImportSource({ cardKey, isReadOnly, onSourceCheckObserved }: {
+  cardKey: string
+  isReadOnly: boolean
+  onSourceCheckObserved?: (observation: PostingSourceObservation) => void
+}) {
   const [isOpen, setIsOpen] = useState(false)
+  const disclosure = useRef<HTMLDetailsElement>(null)
   const summary = useRef<HTMLElement>(null)
   const [read, setRead] = useState<ReceiptRead>({ status: 'loading' })
   const retryButton = useRef<HTMLButtonElement>(null)
@@ -50,7 +56,7 @@ export function PostingCardImportSource({ cardKey, isReadOnly }: { cardKey: stri
   const safeSourceUrl = getSafeHttpUrl(receipt?.source_url ?? null)
 
   return (
-    <details className="posting-card-import-source" onToggle={handleToggle}>
+    <details className="posting-card-import-source" ref={disclosure} onToggle={handleToggle}>
       <summary ref={summary}>Import source</summary>
       {isOpen && <div className="posting-card-import-source__receipt">
         <div role="status">
@@ -82,6 +88,9 @@ export function PostingCardImportSource({ cardKey, isReadOnly }: { cardKey: stri
         isSourceOpen={isOpen}
         canRecord={!isReadOnly && safeSourceUrl !== null}
         onSourceUnavailable={() => setRead({ status: 'ready', receipt: null })}
+        onSourceCheckObserved={onSourceCheckObserved && ((observation) => {
+          if (disclosure.current?.open) onSourceCheckObserved(observation)
+        })}
       />
     </details>
   )

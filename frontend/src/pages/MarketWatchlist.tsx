@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import type { SyntheticEvent } from 'react'
+import { useEffect, useImperativeHandle, useRef, useState } from 'react'
+import type { Ref, SyntheticEvent } from 'react'
 import { changePostingWatch, getPostingWatchlist, MissingPostingCardError, PostingWatchlistUncertainError } from '../postings/api/postings'
 import { postingSourceCheckLabels } from '../postings/sourceCheckLabels'
-import type { PostingCard, WatchedPostingCard } from '../postings/types/postingCard'
+import type { PostingCard, PostingSourceObservation, WatchedPostingCard } from '../postings/types/postingCard'
 import { savedJobCompany, savedJobTitle } from './marketJobs'
 import type { MarketJobRead } from './marketJobs'
 import './MarketWatchlist.css'
@@ -11,7 +11,12 @@ type WatchChange = { cardKey: string; watching: boolean }
 type Recovery = { change: WatchChange; retryAllowed: boolean }
 type Feedback = { error: boolean; message: string }
 
+export type MarketWatchlistHandle = {
+  observeSourceCheck: (cardKey: string, observation: PostingSourceObservation) => void
+}
+
 type WatchlistProps = {
+  ref: Ref<MarketWatchlistHandle>
   cards: PostingCard[]
   detailRead: MarketJobRead | null
   onOpenJob: (cardKey: string, opener: HTMLButtonElement) => void
@@ -24,7 +29,26 @@ type ReadOptions = {
   replace?: boolean
 }
 
-export function MarketWatchlist({ cards, detailRead, onOpenJob, onDismiss }: WatchlistProps) {
+function submillisecondPart(timestamp: string) {
+  const fraction = timestamp.match(/\.\d{3}(\d+)/)?.[1]
+  return fraction ? Number(`0.${fraction}`) : 0
+}
+
+function newestSourceCheck(previous: WatchedPostingCard['last_source_check'], received: WatchedPostingCard['last_source_check']) {
+  if (!previous) return received
+  if (!received) return previous
+  // Date.parse truncates the server's microsecond timestamps to milliseconds.
+  const difference = Date.parse(received.recorded_at) - Date.parse(previous.recorded_at) ||
+    submillisecondPart(received.recorded_at) - submillisecondPart(previous.recorded_at)
+  return difference > 0 ? received : previous
+}
+
+function keepLatestProjection(row: WatchedPostingCard, previous: WatchedPostingCard['last_source_check']) {
+  const latest = newestSourceCheck(previous, row.last_source_check)
+  return latest === row.last_source_check ? row : { ...row, last_source_check: latest }
+}
+
+export function MarketWatchlist({ ref, cards, detailRead, onOpenJob, onDismiss }: WatchlistProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [watched, setWatched] = useState<WatchedPostingCard[] | null>(null)
   const [selection, setSelection] = useState('')
@@ -37,6 +61,19 @@ export function MarketWatchlist({ cards, detailRead, onOpenJob, onDismiss }: Wat
   const readRequest = useRef<AbortController>(null)
   const writing = useRef(false)
   const summary = useRef<HTMLElement>(null)
+
+  useImperativeHandle(ref, () => ({
+    observeSourceCheck(cardKey, observation) {
+      if (!summary.current?.closest('details')?.open) return
+      setWatched((current) => {
+        const row = current?.find((entry) => entry.card_key === cardKey)
+        if (!current || !row) return current
+        const latest = newestSourceCheck(row.last_source_check, observation)
+        if (latest === row.last_source_check) return current
+        return current.map((entry) => entry === row ? { ...entry, last_source_check: latest } : entry)
+      })
+    },
+  }), [])
 
   useEffect(() => {
     active.current = true
@@ -70,7 +107,10 @@ export function MarketWatchlist({ cards, detailRead, onOpenJob, onDismiss }: Wat
     try {
       const rows = await getPostingWatchlist(request.signal)
       if (request.signal.aborted) return
-      setWatched(rows)
+      setWatched((current) => {
+        const previous = new Map(current?.map((row) => [row.card_key, row.last_source_check]))
+        return rows.map((row) => keepLatestProjection(row, previous.get(row.card_key)))
+      })
       setReadError(false)
       if (verify) {
         const isWatched = rows.some((row) => row.card_key === verify.cardKey)
@@ -124,7 +164,8 @@ export function MarketWatchlist({ cards, detailRead, onOpenJob, onDismiss }: Wat
       if (!active.current) return
       setWatched((current) => {
         const others = (current ?? []).filter((row) => row.card_key !== change.cardKey)
-        return saved ? [saved, ...others].sort((left, right) =>
+        const previous = current?.find((row) => row.card_key === change.cardKey)?.last_source_check
+        return saved ? [keepLatestProjection(saved, previous), ...others].sort((left, right) =>
           Date.parse(right.watched_at) - Date.parse(left.watched_at)) : others
       })
       finishChange(change)
